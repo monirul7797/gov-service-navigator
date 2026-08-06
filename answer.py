@@ -54,6 +54,9 @@ ANSWER_SYSTEM_PROMPT = (
     "specific value is not in the context, do not state it as fact.\n"
     "- Give money amounts as the numeric figure only (e.g. ৳১০,৩৫০), copied from the context; "
     "NEVER spell an amount out in words. When answering in Bangla, write all numbers in Bengali numerals.\n"
+    "- Use the CONVERSATION SO FAR (when provided) to interpret follow-up questions — resolve "
+    "what 'it', 'that', or a short elliptical reply refers to. Still ground every fact in the "
+    "CONTEXT PASSAGES, never in the conversation alone.\n"
     "- You MAY use your own words and general understanding to explain what something is, why it "
     "matters, and how the options relate. The grounding rule is about specific facts, not phrasing.\n"
     "- When the exact answer depends on details the user hasn't given (e.g. a passport fee depends "
@@ -126,7 +129,7 @@ def retrieve(question, backend, model, colls, only_service=None, per_service_k=P
     return norm, hits
 
 
-def answer(question, backend, model, colls, only_service=None):
+def answer(question, backend, model, colls, only_service=None, history=None):
     norm, hits = retrieve(question, backend, model, colls, only_service=only_service)
 
     if not hits or hits[0]["sim"] < GROUNDING_FLOOR:
@@ -134,7 +137,12 @@ def answer(question, backend, model, colls, only_service=None):
                 "normalized": norm.normalized, "services": []}
 
     context = "\n\n".join(f"[{i+1}] {h['heading']}\n{h['text']}" for i, h in enumerate(hits))
-    user_msg = f"CONTEXT PASSAGES:\n{context}\n\nQUESTION: {question}"
+    convo = ""
+    if history:
+        lines = [f"{'User' if t['role'] == 'user' else 'Assistant'}: {t['content']}"
+                 for t in history[-6:]]                      # last few turns only, to stay bounded
+        convo = "CONVERSATION SO FAR:\n" + "\n".join(lines) + "\n\n"
+    user_msg = f"{convo}CONTEXT PASSAGES:\n{context}\n\nQUESTION: {question}"
     reply = backend.complete(ANSWER_SYSTEM_PROMPT, user_msg, max_tokens=ANSWER_MAX_TOKENS)
 
     sources = list(dict.fromkeys(h["source_url"] for h in hits if h["source_url"]))
@@ -146,11 +154,13 @@ def answer(question, backend, model, colls, only_service=None):
 def handle_turn(raw, state, backend, model, colls, reg):
     """Process one user turn given conversation state — the single orchestration shared by
     both the CLI and the Streamlit app. Returns (response, new_state).
-      state    = {"pending": (orig_q, offered_services) | None, "last": (q, service) | None}
+      state    = {"pending": (orig_q, offered_services) | None, "last": (q, service) | None,
+                  "history": [{"role","content"}, ...]}
       response = {"kind": "clarify", "question": str}
               or answer()'s dict + {"kind": "answer", "scoped": service | None}
     """
     pending, last = state.get("pending"), state.get("last")
+    history = state.get("history") or []
     q, only_service, handled = raw, None, False
 
     # 1) reply to a pending service-clarify (e.g. "passport")
@@ -169,15 +179,19 @@ def handle_turn(raw, state, backend, model, colls, reg):
     if not handled:
         d = decide(raw, reg)
         if d["action"] == "clarify":
+            new_hist = (history + [{"role": "user", "content": raw},
+                                   {"role": "assistant", "content": d["question"]}])[-8:]
             return ({"kind": "clarify", "question": d["question"]},
-                    {"pending": (raw, d["services"]), "last": last})
+                    {"pending": (raw, d["services"]), "last": last, "history": new_hist})
         if d["action"] == "scope":
             only_service = d["service"]
 
-    result = answer(q, backend, model, colls, only_service=only_service)
+    result = answer(q, backend, model, colls, only_service=only_service, history=history)
     result["kind"] = "answer"
     result["scoped"] = only_service
-    return result, {"pending": None, "last": (q, only_service)}
+    new_hist = (history + [{"role": "user", "content": raw},
+                           {"role": "assistant", "content": result["answer"]}])[-8:]
+    return result, {"pending": None, "last": (q, only_service), "history": new_hist}
 
 
 def main():
