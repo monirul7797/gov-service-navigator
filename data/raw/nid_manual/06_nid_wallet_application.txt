@@ -1,0 +1,12 @@
+SECTION: NID Wallet Application (এনআইডি ওয়ালেট)
+SOURCE: Bangladesh Election Commission / NID Wallet App Guidelines
+
+PURPOSE:
+NID Wallet is a multi-purpose application developed by the Bangladesh Election Commission for Identity Verification. It adds a layer of security to ensure no one else can claim your account on the Bangladesh Election Commission website.
+
+HOW TO USE:
+1. Install the NID Wallet app on a smartphone with a camera and internet connectivity.
+2. Disable the desktop mode of the browser while registering on the portal.
+3. When the QR code page appears on the portal, launch the App by pressing the red button to scan the QR code.
+4. Scan your face using the app to verify your identity.
+5. If the scanner fails, the browser provides a code that can be copied and entered into the app manually.

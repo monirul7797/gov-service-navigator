@@ -1,0 +1,111 @@
+# =============================================================================
+# VERIFIED SOURCE REGISTRY  —  Government Service Navigator (Phase 1)
+# -----------------------------------------------------------------------------
+# HARD RULE: Every host below MUST be an official Government of Bangladesh
+# domain (ends in `.gov.bd`). The fetcher refuses any URL whose host is not in
+# `allowed_hosts`. This is the mechanism that enforces "verified sources only".
+#
+# `verified_on` = date a human confirmed the URL was live and official.
+# `render`      = "static" (requests+bs4) | "js" (Playwright) | "pdf" (pdfplumber)
+# `lang`        = expected language(s) of the page: en, bn, or [en, bn]
+# =============================================================================
+
+allowed_hosts:
+  - services.nidw.gov.bd
+  - ecs.gov.bd
+  - www.ecs.gov.bd
+  - epassport.gov.bd
+  - www.epassport.gov.bd
+  - dip.gov.bd
+  - nbr.gov.bd
+  - www.nbr.gov.bd
+  - etaxnbr.gov.bd
+  - bdris.gov.bd
+  - everify.bdris.gov.bd
+  - orgbdr.gov.bd
+
+services:
+
+  nid:
+    label_en: "National ID (NID)"
+    label_bn: "জাতীয় পরিচয়পত্র"
+    authority: "Bangladesh Election Commission — National Identity Registration Wing"
+    seeds:
+      - url: "https://services.nidw.gov.bd/nid-pub/"
+        render: js
+        lang: [en, bn]
+        note: "Public portal landing; General Information / FAQ / How to Register links"
+        verified_on: "2026-07-12"
+      - url: "https://www.ecs.gov.bd/"
+        render: static
+        lang: [bn, en]
+        note: "Election Commission main site; forms, notices, laws"
+        verified_on: "2026-07-12"
+
+  epassport:
+    label_en: "e-Passport"
+    label_bn: "ই-পাসপোর্ট"
+    authority: "Department of Immigration & Passports (DIP), Ministry of Home Affairs"
+    seeds:
+      - url: "https://www.epassport.gov.bd/instructions/five-step-to-your-epassport"
+        render: static
+        lang: en
+        note: "5-step application overview"
+        verified_on: "2026-07-12"
+      - url: "https://www.epassport.gov.bd/instructions/passport-fees"
+        render: static
+        lang: en
+        note: "Official fee schedule by pages/validity/delivery"
+        verified_on: "2026-07-12"
+      - url: "https://www.epassport.gov.bd/landing"
+        render: js
+        lang: en
+        note: "Instruction hub — enumerate remaining /instructions/* pages here"
+        verified_on: "2026-07-12"
+      - url: "https://dip.gov.bd/"
+        render: static
+        lang: [bn, en]
+        note: "DIP parent department — office locator, notices"
+        verified_on: "2026-07-12"
+
+  etax:
+    label_en: "Income Tax e-Return"
+    label_bn: "আয়কর ই-রিটার্ন"
+    authority: "National Board of Revenue (NBR)"
+    seeds:
+      - url: "https://nbr.gov.bd/"
+        render: static
+        lang: [bn, en]
+        note: "NBR home; links to income-tax guide + e-Return FAQ 2025"
+        verified_on: "2026-07-12"
+      - url: "https://nbr.gov.bd/form/income-tax/eng"
+        render: static
+        lang: en
+        note: "Income tax forms (IT-11GA, IT-10B, return forms, etc.)"
+        verified_on: "2026-07-12"
+      - url: "https://etaxnbr.gov.bd/"
+        render: js
+        lang: [en, bn]
+        note: "e-Return portal — registration/login/FAQ/user-manual (JS SPA)"
+        verified_on: "2026-07-12"
+
+  bdris:
+    label_en: "Birth & Death Registration (BDRIS)"
+    label_bn: "জন্ম ও মৃত্যু নিবন্ধন"
+    authority: "Office of the Registrar General, Birth & Death Registration"
+    seeds:
+      - url: "https://bdris.gov.bd/"
+        render: js
+        lang: [bn, en]
+        note: "BDRIS application portal (JS)"
+        verified_on: "2026-07-12"
+      - url: "https://orgbdr.gov.bd/"
+        render: static
+        lang: bn
+        note: "Registrar General office site — notices, rules, fees, contacts"
+        verified_on: "2026-07-12"
+      - url: "https://everify.bdris.gov.bd/"
+        render: static
+        lang: [bn, en]
+        note: "Certificate verification endpoint"
+        verified_on: "2026-07-12"

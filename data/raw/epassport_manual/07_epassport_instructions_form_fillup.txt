@@ -1,0 +1,68 @@
+SECTION: Instructions — Form Fill-up (নির্দেশাবলী)
+SOURCE: epassport.gov.bd/instructions/instructions
+LANGUAGE: Bilingual (English + Bangla, verbatim portal copy)
+
+e-Passport Form Fill-up Instructions (Documents & Eligibility)
+ই-পাসপোর্ট ফরম পূরণের নির্দেশাবলী — কাগজপত্র ও যোগ্যতা
+
+--- মূল বাংলা / Original Bangla (verbatim, epassport.gov.bd/instructions/instructions) ---
+1। ই-পাসপোর্টের আবেদনপত্র অনলাইনে পূরণ করা যাবে।
+2। ই-পাসপোর্ট আবেদনের ক্ষেত্রে কোন কাগজপত্র সত্যায়ন করার প্রয়োজন হবে না।
+3। ই-পাসপোর্ট ফরমে কোন ছবি সংযোজন এবং তা সত্যায়নের প্রয়োজন হবে না।
+4। জাতীয় পরিচয়পত্র (NID) অথবা অনলাইন জন্মনিবন্ধন সনদ (BRC English Version) অনুযায়ী আবেদন পত্র পূরণ করতে হবে।
+5। অপ্রাপ্ত বয়স্ক (১৮ বছরের কম) আবেদনকারী যার জাতীয় পরিচয়পত্র (NID) নাই, তার পিতা অথবা মাতার জাতীয় পরিচয়পত্র (NID) নম্বর অবশ্যই উল্লেখ করতে হবে।
+6। জাতীয় পরিচয়পত্র (NID) অথবা অনলাইন জন্মনিবন্ধন সনদ (BRC English Version) নিম্নোক্ত বয়স অনুসারে দাখিল করতে হবে- (ক) ১৮ বছরের নিম্নে হলে অনলাইন জন্মনিবন্ধন সনদ (BRC English Version)। (খ) ১৮-২০ বছর হলে জাতীয় পরিচয়পত্র (NID) অথবা অনলাইন জন্মনিবন্ধন সনদ (BRC English Version)। (গ) ২০ বছরের উর্ধে হলে জাতীয় পরিচয়পত্র (NID) আবশ্যক। তবে বিদেশস্থ বাংলাদেশ মিশন হতে আবেদনের ক্ষেত্রে অনলাইন জন্মনিবন্ধন সনদ (BRC English Version) গ্রহণযোগ্য হবে।
+7। তারকা চিহ্নিত ক্রমিক নম্বরগুলো অবশ্যই পূরণীয়।
+11। প্রাসঙ্গিক টেকনিক্যাল সনদসমূহ (যেমন: ডাক্তার, ইঞ্জিনিয়ার, ড্রাইভার ইত্যাদি) আপলোড/সংযোজন করতে হবে।
+13। প্রযোজ্য ক্ষেত্রে বিবাহ সনদ/নিকাহনামা এবং বিবাহ বিচ্ছেদের ক্ষেত্রে তালাকনামা দাখিল করতে হবে।
+19। আবেদনের সময় মূল জাতীয় পরিচয়পত্র (NID), অনলাইন জন্মনিবন্ধন সনদ (BRC English Version) এবং প্রযোজ্য ক্ষেত্রে টেকনিক্যাল সনদ, সরকারি আদেশ (GO)/অনাপত্তি (NOC) প্রদর্শন/দাখিল করতে হবে।
+20। পাসপোর্ট রি-ইস্যুর ক্ষেত্রে মূল পাসপোর্ট প্রদর্শন করতে হবে।
+21। হারানো পাসপোর্টের ক্ষেত্রে মূল জিডির কপি প্রদর্শন/দাখিল করতে হবে। পাসপোর্ট হারিয়ে গেলে অথবা চুরি হলে দ্রুত নিকটস্থ থানায় জিডি করতে হবে। পুনরায় পাসপোর্টের জন্য আবেদনের সময় পুরাতন পাসপোর্টের ফটোকপি এবং জিডি কপিসহ আবেদনপত্র দাখিল করতে হবে।
+22। ০৬ বছর বয়সের নিম্নের আবেদনের ক্ষেত্রে ৩ আর (3R Size) সাইজের (ল্যাব প্রিন্ট গ্রে ব্যাকগ্রাউন্ড) ছবি দাখিল করতে হবে।
+
+--- English translation (for reference) ---
+- The application is filled online; no document attestation and no photo attestation is required.
+- Fill per NID or online BRC (English version).
+- Applicants under 18 without NID must state a parent’s NID number.
+- Document by age: under 18 → BRC (English); 18–20 → NID or BRC (English); above 20 → NID mandatory (BRC English accepted from foreign missions).
+- Star-marked serials are mandatory.
+- Upload relevant technical certificates (doctor, engineer, driver, etc.).
+- Where applicable submit marriage certificate/nikahnama, or divorce deed (talaqnama).
+- At application, show/submit original NID, online BRC (English), and where applicable technical certificate and GO/NOC.
+- For re-issue, show the original passport.
+- For a lost passport, show/submit the original GD; file a GD promptly at the nearest police station if lost or stolen, and submit a photocopy of the old passport plus GD copy when re-applying.
+- Applicants under 06 must submit a 3R size (lab print, grey background) photo.
+
+e-Passport Form Fill-up Instructions (Police Clearance & Timelines)
+ই-পাসপোর্ট ফরম পূরণের নির্দেশাবলী — পুলিশ ক্লিয়ারেন্স ও সময়সীমা
+
+--- মূল বাংলা / Original Bangla (verbatim, epassport.gov.bd/instructions/instructions) ---
+12। প্রযোজ্য ক্ষেত্রে প্রাসঙ্গিক জিও (GO)/এনওসি (NOC)/ প্রত্যয়নপত্র/ অবসরোত্তর ছুটির আদেশ (PRL Order)/ পেনশন বই আপলোড/সংযোজন করতে হবে যা ইস্যুকারী কর্তৃপক্ষের নিজ নিজ Website এ আপলোড থাকতে হবে।
+17। অতি জরুরী পাসপোর্টের আবেদনের ক্ষেত্রে (নতুন ইস্যু) নিজ উদ্যোগে পুলিশ ক্লিয়ারেন্স সনদ সংগ্রহ পূর্বক আবশ্যিকভাবে আবেদনের সাথে দাখিল করতে হবে।
+18। (ক) দেশের অভ্যন্তরে অতি জরুরী পাসপোর্ট প্রাপ্তির লক্ষ্যে আবেদনের সাথে পুলিশ ক্লিয়ারেন্স দাখিল করা হলে অন্যান্য সকল তথ্য সঠিক থাকা সাপেক্ষে ২ কর্মদিবসের মধ্যে পাসপোর্ট প্রদান করা হবে। (খ) দেশের অভ্যন্তরে জরুরী পাসপোর্ট প্রাপ্তির লক্ষ্যে আবেদনের সাথে পুলিশ ক্লিয়ারেন্স দাখিল করা হলে অন্যান্য সকল তথ্য সঠিক থাকা সাপেক্ষে ৭ কর্মদিবসের মধ্যে পাসপোর্ট প্রদান করা হবে। (গ) দেশের অভ্যন্তরে রেগুলার পাসপোর্ট প্রাপ্তির লক্ষ্যে আবেদনের সাথে পুলিশ ক্লিয়ারেন্স দাখিল করা হলে অন্যান্য সকল তথ্য সঠিক থাকা সাপেক্ষে ১৫ কর্মদিবসের মধ্যে পাসপোর্ট প্রদান করা হবে।
+
+তথ্যসূত্রঃ বহিরাগমন শাখা ১, সুরক্ষা সেবা বিভাগ, স্বরাষ্ট্র মন্ত্রণালয় (স্মারক নং ৫৮.০০.০০০০.০৪০.০১.০০৩.১৬-১২৩৪)।
+
+--- English translation (for reference) ---
+- Where applicable, upload GO/NOC/certificate/PRL order/pension book (should be on the issuing authority’s website).
+- For super-express (new issue), obtain a Police Clearance Certificate yourself and submit it mandatorily with the application.
+- Delivery when police clearance is submitted (inside Bangladesh, all info correct): super-express → 2 working days; express → 7 working days; regular → 15 working days.
+
+e-Passport Form Fill-up Instructions (Submission & Office)
+ই-পাসপোর্ট ফরম পূরণের নির্দেশাবলী — দাখিল ও অফিস
+
+--- মূল বাংলা / Original Bangla (verbatim, epassport.gov.bd/instructions/instructions) ---
+8। দত্তক/অভিভাবকত্ব গ্রহণের ক্ষেত্রে পাসপোর্টের আবেদনের সাথে সুরক্ষা সেবা বিভাগ, স্বরাষ্ট্র মন্ত্রণালয় হতে জারিকৃত আদেশ দাখিল করতে হবে।
+9। আবেদন বর্তমান ঠিকানা সংশ্লিষ্ট বিভাগীয় পাসপোর্ট ও ভিসা অফিস/আঞ্চলিক পাসপোর্ট অফিস/বিদেশস্থ বাংলাদেশ মিশনে দাখিল করতে হবে।
+10। ১৮ বছরের নিম্নের সকল আবেদনে ই-পাসপোর্টের মেয়াদ হবে ০৫ বছর এবং ৪৮ পৃষ্ঠার।
+14। দেশের অভ্যন্তরে আবেদনের ক্ষেত্রে প্রযোজ্য ফি এর উপর নির্ধারিত হারে ভ্যাট (VAT) সহ অন্যান্য চার্জ (যদি থাকে) অতিরিক্ত হিসাবে প্রদেয় হবে। বিদেশে আবেদনের ক্ষেত্রেও সরকার কর্তৃক নির্ধারিত ফি প্রদেয় হবে।
+15। কূটনৈতিক পাসপোর্টের জন্য পররাষ্ট্র মন্ত্রণালয়ের কনস্যুলার ও ওয়েলফেয়ার উইং (Consular and Welfare Wing) অথবা ইমিগ্রেশন ও পাসপোর্ট অধিদপ্তরের প্রধান কার্যালয় বরাবর আবেদনপত্র দাখিল করতে হবে।
+16। বৈদেশিক মিশন হতে নতুন পাসপোর্টের জন্য আবেদন করা হলে স্থায়ী ঠিকানার কলামে বাংলাদেশের যোগাযোগের ঠিকানা উল্লেখ করতে হবে।
+
+--- English translation (for reference) ---
+- For adoption/guardianship, submit the order from the Security Services Division, Ministry of Home Affairs.
+- Submit the application at the Divisional/Regional Passport & Visa Office of your present address, or at a Bangladesh Mission abroad.
+- All applications for applicants under 18 have 05-year validity and 48 pages.
+- Inside Bangladesh, VAT at the fixed rate plus any other charges are payable in addition to the fee; the government-fixed fee also applies for applications from abroad.
+- For diplomatic passports, apply to the Consular and Welfare Wing (MoFA) or the head office of the Department of Immigration & Passports.
+- When applying from a foreign mission for a new passport, state a Bangladesh contact address in the permanent-address column.

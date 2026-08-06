@@ -1,0 +1,32 @@
+SECTION: জন্ম নিবন্ধন আবেদন প্রসেস
+SOURCE: https://orgbdr.gov.bd/pages/static-pages/6922db5f933eb65569e09bfd (application_process_birth.pdf)
+LANGUAGE: bilingual (Bangla verbatim, English translation labeled)
+
+জন্ম নিবন্ধন আবেদন প্রসেস
+
+জন্ম নিবন্ধন ওয়েবসাইট (https://bdris.gov.bd) ভিজিট করুন।
+
+জন্ম নিবন্ধনের আবেদনে ক্লিক করুন।
+
+বাংলাদেশের নিবন্ধন কার্যালয়ে জন্ম নিবন্ধন করার ক্ষেত্রে মূলত জন্মস্থান অথবা স্থায়ী ঠিকানার ভিত্তিতে জন্ম নিবন্ধন করা যায়। আপনার তথ্য অনুসারে জন্মস্থান অথবা স্থায়ী ঠিকানার যে কোন একটি রেডিও বাটন সিলেক্ট করুন এবং পরবর্তী বাটনে ক্লিক করুন।
+
+নিবন্ধনাধীন ব্যক্তির নাম (বাংলা, ইংরেজি), জন্ম তারিখ, লিঙ্গ, কত তম সন্তান এবং জন্ম স্থানের ঠিকানা প্রদান করুন।
+
+নিবন্ধনাধীন ব্যক্তির বয়স যদি ১৮ বছরের নিচে হয় তাহলে পিতা এবং মাতার জন্ম নিবন্ধন বাধ্যতামূলক। কিন্তু নিবন্ধনাধীন ব্যক্তির বয়স যদি ১৮ বছরের উপরে হয় তাহলে পিতা এবং মাতার জন্ম নিবন্ধন বাধ্যতামূলক না। আপনার তথ্য অনুসারে পিতা এবং মাতার তথ্য প্রদান করুন এবং পরবর্তী বাটনে ক্লিক করুন।
+
+স্থায়ী ঠিকানা এবং বর্তমান ঠিকানা প্রদান করুন।
+
+আবেদনকারীর তথ্য প্রদান করুন।
+
+বয়স প্রমাণের প্রমানক, স্থায়ী ঠিকানার প্রমানক সংযুক্ত করুন এবং পরবর্তী বাটনে ক্লিক করুন।
+
+আবেদনের সকল তথ্য পুনরায় দেখুন এবং আপনার মোবাইল নম্বরে ওটিপি পাঠান।
+
+ওটিপি টাইপ করুন এবং সাবমিট বাটনে ক্লিক করুন।
+
+জন্ম নিবন্ধনের আবেদন সফলভাবে সম্পন্ন হওয়ার পর আপনার মোবাইলে অ্যাপ্লিকেশন আইডি SMS হিসেবে যাবে।
+
+জন্ম নিবন্ধনের আবেদনপত্র প্রিন্ট করুন এবং সংশ্লিষ্ট নিবন্ধন কার্যালয়ে যোগাযোগ করে আপনার বিস্তারিত ডকুমেন্ট জমা দিন।
+
+ENGLISH TRANSLATION (summary — not a line-by-line official translation):
+Visit the birth registration website (https://bdris.gov.bd). Click birth registration application. Choose to register based on either birthplace or permanent address. Provide the registering individual's name (Bangla, English), date of birth, gender, birth order, and birthplace address. If the individual is under 18, parents' birth registration is mandatory; if over 18, it is not — provide parent information accordingly. Provide permanent and current address. Provide applicant information. Attach proof of age and proof of permanent address, then proceed. Review all application details and send an OTP to your mobile number. Enter the OTP and submit. On successful submission, an application ID is sent via SMS. Print the application form and submit your detailed documents at the relevant registration office.

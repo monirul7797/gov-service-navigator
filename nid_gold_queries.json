@@ -1,0 +1,159 @@
+{
+  "_readme": "Gold query set for NID retrieval eval, following the BDRIS/e-Return pattern. Hybrid strictness: expected_id set means the exact record must appear in top-K (used for fee amounts, specific rules, and other cases where a same-category-but-wrong-record hit would give a factually wrong answer — e.g. the wrong fee amount); expected_id=null means category-level match is the honest bar (used where several records in a category legitimately overlap, e.g. the many short correction-FAQ entries). min_similarity is a soft floor — falling short WARNS, not FAILS. Includes one out-of-scope probe. Built from the full nid.jsonl content (106 records, 10 categories). Calibration pass applied after the first full clean eval: fixed gq_003's category label (its expected record lives in corrections, not fees), corrected the swapped probe encodings on gq_012 (observational) and gq_018 (out-of-scope), and made gq_007 category-level to match its own stated intent (one of its two candidate records, 23f50f349df82565, was merged away). Remaining FAILs are genuine retrieval findings (thin banglish/Bangla coverage; dedicated FAQ/rule records outranked by vocabulary-adjacent records), deliberately left failing rather than masked.",
+  "strictness": "hybrid",
+  "top_k": 4,
+  "queries": [
+    {
+      "id": "gq_nid_001",
+      "query": "What documents do I need for Form-2 enrollment as a new voter?",
+      "lang": "en",
+      "expected_category": "required_documents",
+      "expected_id": "a35fead08f8be3b8",
+      "min_similarity": 0.65
+    },
+    {
+      "id": "gq_nid_002",
+      "query": "আমার আইডি কার্ড হারিয়ে গেছে এবং তথ্যও ভুল আছে, একসাথে ঠিক করা যাবে কি?",
+      "lang": "bn",
+      "expected_category": "corrections",
+      "expected_id": "99b73f516742b5e6",
+      "min_similarity": 0.6,
+      "note": "targets a specific sequencing rule (lost card must be reissued BEFORE correction can be filed) — a wrong-but-adjacent correction record would give factually wrong guidance here"
+    },
+    {
+      "id": "gq_nid_003",
+      "query": "amar card hariye gese, notun card pete koto taka lagbe first time?",
+      "lang": "banglish",
+      "expected_category": "corrections",
+      "expected_id": "9260a976f7fcb9e9",
+      "min_similarity": 0.55,
+      "note": "expected record 9260a976f7fcb9e9 (lost/damaged reissue, first-time ২০০ taka) is filed under corrections, not fees — category label corrected. Kept record-level because it's a fee-amount fact (a wrong same-category record gives the wrong money). Currently an honest FAIL: banglish phrasing does not surface the reissue-fee record (known bge-m3 banglish limitation), not an eval bug."
+    },
+    {
+      "id": "gq_nid_004",
+      "query": "What are the special document requirements for voter registration in border districts like Cox's Bazar or Bandarban?",
+      "lang": "en",
+      "expected_category": "process_steps",
+      "expected_id": "d9e46d089fa7e9a2",
+      "min_similarity": 0.55,
+      "note": "targets the special-area screening content — genuinely distinct from ordinary Form-2 requirements, a wrong match here would miss the extra grandfather/relative-chain verification entirely"
+    },
+    {
+      "id": "gq_nid_005",
+      "query": "কোন কোন উপজেলা বিশেষ এলাকা হিসেবে ঘোষিত?",
+      "lang": "bn",
+      "expected_category": "process_steps",
+      "expected_id": "0328798228089b51",
+      "min_similarity": 0.6
+    },
+    {
+      "id": "gq_nid_006",
+      "query": "How do I claim my online account if I already have a physical NID card?",
+      "lang": "en",
+      "expected_category": "process_steps",
+      "expected_id": "49269d28f061649a",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_nid_007",
+      "query": "address verify korar somoy amar j number ache tar match korte hobe naki notun dite hobe?",
+      "lang": "banglish",
+      "expected_category": "verification",
+      "min_similarity": 0.5,
+      "note": "hard/adversarial, category-level by design — tests that address-verify queries resolve to the verification category. Originally listed two candidate records; one (23f50f349df82565, the address-validation wizard step) was later merged into 49269d28f061649a and deleted, so this is now a pure category-level check."
+    },
+    {
+      "id": "gq_nid_008",
+      "query": "Can I use bKash to pay the NID correction fee?",
+      "lang": "en",
+      "expected_category": "fees",
+      "expected_id": "736ea9a77fe77a71",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_nid_009",
+      "query": "স্বামীর সাথে বিবাহ বিচ্ছেদ হয়েছে, কার্ড থেকে তার নাম কিভাবে বাদ দেব?",
+      "lang": "bn",
+      "expected_category": "faq",
+      "expected_id": "79abb3857edf8e76",
+      "min_similarity": 0.6
+    },
+    {
+      "id": "gq_nid_010",
+      "query": "eksathe duibar registration hoye gese amar, ekhon ki hobe?",
+      "lang": "banglish",
+      "expected_category": "process_steps",
+      "expected_id": "50d66a66a22cd5a0",
+      "min_similarity": 0.5
+    },
+    {
+      "id": "gq_nid_011",
+      "query": "What supporting documents does the newspaper notice requirement apply to?",
+      "lang": "en",
+      "expected_category": "corrections",
+      "expected_id": "dd1e1f795f9cdc9a",
+      "min_similarity": 0.55,
+      "note": "targets a specific rule (radical name change needs magistrate affidavit + newspaper clipping) distinct from the general document-list records"
+    },
+    {
+      "id": "gq_nid_012",
+      "query": "who can attest my correction application's supporting documents?",
+      "lang": "en",
+      "expected_category": null,
+      "expected_id": null,
+      "min_similarity": 0.5,
+      "note": "category-agnostic probe — two near-duplicate records exist for this (f41e6c4730be9554 and bea536f88fe35b59, same content transcribed from two different source pages). Not treated as hard-fail either way; used to observe whether both/either surface, informing whether the corpus has an unintentional duplicate worth deduplicating later"
+    },
+    {
+      "id": "gq_nid_013",
+      "query": "১৩ ডিজিটের আইডি কার্ড কেন কারও ১৭ ডিজিটের হয়?",
+      "lang": "bn",
+      "expected_category": "faq",
+      "expected_id": "221cccb1be6d3cb6",
+      "min_similarity": 0.6
+    },
+    {
+      "id": "gq_nid_014",
+      "query": "How do I install and use the NID Wallet app for face verification?",
+      "lang": "en",
+      "expected_category": null,
+      "expected_id": null,
+      "min_similarity": 0.55,
+      "note": "category-level only — two legitimately overlapping records cover this (ca8059601d85f53f general how-to, 6741335370d40b58 the wizard-step version with more detail); either is a correct answer"
+    },
+    {
+      "id": "gq_nid_015",
+      "query": "18 bochor er kom hole ki NID card er jonno apply kora jay?",
+      "lang": "banglish",
+      "expected_category": "eligibility",
+      "expected_id": "ae463ace914d6134",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_nid_016",
+      "query": "মৃত ভোটারের নাম তালিকা থেকে বাদ দিতে কি করতে হবে?",
+      "lang": "bn",
+      "expected_category": "overview",
+      "expected_id": "1aef331cb17dafc9",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_nid_017",
+      "query": "What's the treasury challan economic code for paying NID fees, and does the VAT have a separate code?",
+      "lang": "en",
+      "expected_category": "fees",
+      "expected_id": "02a1d96a8c5d587d",
+      "min_similarity": 0.6,
+      "note": "targets a very specific, easily-confused-with-nothing-else fact (the two distinct economic codes) — good precision test"
+    },
+    {
+      "id": "gq_nid_018",
+      "query": "আমার পছন্দের রঙের গাড়ি কিনতে চাই, কোনটা ভালো হবে?",
+      "lang": "bn",
+      "expected_category": null,
+      "expected_id": null,
+      "min_similarity": null,
+      "note": "OUT-OF-SCOPE probe — car color preference has zero conceptual/vocabulary overlap with NID content, unlike BDRIS's original failed 'mobile vs computer' probe. Should find nothing strong."
+    }
+  ]
+}

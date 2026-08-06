@@ -1,0 +1,30 @@
+SECTION: FAQ — Appointments (অ্যাপয়েন্টমেন্ট)
+SOURCE: epassport.gov.bd/landing/faqs
+LANGUAGE: Bilingual (English + Bangla, verbatim portal copy)
+
+Q (EN): Can I cancel or re-schedule an online appointment at passport office?
+প্রশ্ন (BN): অনলাইন অ্যাপয়েন্টমেন্ট বাতিল বা সময় পরিবর্তন করা যাবে কি?
+A (EN): Yes this is possible.
+In order to cancel or re-schedule your online appointment please sign in to your ePassport Online Portal account and go to My Applications. There you see all applications with scheduled appointments. Open the application where you want to cancel / re-schedule. On the application summary page you can now cancel and re-schedule the appointment.
+উত্তর (BN): হ্যাঁ। এটা সম্ভব।
+সাক্ষাতের সময় বাতিল বা পুণর্নির্ধারনের জন্য ই-পাসপোর্ট আবেদন অ্যাকাউন্টে প্রবেশ করুন। এখন নির্ধারিত সাক্ষাতগুলো দেখতে পাবেন। তখন আপনার সাক্ষাতের সময়সূচি পরিবর্তন করতে পারবেন।
+দ্রষ্টব্য: ই-পাসপোর্ট আবেদনের জন্য খোলা অ্যাকাউন্ট থেকে একটি আবেদনের সাক্ষাত বাতিল করলে উক্ত অ্যাকাউন্টের সকল অ্যাপয়ন্টমেন্ট বাতিল হবে।
+
+Q (EN): How can I schedule an appointment at passport office?
+প্রশ্ন (BN): পাসপোর্ট অফিসে অনলাইন অ্যাপয়েন্টমেন্ট কিভাবে পেতে পারি?
+A (EN): At selected passport offices with many visitors there is an online appointment service. This service is available for online applications only. At the end of the online application process you can look up available appointment times and pick a time slot that fits for you. This will reduce waiting time at the passport office. Please make sure to visit your passport office in time at the reserved appointment slot.
+উত্তর (BN): অনলাইনে আবেদনের শেষ পর্যায়ে অ্যাপয়েনমেন্ট অপশন আসবে। অ্যাপয়েনমেন্ট স্লট ও অ্যাপয়েনমেন্টে নির্ধারিত সময়ানুযায়ী পাসপোর্ট অফিসে উপস্থিত হতে হবে।
+
+Q (EN): Can I schedule online appointments even if I don't use online application but PDF form?
+প্রশ্ন (BN): পিডিএফ আবেদনের ক্ষেত্রে অনলাইন অ্যাপয়েন্টমেন্ট সম্ভব কি না?
+A (EN): No, this is not possible.
+In order to schedule online appointments to save waiting time at the passport office you have to submit your application online. Please click here to start the online application process.
+উত্তর (BN): না। এটি কেবল অনলাইনে আবেদনের ক্ষেত্রে প্রযোজ্য।
+অনলাইন আবেদন প্রসেসের জন্য ‘এখানে’ ক্লিক করুন।
+
+Q (EN): I can't get an appointment at my passport office in the near future - what can I do?
+প্রশ্ন (BN): আমি আমার পাসপোর্ট অফিসে, নিকটবর্তী কোন অ্যাপয়েন্টমেন্ট সময়সূচী পাইনা - আমি কী করতে পারি?
+A (EN): At the moment ePassport applications can only be done with a scheduled appointment. But the RPOs are working hard to expand the capacity over the next weeks.
+Please look up the appointment schedule frequently to see if new appointments can be made at your passport office.
+উত্তর (BN): এই মুহুর্তে ই-পাসপোর্ট অ্যাপ্লিকেশনগুলি কেবলমাত্র একটি নির্ধারিত অ্যাপয়েন্টমেন্ট দিয়েই করা যেতে পারে। তবে আঞ্চলিক পাসপোর্ট অফিস গুলি কয়েক সপ্তাহের মধ্যে সক্ষমতা বাড়ানোর জন্য কঠোর প্রচেষ্টা করছে।
+আপনার পাসপোর্ট অফিসে নতুন অ্যাপয়েন্টমেন্ট করা যেতে পারে কিনা তা জানতে দয়া করে অ্যাপয়েন্টমেন্টের সময়সূচীটি ঘন ঘন দেখুন।

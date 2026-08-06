@@ -1,0 +1,44 @@
+SECTION: e-Passport Application — The 5 Steps (ই-পাসপোর্ট আবেদনের ৫টি ধাপ)
+SOURCE: https://www.epassport.gov.bd/instructions/five-step-to-your-epassport
+LANGUAGE: bn+en — both versions are published by the portal via the English/বাংলা toggle. Bangla is the portal's primary language and governs where the two diverge (see step 4 and step 5). Which version was authored first is not established and does not matter here; what matters is which one wins on conflict.
+
+ই-পাসপোর্ট আবেদনের ৫(পাঁচ) টি ধাপ
+সর্বশেষ সংস্করণ: 3 জুন 2026
+ই-পাসপোর্ট আবেদনের জন্য ৫টি সহজ ধাপ রয়েছে
+ধাপগুলো হলো:
+
+ধাপ-১ : বর্তমানে বসবাসরত এলাকায় ই-পাসপোর্ট কার্যক্রম শুরু হয়েছে কি না দেখুন ।
+- চালুকৃত ই-পাসপোর্ট অফিসগুলির তালিকা
+
+ধাপ-২ : অনলাইনে ই-পাসপোর্ট আবেদন ফরম পূরণ করুন।
+- অনলাইন আবেদন : আবেদন প্রক্রিয়ার জন্য ক্লিক করুন 'এখানে' ।
+
+ধাপ-৩ : পাসপোর্ট ফি পরিশোধ ।
+- পাসপোর্ট ফি ও ব্যাংক পেমেন্ট এর জন্য ক্লিক করুন 'এখানে' ।
+
+ধাপ-৪ : ছবি ও ফিঙ্গার প্রিন্টের জন্য পাসপোর্ট অফিসে যোগাযোগ ।
+- ছবি ও ফিঙ্গার প্রিন্টের জন্য পাসপোর্ট অফিসে যাওয়ার আগে প্রয়োজনীয় কাগজপত্র সঙ্গে নিয়েছেন কি না নিশ্চিত হোন।
+
+ধাপ-৫ : পাসপোর্ট অফিস থেকে ই-পাসপোর্ট সংগ্রহ ।
+- ডেলিভারী স্লিপ/রশিদ: এনরোলমেন্ট সম্পন্ন হওয়ার পর প্রদেয় স্লিপ ।
+- অনুমোদিত প্রতিনিধির(নিজ জাতীয় পরিচয়পত্র সাথে আনতে হবে) কাছে পাসপোর্ট প্রদান করা যাবে।
+
+5 Steps to your e-Passport
+Last updated: 3 June 2026
+You can apply for the new e-Passport in 5 easy steps
+
+Step 1: Check if the new e-Passport is already available in your area
+- List of functional e-Passport Offices
+
+Step 2: Fill in your e-Passport application online
+- For Online Application Click Here
+
+Step 3: Pay passport fees
+- For Passport Fees and Bank List Click Here
+
+Step 4: Visit your Passport Office for biometric enrolment
+- Make sure you have all required documents with you when you visit the passport office.
+
+Step 5: Collect your e-Passport at the passport office
+- Delivery slip you received during passport enrolment
+- Authorized representatives(has to bring his/her NID card) can collect the applicant's new passport.

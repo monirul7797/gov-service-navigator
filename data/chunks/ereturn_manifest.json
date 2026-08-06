@@ -1,0 +1,50 @@
+{
+  "service": "ereturn",
+  "built": "2026-07-15",
+  "chunks_file": "data/chunks/ereturn.jsonl",
+  "raw_dir": "data/raw/ereturn_manual/",
+  "total_records": 81,
+  "sources": [
+    {
+      "url": "https://nbr.gov.bd/all-faq/ban",
+      "note": "NBR FAQ page, Income Tax tab (Bangla). Both sections captured; Customs and VAT tabs excluded."
+    }
+  ],
+  "categories": {
+    "faq": 81
+  },
+  "subcategories": {
+    "income_tax_general": 36,
+    "online_return": 45
+  },
+  "raw_files": [
+    {
+      "file": "faq_income_tax_general.txt",
+      "section": "আয়কর সংক্রান্ত সচরাচর জিজ্ঞাসা (General Income Tax FAQ)",
+      "entries": 36
+    },
+    {
+      "file": "faq_online_return.txt",
+      "section": "অনলাইন আয়কর রিটার্ন সংক্রান্ত সচরাচর জিজ্ঞাসা (Online Income Tax Return FAQ)",
+      "entries": 45
+    }
+  ],
+  "conventions": {
+    "lang": "bn+en; Bangla verbatim authoritative, English labelled translation",
+    "id_scheme": "ereturn-faq-<gen|online>-<slug>",
+    "txt_axis": "source page section",
+    "jsonl_axis": "retrieval category",
+    "typo_policy": "portal typos normalized to intended meaning; each normalization flagged to user at transcription time"
+  },
+  "excluded": [
+    "Income Tax Act 2023 PDF (287pp, English-only statute) — parked for a future separate collection with section-level chunking",
+    "Logged-in return wizard / PII pages",
+    "Customs and VAT FAQ tabs"
+  ],
+  "volatile_records": [
+    "ereturn-faq-gen-individual-tax-rate-structure",
+    "ereturn-faq-gen-company-tax-rate-structure",
+    "ereturn-faq-online-2025-2026-mandatory"
+  ],
+  "flags": []
+}

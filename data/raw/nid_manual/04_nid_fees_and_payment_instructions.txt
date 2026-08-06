@@ -1,0 +1,15 @@
+SECTION: Fees and Payment Methods (ফি এবং পেমেন্ট)
+SOURCE: services.nidw.gov.bd / NID Fee Calculator
+
+FEE CALCULATION RULES:
+Fees vary based on the type of correction (NID Info vs. Other Info) and the delivery type (Regular vs. Urgent). Citizens are advised to use the "Fee Calculator" on services.nidw.gov.bd to prevent overpayment.
+
+CORRECTION FEES:
+- Other Info Correction (Address, Blood Group, Marital Status): 115 BDT for the first time, 230 BDT for the second time.
+- NID Info Correction / Reissue: First time 232 BDT (Regular), Second time 345 BDT, Subsequent times 575 BDT.
+
+PAYMENT CHANNELS:
+Payments can be made directly from home through mobile banking or online banking. Supported channels include:
+- bKash (Accessible via the bKash app for NID services)
+- Rocket (Dutch-Bangla Bank)
+- Sonali Bank

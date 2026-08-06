@@ -1,0 +1,13 @@
+SOURCE: services.nidw.gov.bd/nid-pub/claim-account (OTP Verification UI)
+CATEGORY: Account Claim Contact Verification (অ্যাকাউন্ট দাবি - কন্টাক্ট যাচাই)
+LANGUAGE: English
+
+[Contact Details Verification]
+After successfully validating the Present and Permanent addresses, the system displays a masked mobile number associated with the NID.
+
+- Example Masked Number: Mobile Number: +88017*****019
+- Instruction: "Your existing Mobile Number has been shown. If you are using this Mobile Number, you can get verification code in that Number. If you would like to use different contact, then you can do that by clicking the 'Change Contact' button."
+
+[Available Actions]
+- Send OTP: Sends a One-Time Password to the masked number.
+- Change Contact: Allows the user to input a new mobile number to receive the OTP, updating the contact record.

@@ -1,0 +1,53 @@
+{
+  "_readme": "Concept -> service registry for deterministic disambiguation. Built from the four-corpus concept analysis. 'services' maps each service to display labels (per language) and keywords that identify it in a query. 'concepts' maps each cross-service concept to the services that GENUINELY have it (never spurious word-collisions) plus keywords that identify the concept. Disambiguation logic: if a query names a service -> scope to it; else detect concepts, intersect their service sets -> if >=2 services remain and none is named, ask which one (offering only those); if exactly 1 remains, scope to it; if none, answer best-match. Keywords are matched case-insensitively as substrings against the raw query (English + Bangla + common Banglish spellings). Tune keywords as you test.",
+
+  "services": {
+    "nid": {
+      "labels": {"en": "National ID (NID)", "bn": "জাতীয় পরিচয়পত্র (NID)"},
+      "keywords": ["nid", "এনআইডি", "জাতীয় পরিচয়পত্র", "national id", "voter", "ভোটার", "স্মার্ট কার্ড", "smart card", "porichoy potro", "porichoypotro"]
+    },
+    "epassport": {
+      "labels": {"en": "passport", "bn": "পাসপোর্ট"},
+      "keywords": ["passport", "পাসপোর্ট", "e-passport", "epassport", "mrp"]
+    },
+    "bdris": {
+      "labels": {"en": "birth / death registration", "bn": "জন্ম/মৃত্যু নিবন্ধন"},
+      "keywords": ["birth", "death", "জন্ম", "মৃত্যু", "নিবন্ধন", "bdris", "সনদ", "jonmo", "mrittu", "nibondhon", "jonmo nibondhon", "birth certificate", "death certificate"]
+    },
+    "ereturn": {
+      "labels": {"en": "income tax / return", "bn": "আয়কর / রিটার্ন"},
+      "keywords": ["income tax", "আয়কর", "রিটার্ন", "tin", "টিআইএন", "e-return", "ereturn", "aykor", "tax return", "return joma", "return dakhil"]
+    }
+  },
+
+  "concepts": {
+    "reissue": {
+      "services": ["nid", "epassport"],
+      "keywords": ["reissue", "reprint", "রিইস্যু", "পুনঃমুদ্রণ", "পুনর্মুদ্রণ", "reissu", "re-issue"]
+    },
+    "duplicate": {
+      "services": ["bdris"],
+      "keywords": ["duplicate", "নকল", "প্রতিলিপি", "duplicate certificate", "protilipi"]
+    },
+    "correction": {
+      "services": ["nid", "epassport", "ereturn", "bdris"],
+      "keywords": ["correction", "correct", "সংশোধন", "shongshodhon", "songshodhon", "vul", "ভুল", "amend", "change information", "info change", "তথ্য পরিবর্তন"]
+    },
+    "new_application": {
+      "services": ["nid", "epassport", "ereturn", "bdris"],
+      "keywords": ["new application", "notun abedon", "নতুন আবেদন", "registration", "নিবন্ধন", "nibondhon", "apply", "enrol", "notun kcore"]
+    },
+    "documents": {
+      "services": ["nid", "epassport", "ereturn", "bdris"],
+      "keywords": ["document", "documents", "ডকুমেন্ট", "দলিল", "কাগজপত্র", "ki lagbe", "কি লাগে", "কি কি লাগবে", "ki ki lagbe", "required documents", "kagojpotro"]
+    },
+    "fee": {
+      "services": ["nid", "epassport", "bdris"],
+      "keywords": ["fee", "ফি", "koto taka", "কত টাকা", "charge", "চার্জ", "cost", "টাকা লাগবে", "taka lagbe"]
+    },
+    "lost_damaged": {
+      "services": ["nid", "epassport", "bdris"],
+      "keywords": ["lost", "damaged", "হারানো", "নষ্ট", "hariye", "hariye gese", "nosto"]
+    }
+  }
+}

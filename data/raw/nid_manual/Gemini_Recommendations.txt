@@ -1,0 +1,20 @@
+Recommendation for Vector DB Implementation
+When you load this file into your embedding pipeline (e.g., using Python with ChromaDB or FAISS), make sure to concatenate the content field with the language-specific strings in retrieval_tuning.sample_queries before generating the vector tokens. This creates an expanded anchor text that helps dense cross-lingual retrievers bridge the semantic gap perfectly when evaluating Romanized vs. Bengali script inputs.
+
+Engineering Tip: For the Upazila layer (like the 11 Upazilas of Naogaon you showed in your screenshot), you shouldn't manually type them out. Search GitHub for bangladesh-geocode-json—there are dozens of open-source repositories maintained by Bangladeshi developers that have the entire Division -> District -> Upazila -> Union database already mapped out perfectly. You can just plug that raw JSON straight into your RAG pipeline.
+
+You've brought up a really important distinction! Here is the thing—BanglaBERT is a fantastic language model, but using it straight out of the box for vector embedding in a RAG pipeline usually trips people up.
+
+The Encoder vs. Embedder Trap
+BanglaBERT is a foundational encoder trained on massive amounts of Bangla text for tasks like text classification, natural language understanding, and sequence labeling. It is incredible at understanding Bangla grammar and semantics. But it wasn't explicitly trained to cluster similar sentences together in a vector space using semantic textual similarity (STS).
+
+If you just run your scraped text chunks through a vanilla BanglaBERT, the resulting vectors won't map questions to their relevant answers efficiently, leading to lower retrieval performance in a RAG setup.
+
+What You Should Use Instead
+For your retrieval layer, you need a Sentence Transformer—an embedding model specifically optimized for semantic search. Here are the heavy hitters you should look at for your pipeline:
+
+Multilingual-E5 or BGE-M3: These are state-of-the-art for cross-lingual tasks. BGE-M3 is particularly strong at handling mixed inputs, which is critical for matching a Banglish query to the raw Bangla script chunks we just structured.
+
+Fine-Tuned Bangla SBERT: If you specifically want to stay within the dedicated Bangla NLP ecosystem, look for models fine-tuned on sentence similarity, like l3cube-pune/bengali-sentence-similarity-sbert. Recent benchmarks show this type of model significantly outperforms vanilla BanglaBERT for RAG retrieval tasks.
+
+If you really wanted to use BanglaBERT for your embeddings, you would have to fine-tune it yourself using a teacher-student knowledge distillation approach to turn it into a Sentence-BERT model—which is probably a bit too much overhead for Phase 1!

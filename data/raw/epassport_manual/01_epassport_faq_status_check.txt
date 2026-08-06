@@ -1,0 +1,30 @@
+SECTION: FAQ — Status Check (স্ট্যাটাস চেক)
+SOURCE: epassport.gov.bd/landing/faqs
+LANGUAGE: Bilingual (English + Bangla, verbatim portal copy)
+
+Q (EN): How can I check the status of my passport application?
+প্রশ্ন (BN): আমার পাসপোর্ট আবেদনের অগ্রগতি কিভাবে দেখতে পারব?
+A (EN): Online Check:
+Go to the Status Check on the ePassport portal home page. Enter your Application ID or Online Registration ID and date of birth of the applicant to see the current status of your passport application. The Application ID can be found on the delivery slip you received after enrolment at the passport office.
+You also see the status of all your applications in your online portal account.
+Status check portal: https://www.epassport.gov.bd/authorization/application-status
+উত্তর (BN): পাসপোর্ট আবেদনের অগ্রগতি নিম্নরূপভাবে দেখা যেতে পারে।
+অনলাইন চেক: ই-পাসপোর্ট পোর্টালে ‘স্ট্যাটাস চেক’ এখানে। জন্ম তারিখ ও আবেদনের ক্রমিক সংখ্যা প্রবেশ করুন। এবার সার্চ অপশনে ক্লিক করুন।
+আপনি আপনার অনলাইন পোর্টাল অ্যাকাউন্ট থেকে আপনার সমস্ত অ্যাপ্লিকেশনের অবস্থা দেখতে পারেন।
+স্ট্যাটাস চেক পোর্টাল: https://www.epassport.gov.bd/authorization/application-status
+
+Q (EN): Having trouble viewing online status. Application ID / Online Registration ID is required despite providing Application ID / Online Registration ID. What can I do?
+প্রশ্ন (BN): অনলাইন স্ট্যাটাস দেখতে সমস্যা হচ্ছে। Application ID / Online Registration ID প্রদান করা সত্ত্বেও Application ID / Online Registration ID is required দেখায়। আমি কি করতে পারি?
+A (EN): Clear the browser's Cache and Cookies and check again.
+উত্তর (BN): Browser এর Cache and Cookies clear করে পুনরায় চেক করুন।
+
+Q (EN): How can I check my e-Passport status?
+প্রশ্ন (BN): কিভাবে আমি ই-পাসপোর্ট এর বর্তমান অবস্থান জানতে পারব?
+A (EN): Please Follow the link: Here (https://www.epassport.gov.bd/authorization/application-status)
+To check status of your passport from the e-Passport online portal.
+উত্তর (BN): আপনার ই-পাসপোর্ট এর বর্তমান অবস্থান জানতে ই-পাসপোর্ট অনলাইন পোর্টাল থেকে অনুগ্রহ করে লিঙ্কটি অনুসরণ করুন: এখানে (https://www.epassport.gov.bd/authorization/application-status)
+
+Q (EN): While checking my passport status, I see “Pending for Backend Verification”. Now what I will do?
+প্রশ্ন (BN): আমি আমার পাসপোর্টের স্ট্যাটাস চেক করার সময় “Pending for Backend Verification” দেখতে পাচ্ছি। এখন আমি কি করব?
+A (EN): Please contact with respective Regional Passport Office (RPO).
+উত্তর (BN): অনুগ্রহ করে সংশ্লিষ্ট আঞ্চলিক পাসপোর্ট অফিসের সাথে যোগাযোগ করুন (RPO)।

@@ -1,0 +1,16 @@
+SOURCE: services.nidw.gov.bd/nid-pub/fees (Fee Calculator UI)
+CATEGORY: Online Fee Calculator Dropdown Options (ফি হিসাব করুন - ড্রপডাউন অপশন)
+LANGUAGE: Bangla 
+
+[আবেদনের ধরন (Application Type Options)]
+- -- নির্বাচন করুন -- (Select One)
+- জাতীয় পরিচয়পত্র সংশোধন (NID Information Correction)
+- অন্যান্য তথ্য সংশোধন (Other Information Correction)
+- জাতীয় পরিচয়পত্র ও অন্যান্য তথ্য সংশোধন (NID & Other Information Correction)
+- রিইস্যু (Reissue)
+
+[বিতরণের ধরন (Delivery Type Options)]
+- -- নির্বাচন করুন -- (Select One)
+- সাধারণ (Regular - likely deprecated or for older paper IDs)
+- সাধারণ স্মার্ট কার্ড (Regular Smart Card)
+- জরুরি স্মার্ট কার্ড (Urgent Smart Card)

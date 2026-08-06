@@ -1,0 +1,26 @@
+SECTION: Online Fee Calculator Test Cases (ফি হিসাব করুন)
+SOURCE: services.nidw.gov.bd/nid-pub/fees
+
+TEST CASE 1: NID Information Correction (জাতীয় পরিচয়পত্রের তথ্য সংশোধন)
+- Application Type: জাতীয় পরিচয়পত্রের তথ্য সংশোধন (NID Info Correction)
+- Delivery Type: সাধারণ স্মার্ট কার্ড (Regular Smart Card)
+- Output: "জাতীয় পরিচয়পত্র সংশোধন এর জন্য সাধারণ স্মার্ট কার্ড ডেলিভারী ফি 230 টাকা" (Regular Smart Card Delivery Fee for NID Correction is 230 Taka).
+*Formula: 200 BDT Base Fee + 15% VAT (30 BDT) = 230 BDT.
+
+TEST CASE 2: Other Information Correction (অন্যান্য তথ্য সংশোধন)
+- Application Type: অন্যান্য তথ্য সংশোধন (Other Info Correction)
+- Delivery Type: সাধারণ স্মার্ট কার্ড (Regular Smart Card)
+- Output: "অন্যান্য তথ্য সংশোধন এর জন্য সাধারণ স্মার্ট কার্ড ডেলিভারী ফি 115 টাকা" (Regular Smart Card Delivery Fee for Other Info Correction is 115 Taka).
+*Formula: 100 BDT Base Fee + 15% VAT (15 BDT) = 115 BDT.
+
+TEST CASE 3: NID & Other Information Correction Combined (জাতীয় পরিচয়পত্র ও অন্যান্য তথ্য সংশোধন)
+- Application Type: জাতীয় পরিচয়পত্র ও অন্যান্য তথ্য সংশোধন (NID & Other Info Correction)
+- Delivery Type: সাধারণ স্মার্ট কার্ড (Regular Smart Card)
+- Output: "জাতীয় পরিচয়পত্র ও অন্যান্য তথ্য সংশোধন এর জন্য সাধারণ স্মার্ট কার্ড ডেলিভারী ফি 345 টাকা" (Regular Smart Card Delivery Fee for NID & Other Info Correction is 345 Taka).
+*Formula: 200 BDT (NID Info) + 100 BDT (Other Info) = 300 BDT Base Fee + 15% VAT (45 BDT) = 345 BDT.
+
+TEST CASE 4: Reissue / Reprint (রিইস্যু)
+- Application Type: রিইস্যু (Reissue)
+- Delivery Type: সাধারণ স্মার্ট কার্ড (Regular Smart Card)
+- Output: "রিইস্যু এর জন্য সাধারণ স্মার্ট কার্ড ডেলিভারী ফি 230 টাকা" (Regular Smart Card Delivery Fee for Reissue is 230 Taka).
+*Formula: 200 BDT Base Fee + 15% VAT (30 BDT) = 230 BDT.

@@ -1,0 +1,21 @@
+SECTION: Step 1 — e-Passport Availability & Regional Office Check (ধাপ ১: অঞ্চলে ই-পাসপোর্ট সেবার প্রাপ্যতা)
+SOURCE: https://www.epassport.gov.bd/onboarding
+LANGUAGE: bn+en — both versions published by the portal via the English/বাংলা toggle; Bangla is the portal's primary language and governs.
+NOTE: This page is an interactive lookup form. Per the corpus convention, the dropdown contents (districts / police stations) are NOT chunked — only the labels, the fork, and the process rule they encode. The form itself is excluded from retrieval; the knowledge is kept.
+
+ধাপ ১: আপনার অঞ্চলে ই-পাসপোর্ট সেবার প্রাপ্যতা যাচাই করুন
+আপনি কি বাংলাদেশ থেকে আবেদন করছেন?  হ্যাঁ / না
+আপনার বর্তমান ঠিকানার জেলা নির্বাচন করুন
+আপনার বর্তমান ঠিকানার নিকটস্থ থানা নির্বাচন করুন
+নিম্নোক্ত আঞ্চলিক পাসপোর্ট অফিসে আপনার নতুন ই-পাসপোর্টের জন্য নিবন্ধন করুন
+চালিয়ে যান
+
+Step 1: Check availability of e-Passport in your region
+Are you applying from Bangladesh?  Yes / No
+Select District of your present address
+Select the police station nearest to your present address
+Enroll for your new e-Passport in the following Regional Passport Office
+Continue
+
+Process rule encoded by this form (not verbatim portal text — derived, kept because the five-step page omits it):
+The office that will handle an application is fixed before the application starts. The applicant first declares whether they are applying from inside Bangladesh or from abroad; that fork routes the application either to a Regional Passport Office or to a Bangladesh mission overseas. Inside Bangladesh, the applicant selects the District (জেলা) of their PRESENT address, then the police station (থানা) nearest to that present address, and the portal names the single Regional Passport Office where biometric enrolment must take place. Assignment is by present address — not permanent address, and not applicant choice.

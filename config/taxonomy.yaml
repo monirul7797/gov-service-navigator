@@ -1,0 +1,89 @@
+# =============================================================================
+# CONTENT TAXONOMY  —  Government Service Navigator (Phase 1)
+# -----------------------------------------------------------------------------
+# Every chunk is tagged with exactly one `category` from this list. The QA step
+# builds a service x category coverage matrix and flags any (service, required)
+# cell that has zero chunks — that is how "did we collect everything?" is
+# answered mechanically instead of by vibes.
+#
+# `keywords_en` / `keywords_bn` drive the auto-classifier in src/chunk.py.
+# A human still reviews low-confidence classifications (see qa report).
+# =============================================================================
+
+categories:
+
+  overview:
+    label: "Overview / what the service is"
+    required: true
+    keywords_en: [about, what is, what the, overview, introduction, purpose,
+                  is the official, used for, issued by, operated by, run by,
+                  compliant, system]
+    keywords_bn: [পরিচিতি, কী, সম্পর্কে, হলো, পরিচালনা করে, ব্যবস্থা]
+
+  eligibility:
+    label: "Who can apply / eligibility"
+    required: true
+    keywords_en: [eligible, eligibility, who can apply, age, criteria, qualify,
+                  qualification, qualifications, citizen of bangladesh,
+                  years of age, unsound mind, electoral area]
+    keywords_bn: [যোগ্যতা, কারা, আবেদন করতে পারবেন, বয়স, নাগরিক হতে হবে]
+
+  required_documents:
+    label: "Required documents"
+    required: true
+    keywords_en: [document, documents, required, attach, upload, certificate, copy, proof]
+    keywords_bn: [কাগজপত্র, প্রয়োজনীয়, দলিল, সনদ, প্রমাণক, সংযুক্ত]
+
+  process_steps:
+    label: "Application process / step by step"
+    required: true
+    keywords_en: [step, apply, application, process, procedure, how to, submit, register, registration, fill]
+    keywords_bn: [ধাপ, আবেদন, প্রক্রিয়া, নিয়ম, পূরণ, দাখিল, রেজিস্ট্রেশন, নিবন্ধন]
+
+  fees:
+    label: "Fees & payment"
+    required: true
+    keywords_en: [fee, fees, charge, cost, payment, pay, taka, bdt, amount, price]
+    keywords_bn: [ফি, চার্জ, মূল্য, পরিশোধ, টাকা, পেমেন্ট, খরচ]
+
+  timelines:
+    label: "Processing time / deadlines"
+    required: true
+    keywords_en: [days, working day, processing time, deadline, delivery, express, regular, duration, within]
+    keywords_bn: [দিন, কার্যদিবস, সময়, মেয়াদ, ডেলিভারি, জরুরি, সাধারণ]
+
+  corrections:
+    label: "Correction / reissue / update"
+    required: false
+    keywords_en: [correction, reissue, re-issue, update, amend, modify, change, lost, duplicate]
+    keywords_bn: [সংশোধন, রিইস্যু, পরিবর্তন, হারানো, আপডেট, তথ্য সংশোধন]
+
+  verification:
+    label: "Verification / status check"
+    required: false
+    keywords_en: [verify, verification, status, check, track, everify]
+    keywords_bn: [যাচাই, স্ট্যাটাস, চেক, অবস্থা]
+
+  fees_exemptions:
+    label: "Exemptions / discounts / thresholds"
+    required: false
+    keywords_en: [exempt, exemption, discount, free, gratis, threshold, tax-free, rebate, waiver]
+    keywords_bn: [অব্যাহতি, ছাড়, বিনামূল্যে, রেয়াত, সীমা]
+
+  contacts:
+    label: "Helpline / contacts / office locations"
+    required: true
+    keywords_en: [helpline, hotline, contact, email, phone, call center, office, address]
+    keywords_bn: [হেল্পলাইন, যোগাযোগ, ইমেইল, ফোন, কল সেন্টার, অফিস, ঠিকানা]
+
+  faq:
+    label: "Frequently asked questions"
+    required: false
+    keywords_en: [faq, frequently asked, question, common questions]
+    keywords_bn: [সচরাচর জিজ্ঞাসা, প্রশ্ন, জিজ্ঞাসা]
+
+  legal:
+    label: "Laws / rules / policy basis"
+    required: false
+    keywords_en: [act, law, rule, ordinance, section, regulation, policy, circular]
+    keywords_bn: [আইন, বিধি, ধারা, প্রবিধান, নীতি, পরিপত্র, অধ্যাদেশ]

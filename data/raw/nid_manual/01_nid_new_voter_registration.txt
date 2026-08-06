@@ -1,0 +1,22 @@
+SECTION: New Voter Registration (নতুন ভোটার নিবন্ধন)
+SOURCE: nidw.gov.bd / services.nidw.gov.bd
+
+UPDATING PROCESS:
+Updating of the voter list is an ongoing process. Data collection and integration take place in two phases: household visits for form completion, followed by a visit to the registration center for photographs, fingerprints, and data entry.
+
+QUALIFICATIONS (Article 122 of the Constitution & Section 7 of Electoral Rolls Act 2009):
+- Must be a citizen of Bangladesh.
+- Must not be less than 18 years of age (Citizens aged 10 and above can register for a biometric NID, but will only be included in the voter list upon turning 18 on or before January 1st of the current year).
+- Must not stand declared by a competent court to be of unsound mind.
+- Must be a resident of the electoral area.
+
+REQUIRED DOCUMENTS (For Form-2 Enrollment):
+1. S.S.C. or equivalent certificate (Proof of age).
+2. Birth Registration certificate (Proof of age).
+3. Passport / Driving license / TIN certificate (Proof of age).
+4. Utility bill copy / House rent receipt / Holding tax receipt (Proof of residence in that area).
+5. Citizenship certificate (as applicable).
+6. Father, Mother, Husband/Wife's NID card photocopy (as applicable).
+
+PROCESS:
+Fill out the form online at services.nidw.gov.bd, print the completed form, and contact the respective Upazila/Thana Election Office according to your schedule to provide biometrics (fingerprints, iris scan, photograph).

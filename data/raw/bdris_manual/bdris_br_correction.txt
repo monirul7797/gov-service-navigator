@@ -1,0 +1,29 @@
+SECTION: Birth Information Correction Application / জন্ম তথ্য সংশোধনের জন্য আবেদন
+SOURCE: https://bdris.gov.bd/br-correction
+LANGUAGE: bilingual (Bangla verbatim, English translation labeled — page has a language toggle; both captured)
+
+জন্ম তথ্য সংশোধনের জন্য আবেদন
+
+আপনার পিতা/মাতার নাম সংশোধন করতে হলে, নিম্নলিখিত পদক্ষেপগুলি অনুসরণ করুন।
+
+যদি আপনার পিতা/মাতার জন্ম নিবন্ধন নম্বর থাকে, তাহলে তাদের জন্ম নিবন্ধন নম্বর দিয়ে জন্ম নিবন্ধন তথ্য সংশোধন আবেদন করে তাদের নাম সংশোধন করে আসতে হবে। এরপর যদি আপনার জন্ম নিবন্ধন করার সময় আপনার পিতা/মাতার জন্ম নিবন্ধন নম্বর দিয়ে থাকেন, তবে তাদের নাম সংশোধন করার পর আপনার জন্ম নিবন্ধন সনদ পুনর্মুদ্রণ করলে সেখানে পিতা/মাতার সংশোধিত নাম দেখা যাবে। আর যদি আপনার জন্ম নিবন্ধন করার সময় আপনার পিতা/মাতার জন্ম নিবন্ধন নম্বর না দিয়ে থাকেন, তবে আপনার জন্ম নিবন্ধন নম্বরের সাথে পিতা/মাতার জন্ম নিবন্ধন নম্বর ম্যাপ করতে হবে। পিতা/মাতার জন্ম নিবন্ধন নম্বর ম্যাপ করার পর আপনার জন্ম নিবন্ধন সনদ পুনর্মুদ্রণ করলে, সেখানে পিতা/মাতার সংশোধিত নাম দেখা যাবে।
+
+যদি আপনার পিতা/মাতার জন্ম নিবন্ধন নম্বর না থাকে এবং আপনার জন্ম তারিখ ০১/০১/২০০১ এর পূর্বে হয়, তবে আপনার জন্ম নিবন্ধন তথ্য সংশোধন আবেদন করার সময় আপনার পিতা/মাতার নাম সংশোধন করতে পারবেন। এক্ষেত্রে আপনার পিতা/মাতা মৃত হলেও তাদের মৃত্যুর কোন প্রমাণপত্র দাখিল করতে হবে না।
+
+যদি আপনার পিতা/মাতার জন্ম নিবন্ধন নম্বর না থাকে এবং আপনার পিতা/মাতা মৃত হয় এবং আপনার জন্ম তারিখ ০১/০১/২০০১ এর পরে হয়, তবে আপনার জন্ম নিবন্ধন তথ্য সংশোধন আবেদন করার সময় আপনার পিতা/মাতার নাম সংশোধন করতে পারবেন। এক্ষেত্রে আপনার পিতা/মাতার মৃত্যুর প্রমাণপত্র দাখিল করতে হবে।
+
+জন্ম নিবন্ধনের তথ্য সংশোধন করতে হলে মোবাইল নম্বর সংযুক্ত থাকতে হবে, বাংলাদেশ দূতাবাস/মিশন সমূহের ক্ষেত্রে ইমেইল সংযুক্ত থাকতে হবে, মোবাইল নম্বর/ইমেইল সংযুক্তি না থাকলে সংশ্লিষ্ট কার্যালয়ে যোগাযোগ করুন।
+
+ENGLISH VERSION (as captured from the page's English toggle, verbatim):
+
+*** If you need to correct your parent's name, follow the steps below.
+
+*** If your parents have birth registration number, then they will have to correct their names by applying for the birth registration information correction with their birth registration number. If you gave your parent's birth registration number when registering your birth, then after revising their names you will be able to see the correct names when you reprint your birth registration certificate. And if you didn't provide your parent's birth registration number when registering your birth, then you need to map your parent's birth registration numbers with your birth registration number. After mapping the parent's birth registration number, you have to reprint your birth registration certificate and the corrected names of the parents will appear.
+
+*** If your parents do not have birth registration number and your date of birth is before 01/01/2001, then you will be able to correct your parents names while applying for your birth registration information correction. In this case, if your parents are dead, you will not have to submit any proof of death.
+
+*** If your parents do not have birth registration number and they are dead and your date of birth is after 01/01/2001, then you will be able to correct your parents names while applying for your birth registration information correction. In this case, if your parents are dead, you will have to submit proof of death.
+
+*** To correct birth registration information, a mobile number must be available, in the case of Bangladesh embassies/missions, an email must be available, if a mobile number/email is not available with this registration, please contact the relevant office.
+
+[Below the notices, both language versions of the page present the same interactive correction-lookup form: Birth Registration No. / Birth Date / CAPTCHA / Search button, returning a results table (আইডি/জন্ম তারিখ/নিবন্ধিত ব্যক্তির নাম/পিতার নাম/মাতার নাম/অ্যাকশন in Bangla; Application ID/Birth Date/Registered Person's Name/Father's Name/Mother's Name/Action in English). This is the interactive tool itself — excluded from corpus per convention (pure interactive form), only the policy notices above are corpus-worthy.]

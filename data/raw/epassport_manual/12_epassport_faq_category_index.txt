@@ -1,0 +1,8 @@
+SECTION: FAQ Category Index (বিভাগসূচি)
+SOURCE: epassport.gov.bd/landing/faqs
+LANGUAGE: Bilingual (English + Bangla, verbatim portal copy)
+
+e-Passport FAQ categories / ই-পাসপোর্ট সচরাচর জিজ্ঞাসা বিভাগসমূহ
+Categories (EN): Account and Account Settings, Appointment, Payment, Application, General Questions, Others
+বিভাগ (BN): অ্যাকাউন্ট এবং অ্যাকাউন্ট সেটিংস, অ্যাপয়েন্টমেন্ট, পেমেন্ট, আবেদন, সাধারণ জিজ্ঞাসা, অন্যান্য
+Sample questions: আমার অনলাইন আবেদনের পাসওয়ার্ড ভুলে গেছি। এখন কি করা উচিত? | অনলাইন অ্যাপ্লিকেশন অ্যাকাউন্ট থেকে মোবাইল নাম্বার পরিবর্তন করা যাবে কি? | অনলাইনে আবেদনে কি ই-মেইল অ্যাড্রেস পরিবর্তন করা যায় কি? | অ্যাকাউন্ট অ্যাক্টিভেশন ই-মেইল পাইনি। আমার কি করা উচিত? | অনলাইন অ্যাপয়েন্টমেন্ট বাতিল বা সময় পরিবর্তন করা যাবে কি? | পাসপোর্ট অফিসে অনলাইন অ্যাপয়েন্টমেন্ট কিভাবে পেতে পারি?

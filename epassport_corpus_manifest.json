@@ -1,0 +1,63 @@
+{
+  "corpus": "epassport",
+  "generated": "2026-07-16",
+  "total_records": 62,
+  "sections": {
+    "faq": 39,
+    "faq-taxonomy": 1,
+    "fees": 7,
+    "instructions": 5,
+    "notice": 6,
+    "onboarding": 1,
+    "payment-reference": 3
+  },
+  "categories": {
+    "account": 7,
+    "appointment": 6,
+    "collection": 6,
+    "documents-eligibility": 13,
+    "fees-payment": 12,
+    "notices": 6,
+    "process": 2,
+    "reissue-changes": 5,
+    "status": 4,
+    "taxonomy": 1
+  },
+  "date_range": [
+    "2020-08-28",
+    "2026-07-12"
+  ],
+  "confirmed_empty_faqs": {
+    "16": "blank",
+    "17": "blank",
+    "18": "blank",
+    "23": "blank"
+  },
+  "notes": [
+    "All Instructions/Urgent/Fees chunks are bilingual: verbatim Bangla (authoritative, from portal) + English translation clearly labeled \"for reference\". Instructions page was Bangla-only on the portal, so Bangla is the source and English is a labeled translation.",
+    "Fee amounts captured (official table 2026-07-12); inside-BD incl 15% VAT; missions in USD, Regular+Express only.",
+    "Raw .txt layer organized by SOURCE PAGE (editable); JSONL organized by retrieval category. Different axes on purpose.",
+    "EXCLUDED: Contact form page; logged-in application wizard pages (personal PII).",
+    "PROVENANCE FIX 2026-07-16: three notice source_urls were off by one slot. Verified from screenshots: notices/33 = List of functional e-Passport Offices (2023-09-20); notices/34 = Documents need to be carried while enrolment (2025-05-07); notices/160 = Documents Checklist for e-Passport Enrollment (2024-10-21). Content and dates were correct throughout; only source_url was wrong.",
+    "UNVERIFIED: epassport-notice-dhaka-cantonment-jurisdiction claimed notices/33, which belongs to the functional-offices notice. Its true URL is unknown and it is flagged source_url_unverified, pointing at the /landing/notices index until a screenshot confirms. notices/161 is the likely candidate but was NOT assumed.",
+    "NEW CATEGORY 'process' (2 records): the corpus was FAQ-sourced and therefore complete on mid-process and edge-case questions but had zero coverage of the front-door 'how do I apply, start to finish' walkthrough. Found by comparing RAG output against a live-search baseline; 'How do I apply for e-passport?' returned only edge-case chunks at 0.68-0.73. The same gap shape is expected in ereturn (etaxnbr landing/overview) and BDRIS.",
+    "Bangla is the PRIMARY language of epassport.gov.bd. The five-step and onboarding pages expose an English toggle and BOTH versions are portal-published — the English is not Claude's translation. But the two diverge: BN step 4 says ছবি ও ফিঙ্গার প্রিন্ট (photo and fingerprint) where EN flattens it to 'biometric enrolment'; BN step 5 defines the delivery slip as the slip issued after enrolment completes, where EN only names it. Both stored verbatim; Bangla governs on conflict, per convention #1. Which version the portal authored first is NOT established and was deliberately not assumed — the corpus only needs to know which one wins. Live instance of the proposal's Section 1 claim that the Bangla and English versions of the same page sometimes disagree.",
+    "char_len was wrong on 7 records (6 notices off by exactly +1 from a trailing newline; faq-taxonomy-index had none). Recomputed and now asserted at build time.",
+    "KNOWN: every record duplicates its text into both 'text' and 'content'. embed_epassport.py reads 'text' and ignores 'content'. Not fixed here to avoid churning all 60 existing records; pick one before BDRIS makes it a four-file problem."
+  ],
+  "raw_files": [
+    {
+      "file": "13_five_step_to_your_epassport.txt",
+      "section": "e-Passport Application — The 5 Steps",
+      "url": "https://www.epassport.gov.bd/instructions/five-step-to-your-epassport",
+      "last_updated": "2026-06-03"
+    },
+    {
+      "file": "14_onboarding_region_check.txt",
+      "section": "Step 1 — Availability & Regional Office Check",
+      "url": "https://www.epassport.gov.bd/onboarding",
+      "last_updated": null
+    }
+  ],
+  "conventions_reminder": "Bangla governs on conflict for every epassport.gov.bd page. Portal-published English is stored verbatim alongside it and labelled as the English version. Never store English-only for a page that has Bangla."
+}

@@ -1,0 +1,40 @@
+SECTION: FAQ — Reissue & Changes (রিইস্যু ও পরিবর্তন)
+SOURCE: epassport.gov.bd/landing/faqs
+LANGUAGE: Bilingual (English + Bangla, verbatim portal copy)
+
+Q (EN): Some of my data changed compared to my previous passport - how can I apply?
+প্রশ্ন (BN): আমার পূর্বের এমআরপি পাসপোর্টের তুলনায় আমার কিছু ডেটা পরিবর্তিত হয়েছে - আমি কীভাবে আবেদন করতে পারি?
+A (EN): It is normal that some data may change over time e.g. present address, profession, emergency contact information or marital status.
+
+Here is what you need to do: Please submit the most recent data with your ePassport application.
+IMPORTANT: for the following changes you have to provide according documents:
+- Change of profession: provide Professional Certificate / Student ID (if applicable)
+- Change of marital status: provide Marriage Certificate
+- Change of name, date of birth, place of birth, fathers or mothers name: provide all required official documents like NID/BRC, previous passport (if available), further documents. These are checked by the passport office during enrolment and may be subject for deeper checks with according Bangladesh authorities. In such case processing of the application may take more time.
+উত্তর (BN): এটি স্বাভাবিক যে সময়ের সাথে সাথে কিছু ডেটা পরিবর্তিত হতে পারে যেমনঃ বর্তমান ঠিকানা, পেশা, জরুরি যোগাযোগের তথ্য বা বৈবাহিক অবস্থা।
+
+আপনার যা করা দরকার: আপনার ই-পাসপোর্ট অ্যাপ্লিকেশনটিতে সাম্প্রতিকতম তথ্য ব্যবহার করুন।
+গুরুত্বপূর্ণ: নিম্নলিখিত পরিবর্তনগুলির জন্য আপনাকে যে কাগজপত্র সরবরাহ করতে হবে:
+- পেশা পরিবর্তন: পেশাদারীত্বের প্রসংশা পত্র / শিক্ষার্থী আইডি সরবরাহ করুন (প্রযোজ্য ক্ষেত্রে)।
+- বৈবাহিক অবস্থার পরিবর্তন: বিবাহের সনদপত্র সরবরাহ করুন।
+- নাম, জন্মের তারিখ, জন্মের স্থান, পিতা বা মাতার নাম: এনআইডি / বিআরসি, পূর্বের পাসপোর্ট (যদি থাকে), প্রয়োজনীয় অন্যান্য কাগজপত্র সরবরাহ করুন। এগুলি নিবন্ধনের সময় পাসপোর্ট অফিসে চেক করা হয়। সেক্ষেত্রে আবেদনের প্রসেসিংয়ে আরও সময় লাগতে পারে।
+
+Q (EN): I have lost my e-Passport. I don't have my previous e-Passport number. How can I get my previous e-Passport number?
+প্রশ্ন (BN): আমি আমার ই-পাসপোর্ট হারিয়ে ফেলেছি। আমার আগের ই-পাসপোর্ট নম্বর মনে নেই। আমি কিভাবে আমার আগের ই-পাসপোর্ট নম্বর পেতে পারি?
+A (EN): Please communicate with your designated Passport office for necessary information. To collect previous e-Passport no, you have to bring NID and BRC.
+উত্তর (BN): প্রয়োজনীয় পরামর্শের জন্য অনুগ্রহ করে আপনার জন্য নির্ধারিত পাসপোর্ট অফিসের সাথে যোগাযোগ করুন। পূর্ববর্তী ই-পাসপোর্ট নম্বর সংগ্রহ করতে, আপনাকে NID এবং BRC আনতে হবে।
+
+Q (EN): How can I change my information in the passport after I changing information of my NID?
+প্রশ্ন (BN): আমি আমার NID তে তথ্য সংশোধন করার পর কিভাবে আমি পাসপোর্টে আমার তথ্য সংশোধন করতে পারি?
+A (EN): You have to apply for a new e-Passport as per the new NID.
+উত্তর (BN): নতুন NID অনুযায়ী আপনাকে একটি নতুন ই-পাসপোর্টের জন্য আবেদন করতে হবে।
+
+Q (EN): After how many years e-passport must be re-issued?
+প্রশ্ন (BN): ই-পাসপোর্ট কত বছর পরে পুনরায় রি—ইস্যু করতে হবে?
+A (EN): Generally, e-passport is issued with the validity of 5/10 years. You can re-issue a new passport by mentioning the previous passport number before or after the expiry date as per your requirement.
+উত্তর (BN): সাধারণত ৫/১০ বছরের জন্য ই—পাসপোর্ট করা হয়। আপনি আপনার প্রয়োজন অনুযায়ী পাসপোর্টের মেয়াদ উত্তীর্ণ হওয়ার আগে অথবা পরে যে কোন সময়ে পূর্ববর্তী পাসপোর্ট নম্বরটি উল্লেখ পূর্বক নতুন পাসপোর্ট রি-ইস্যু করতে পারবেন।
+
+Q (EN): When the passport validity date expires, is there any fee to be paid for the expiry?
+প্রশ্ন (BN): পাসপোর্ট এর মেয়াদ শেষ হলে মেয়াদ উত্তীর্ণের জন্য কি কোন ফি প্রদান করা লাগবে?
+A (EN): There is no fee to pay for the expiry of the passport validation date. In case of passport re-issue or re-new, only the fee prescribed by the Government of Bangladesh to be paid.
+উত্তর (BN): পাসপোর্ট এর মেয়াদ শেষ হলে মেয়াদ উত্তীর্ণের জন্য কোন ফি প্রদান করতে হবে না। পাসপোর্ট রি-ইস্যু বা রি—নিউ এর ক্ষেত্রে শুধুমাত্র বাংলাদেশ সরকার কর্তৃক নির্ধারিত ফি প্রদান করতে হবে।

@@ -1,0 +1,39 @@
+SOURCE: services.nidw.gov.bd/nid-pub/claim-account (Address Verification UI)
+CATEGORY: Account Claim Address Selection (অ্যাকাউন্ট দাবি - ঠিকানা যাচাই)
+LANGUAGE: Multilingual (Bangla / English UI)
+
+[PRESENT ADDRESS / PERMANENT ADDRESS DROPDOWNS]
+To claim an account, the user must correctly select the Division (বিভাগ), District (জেলা), and Upozila (উপজেলা) that perfectly match the existing NID database records.
+
+[Division (বিভাগ) Options Available in Screenshot]
+- বরিশাল (Barishal)
+- চট্টগ্রাম (Chattogram)
+- রাজশাহী (Rajshahi)
+- রংপুর (Rangpur)
+- সিলেট (Sylhet)
+- ঢাকা (Dhaka)
+- খুলনা (Khulna)
+- ময়মনসিংহ (Mymensingh)
+
+[District (জেলা) Options Available in Screenshot - for Rajshahi Division]
+- বগুড়া (Bogra)
+- জয়পুরহাট (Joypurhat)
+- নওগাঁ (Naogaon)
+- নাটোর (Natore)
+- চাঁপাইনবাবগঞ্জ (Chapainawabganj)
+- পাবনা (Pabna)
+- রাজশাহী (Rajshahi)
+- সিরাজগঞ্জ (Sirajganj)
+
+[Upozila (উপজেলা) Options Available in Screenshot - for Naogaon District]
+- আত্রাই (Atrai)
+- বদলগাছী (Badalgachhi)
+- ধামইরহাট (Dhamoirhat)
+- মান্দা (Manda)
+- মহাদেবপুর (Mohadevpur)
+- নওগাঁ সদর (Naogaon Sadar)
+- নিয়ামতপুর (Niamatpur)
+- পত্নীতলা (Patnitala)
+- পোরশা (Porsha)
+- রাণীনগর (Raninagar)
+- সাপাহার (Sapahar)

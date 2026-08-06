@@ -1,0 +1,70 @@
+SECTION: FAQ — Account & Login (অ্যাকাউন্ট)
+SOURCE: epassport.gov.bd/landing/faqs
+LANGUAGE: Bilingual (English + Bangla, verbatim portal copy)
+
+Q (EN): I forgot the password of my online application account – what should I do?
+প্রশ্ন (BN): আমার অনলাইন আবেদনের পাসওয়ার্ড ভুলে গেছি। এখন কি করা উচিত?
+A (EN): In case you forgot the password of your online application account you can use the password recovery function.
+- Go to the account sign in
+- Click the “Forgot password” link
+- Enter your email address
+- Check your email account for the recovery message and follow the instructions given there.
+উত্তর (BN): পাসওয়ার্ড পুনরুদ্ধারে নিম্নবর্ণিত পন্থা অবলম্বন করুন:
+- অ্যাকাউন্ট সাইন ইন করুন।
+- “Forgot password” link এ ক্লিক করুন।
+- ই-মেইল অ্যাড্রেসে প্রবেশ করুন।
+- ই-মেইল চেক করুন। নতুন পাসওয়ার্ড প্রেরণ করা হয়েছে।
+
+Q (EN): I don't have an email address - can I also apply online?
+প্রশ্ন (BN): আমার ই-মেইল অ্যাড্রেস নাই। আমি অনলাইন আবেদন করতে পারবো?
+A (EN): An email address is required to use the online application.
+If you want to apply by Online Application and don't have an email address yet you can get a free address from several services. Two popular services are Google and Yahoo.
+Follow the instructions on the relevant pages of the service provides. It is a quick and easy process and with your new email address you are ready to start your online application!
+উত্তর (BN): অনলাইন আবেদনের জন্য ই-মেইল অ্যাড্রেস প্রয়োজন। আবেদনের পূর্বে ই-মেইল অ্যাড্রেস খোলার জন্য Google ও Yahoo ব্যবহার করতে পারবেন।
+
+Q (EN): I did not receive the account activation email. What should I do?
+প্রশ্ন (BN): অ্যাকাউন্ট অ্যাক্টিভেশন ই-মেইল পাইনি। আমার কি করা উচিত?
+A (EN): This may have several reasons. Please check the following:
+Spam Folder: Sometimes emails are automatically put to the spam folder of your email account. Please check the spam folder first.
+You misspelled your email address during registration: in this case just start the account creation again and make sure to enter the correct email address.
+You can also click the Resend button to have the activation email sent again.
+উত্তর (BN): এর কয়েকটি কারণ থাকতে পারে। অনুগ্রহ করে নিম্নলিখিত বিষয়গুলো পরীক্ষা করুন:
+স্প্যাম ফোল্ডার: অনেক সময় ই-মেইল স্বয়ংক্রিয়ভাবে স্প্যাম ফোল্ডারে চলে যায়। প্রথমে স্প্যাম ফোল্ডার পরীক্ষা করুন।
+নিবন্ধনের সময় ই-মেইল ঠিকানা ভুল লিখেছেন: সেক্ষেত্রে সঠিক ই-মেইল দিয়ে পুনরায় অ্যাকাউন্ট তৈরি করুন।
+পুনরায় অ্যাক্টিভেশন ই-মেইল পেতে Resend বাটনে ক্লিক করতে পারেন।
+
+Q (EN): Can I change the email address for my online application account?
+প্রশ্ন (BN): অনলাইনে আবেদনে কি ই-মেইল অ্যাড্রেস পরিবর্তন করা যায় কি?
+A (EN): No, the email address you used for registering your ePassport online account cannot be changed.
+In case you have issues with your existing email address you may create a new account at the ePassport online portal with a different email address.
+উত্তর (BN): না। অনলাইন ই-পাসপোর্ট আবেদনে ব্যবহৃত ই-মেইল পরিবর্তন করা যায় না।
+তবে নতুন ই-মেইল ব্যবহার করে নতুন ই-পাসপোর্ট আবেদন করা যায়।
+
+Q (EN): Can I change the mobile number registered in my online account?
+প্রশ্ন (BN): অনলাইন অ্যাপ্লিকেশন অ্যাকাউন্ট থেকে মোবাইল নাম্বার পরিবর্তন করা যাবে কি?
+A (EN): Yes, this is possible. Just sign in to your ePassport online account. Click on the account name and select "Account data". Now you can activate or de-activate the SMS notification function, and enter a new mobile number where you want to receive the automated status notifications.
+Please note: An individual mobile number can only be used for one ePassport online account.
+উত্তর (BN): হ্যাঁ, এটি সম্ভব। আপনার ই-পাসপোর্ট অনলাইন অ্যাকাউন্টে সাইন ইন করুন। অ্যাকাউন্টের নামে ক্লিক করে "Account data" নির্বাচন করুন। এখন আপনি SMS নোটিফিকেশন চালু বা বন্ধ করতে পারেন এবং স্বয়ংক্রিয় স্ট্যাটাস নোটিফিকেশন পাওয়ার জন্য নতুন মোবাইল নম্বর দিতে পারেন।
+অনুগ্রহ করে লক্ষ্য করুন: একটি মোবাইল নম্বর কেবল একটি ই-পাসপোর্ট অনলাইন অ্যাকাউন্টের জন্য ব্যবহার করা যাবে।
+
+Q (EN): I made mistakes in my application data and my application is already submitted - what can I do?
+প্রশ্ন (BN): আমি আমার অ্যাপ্লিকেশন ডেটাতে ভুল করেছি এবং আমার আবেদন ইতিমধ্যে জমা দেওয়া হয়েছে - আমি কী করতে পারি?
+A (EN): If you recognize that you have submitted your ePassport application, but some of the application data is not correct you should do the following:
+
+Please visit your passport office with the printed "Application Summary". Your application will be found there and the incorrect data can be changed by the enrolment officer.
+IMPORTANT: please provide the required document like NID or BRC and previous passport (if available), or other official documents to prove the correct data.
+
+If you stated the wrong name of the applicant and you already made the payment of the passport fees using the incorrect name (either via online payment or bank payment) this can also be handled by the passport office. In this case a specific clearance is required which can take some time.
+উত্তর (BN): আপনি যদি মনে করেন যে, আপনি আপনার ই-পাসপোর্ট অ্যাপ্লিকেশন জমা দিয়েছেন তবে কিছু অ্যাপ্লিকেশন ডেটা সঠিক না, তাহলে আপনি নিম্নলিখিত পদ্ধতি অবলম্বন করতে পারেন:
+
+মুদ্রিত "অ্যাপ্লিকেশন সারাংশ" সহ আপনি পাসপোর্ট অফিসে যোগাযোগ করুন। আপনার আবেদন সেখানে পাওয়া যাবে এবং ভুল তথ্য এনরোলমেন্ট অফিসার দ্বারা পরিবর্তন করা যেতে পারে।
+গুরুত্বপূর্ণঃ সঠিক তথ্য প্রমাণের জন্য দয়া করে প্রয়োজনীয় ডকুমেন্ট যেমন এনআইডি বা বিআরসি এবং পূর্বের পাসপোর্ট (যদি থাকে) সরবরাহ করুন বা অন্যান্য সরকারি নথি সরবরাহ করুন।
+
+আপনি যদি আবেদনে ভুল নামটি উল্লেখ করে থাকেন এবং আপনি যদি ইতিমধ্যে ভুল নামটি ব্যবহার করে পাসপোর্টের ফি প্রদান করে থাকেন (অনলাইন পেমেন্ট বা ব্যাংক পেমেন্টের মাধ্যমে) এটিও পাসপোর্ট অফিস ব্যবস্থা করতে পারবেন। এই ক্ষেত্রে একটি নির্দিষ্ট ছাড়পত্র প্রয়োজন যা কিছু সময় নিতে পারে।
+
+Q (EN): I experienced issues with Online Payment - what can I do?
+প্রশ্ন (BN): আমি অনলাইন অর্থ প্রদানের ক্ষেত্রে কিছু সমস্যা পেয়েছি - আমি কী করতে পারি?
+A (EN): Contact your bank for refund if status is failed but payment done. After having refund from bank then delete this application and apply a new.
+If payment is not done and status is failed then select offline payment option or delete this application and try a new.
+উত্তর (BN): আপনার টাকা কেটে নিয়ে স্ট্যাটাস ফেইল্ড দেখালে সংশ্লিষ্ট ব্যাংকে যোগাযোগ করুণ রিফান্ডের জন্য। রিফান্ড পেয়ে গেলে উক্ত আবেদনটি ডিলিট করে নুতন আবেদন করুণ।
+আর টাকা না কেটে স্ট্যাটাস ফেইল্ড দেখালে অফলাইনে পেমেন্ট সিলেক্ট করে আবেদনটি সাবমিট দিন। অথবা উক্ত আবেদনটি ডিলিট করে নুতন আবেদন করুণ।

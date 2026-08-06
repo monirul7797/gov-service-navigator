@@ -1,0 +1,14 @@
+SECTION: Form & App Downloads (ফর্ম ও অ্যাপস ডাউনলোড)
+SOURCE: services.nidw.gov.bd/nid-pub/form-download
+
+[AVAILABLE FORMS FOR DOWNLOAD - ফর্ম ডাউনলোড]
+1. হারানো অথবা চুরি হওয়া আইডি কার্ড উত্তোলনের আবেদন ফর্ম (Application form to retrieve lost or stolen ID card).
+2. তথ্য সংশোধনের জন্য আবেদন ফর্ম (উপজেলা/থানা নির্বাচন অফিসে আবেদনের জন্য) - (Application form for correction application - to apply at Upazila/Thana EC office).
+3. বিশেষ ফর্ম ২ (Special Form 2).
+4. বিশেষ এলাকা (Special Area Form).
+
+[AVAILABLE APPLICATIONS FOR DOWNLOAD - ডাউনলোড অ্যাপস]
+- Application Name: NID Wallet
+- Platforms: 
+  * Android App (Google Play Store)
+  * iOS App (Apple App Store)

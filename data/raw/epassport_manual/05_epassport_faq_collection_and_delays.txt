@@ -1,0 +1,57 @@
+SECTION: FAQ — Collection & Delays (সংগ্রহ ও বিলম্ব)
+SOURCE: epassport.gov.bd/landing/faqs
+LANGUAGE: Bilingual (English + Bangla, verbatim portal copy)
+
+Q (EN): I have lost my delivery slip. Now how I will collect my passport?
+প্রশ্ন (BN): আমি আমার ডেলিভারি স্লিপ হারিয়েছি। এখন আমি কিভাবে আমার পাসপোর্ট সংগ্রহ করব?
+A (EN): You have to do following action:
+1. Bring your Print Summary
+2. Bring your NID
+3. Bring Photo Copy of your Delivery Slip (if Possible)
+উত্তর (BN): আপনাকে নিম্নলিখিত পদক্ষেপগুলি অনুসরণ করতে হবে:
+ক। প্রিন্ট সামারি (অ্যাপয়েন্টমেন্ট কপি)
+খ। এন আই ডি'র কপি
+গ। আপনার ডেলিভারি স্লিপের ফটোকপি (যদি সম্ভব হয়)
+
+Q (EN): What types of documents are required to show at passport office to collect a new passport?
+প্রশ্ন (BN): নতুন পাসপোর্ট সংগ্রহের সময় কি কি কাগজপত্রাদি পাসপোর্ট অফিসে দেখানোর প্রয়োজন?
+A (EN): a. Delivery Slip (which you got during enrolment)
+b. If the new passport belongs to your child (younger than 12 years) please also bring your own NID or passport.
+c. If you want to collect the passport by somebody else, please provide signed authorization letter to him/her. The authorized individual to carry his/her NID along with authority letter.
+d. Previous Passport (if it is the case of reissue)
+উত্তর (BN): ক। ডেলিভারি স্লিপ (যা আপনি বায়োমেট্রিক এনরোলমেন্ট করার সময় পেয়েছিলেন)
+খ। যদি নতুন পাসপোর্টটি আপনার সন্তানের (12 বছরের কম) হয়, তবে অনুগ্রহ করে আপনার নিজের NID বা পাসপোর্টও আনুন।
+গ। আপনি যদি অন্য কারো দ্বারা পাসপোর্ট সংগ্রহ করতে চান, তাহলে অনুগ্রহ করে তাকে স্বাক্ষরিত অনুমোদন পত্র প্রদান করুন। অনুমোদিত ব্যক্তিকে তার NID সহ কর্তৃত্ব পত্র বহন করতে হবে।
+ঘ। পূর্ববর্তী পাসপোর্ট (যদি এটি পুনরায় রি-ইস্যু করা হয়)
+
+Q (EN): After receiving a new passport, if I find any printing error in my passport, then how to get a corrected passport?
+প্রশ্ন (BN): একটি নতুন পাসপোর্ট পাওয়ার পর, যদি আমি আমার পাসপোর্টে কোন প্রিন্টিং ত্রুটি পাই, সেক্ষেত্রে কিভাবে পাসপোর্ট সংশোধন করা যাবে?
+A (EN): Please report to your designated Regional Passport Office within 01 month from the date of issue or collection.
+উত্তর (BN): অনুগ্রহ করে ইস্যু বা সংগ্রহের তারিখ থেকে ০১ মাসের মধ্যে নির্ধারিত আঞ্চলিক পাসপোর্ট অফিসে যোগাযোগ করুন।
+
+Q (EN): I have received an e-mail for collection of a new Passport from Passport office but I didn't receive a message through mobile. Can I collect my passport?
+প্রশ্ন (BN): আমি পাসপোর্ট সংগ্রহের জন্য ই-মেইল পেয়েছি কিন্তু কোন মোবাইলে এসএমএস পাই নাই। আমি কি পাসপোর্ট অফিস থেকে পাসপোর্ট সংগ্রহ করতে পারি?
+A (EN): Yes, you can collect passport.
+উত্তর (BN): জি, হ্যা, আপনি পাসপোর্ট সংগ্রহ করতে পারবেন।
+
+Q (EN): What are the reasons for getting passport delayed?
+প্রশ্ন (BN): পাসপোর্ট পেতে বিলম্ব হবার কারণগুলো কি কি?
+A (EN): There may be several reasons for receiving passport delayed, such as:
+- Dissimilarities between the NID/BRC/MRP and the application.
+- If the personal information regarding the applicant's name, parent's name, Full name, Age or Permanent address is changed.
+- Due to police verification process.
+- If any person is having multiple previous passports which were not declared during application.
+- If the applicant applies for changing personal information but didn't provide supporting documents.
+উত্তর (BN): বেশ কিছু কারণে পাসপোর্ট পেতে দেরি হতে পারে, যেমন-
+- NID/ BRC/ MRP এর সঙ্গে আবেদনের গড়মিল থাকলে।
+- তথ্য সংশোধন/পরিবর্তন করলে (অনেক ক্ষেত্রে আবেদনকারীর নাম, পিতা/মাতার নাম, পুরো নাম, বয়স অথবা স্থায়ী ঠিকানা পরিবর্তন করলে)।
+- পুলিশ ভেরিফিকেশন এর কারনে।
+- কোন ব্যক্তির পূর্বের একাধিক পাসপোর্ট থাকলে, যা আবেদনের সময় উল্লেখ করা হয়নি।
+- আবেদনকারী ব্যক্তিগত তথ্য সংশোধনের জন্য আবেদন করলে কিন্তু সহায়ক ডকুমেন্ট প্রদান না করলে।
+
+Q (EN): I have applied for my passport in Chittagong, can I collect it from Dhaka?
+প্রশ্ন (BN): আমি চট্রগ্রামে পাসপোর্ট করতে দিয়েছি, আমি কি ঢাকা থেকে সংগ্রহ করতে পারব?
+A (EN): The name of regional office or divisional office for passport collection will be mentioned in your Delivery slip, the passport should be collected from where it is mentioned in Delivery slip.
+(Note: Only urgent passports (Super Express) should be collected from Agargaon Divisional Passport Office.)
+উত্তর (BN): আপনার Delivery Slip এ পাসপোর্ট সংগ্রহের আঞ্চলিক অফিস বা বিভাগীয় অফিসের নাম উল্লেখ করা থাকবে, Delivery Slip এ যেখান থেকে সংগ্রহ করার কথা উল্লেখ করা থাকবে সেখান থেকেই পাসপোর্ট সংগ্রহ করতে হবে।
+(বিঃ দ্রঃ শুধুমাত্র অতি জরুরি (Super Express) পাসপোর্ট আগারগাঁও বিভাগীয় পাসপোর্ট অফিস হতে সংগ্রহ করতে হবে।)

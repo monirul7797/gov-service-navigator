@@ -1,0 +1,27 @@
+SOURCE: services.nidw.gov.bd Portal Screenshots (Home & Claim Account Wizard)
+CATEGORY: Account Registration and Claim Process (অ্যাকাউন্ট রেজিস্টার ও দাবি প্রক্রিয়া)
+LANGUAGE: Multilingual (Bangla & English)
+
+[PORTAL HOMEPAGE OPTIONS]
+- Register Account (রেজিস্টার করুন): For citizens who already have an NID card or a form number but do not have an online account.
+- Apply for New Registration (আবেদন করুন / Get Started): For Bangladeshi citizens who are not yet registered in the system.
+- Login Form: Requires NID number or Username, Password, and Captcha code verification.
+
+[ACCOUNT CLAIM WIZARD STEPS]
+Step 1: Account Verification (অ্যাকাউন্ট যাচাই)
+- Inputs Required: National Id Number / Account Form Number (জাতীয় পরিচয়পত্র নম্বর অথবা ফর্ম নম্বর) and Date of Birth (জন্ম তারিখ).
+- Captcha security code must be entered exactly as shown on screen to submit.
+
+Step 2: Address Validation (ঠিকানা যাচাই)
+- The user must select the Present Address (বর্তমান ঠিকানা) and Permanent Address (স্থায়ী ঠিকানা) from the dropdown menus.
+- Dropdown fields map hierarchically to: Division (বিভাগ) -> District (জেলা) -> Upazila/Thana (উপজেলা/থানা).
+- Note: System validates these choices against the database records to unlock account access.
+
+Step 3: Biometric Identity Verification via NID Wallet (এনআইডি ওয়ালেট ফেস ভেরিফিকেশন)
+- To complete the process, users must pass facial biometrics using the mobile app.
+- Steps to complete:
+  1. Install the "NID Wallet" app on a mobile device from Google Play Store or Apple App Store.
+  2. Scan the dynamic QR code displayed on the portal screen using the NID Wallet app.
+  3. Follow the on-screen camera instructions to capture a live face scan.
+  4. Once verified, the web portal automatically redirects the user to their private dashboard.
+- System Warning Notice: Ensure the NID Wallet app is updated to the latest version. Disable desktop mode on mobile browsers during this step.

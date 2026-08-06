@@ -1,0 +1,14 @@
+SECTION: Online Fee Calculator - Advanced Test Cases (ফি হিসাব করুন - অন্যান্য)
+SOURCE: services.nidw.gov.bd/nid-pub/fees
+
+TEST CASE 5: Urgent Reissue / Reprint (রিইস্যু - জরুরী)
+- Application Type: রিইস্যু (Reissue)
+- Delivery Type: জরুরী স্মার্ট কার্ড (Urgent Smart Card)
+- Output: "রিইস্যু এর জন্য জরুরী স্মার্ট কার্ড ডেলিভারী ফি 345 টাকা" (Urgent Smart Card Delivery Fee for Reissue is 345 Taka).
+*Formula: 300 BDT Base Fee + 15% VAT (45 BDT) = 345 BDT.
+
+TEST CASE 6: Urgent NID & Other Information Correction (জাতীয় পরিচয়পত্র ও অন্যান্য তথ্য সংশোধন - জরুরী)
+- Application Type: জাতীয় পরিচয়পত্র ও অন্যান্য তথ্য সংশোধন (NID & Other Info Correction)
+- Delivery Type: জরুরী স্মার্ট কার্ড (Urgent Smart Card)
+- Output: "জাতীয় পরিচয়পত্র ও অন্যান্য তথ্য সংশোধন এর জন্য জরুরী স্মার্ট কার্ড ডেলিভারী ফি 460 টাকা" (Urgent Smart Card Delivery Fee for NID & Other Info Correction is 460 Taka).
+*Formula: 300 BDT (Urgent NID Info) + 100 BDT (Regular Other Info, as urgent is not applicable) = 400 BDT Base Fee + 15% VAT (60 BDT) = 460 BDT.

@@ -1,0 +1,19 @@
+SECTION: Correction of NID Information (জাতীয় পরিচয়পত্র সংশোধন)
+SOURCE: nidw.gov.bd / services.nidw.gov.bd
+
+GENERAL RULES:
+In case of correction of information, the applicant must apply online with supporting documents. In all cases, the SSC certificate will get strict priority if the person is SSC qualified.
+
+SUPPORTING DOCUMENTS FOR NID INFO (Name, DOB, Parents' Name):
+- SSC / HSC Certificate (Highest priority).
+- Online Birth Registration Certificate.
+- Passport.
+- Driving License.
+- Magistrate Court Affidavit.
+- Service Book (for government employees).
+- Newspaper published circulation (for radical name changes).
+
+SUPPORTING DOCUMENTS FOR OTHER INFO (Address, Marital Status, Blood Group):
+- Marriage Certificate (Kabin Nama) or Divorce Certificate (Talaknama) / Court Decree for marital status changes.
+- Sibling's NID copies (helpful for verifying parents' names).
+- Utility bills, house rent, or holding tax receipts for address correction.

@@ -1,0 +1,155 @@
+{
+  "_readme": "Gold query set for BDRIS retrieval eval. Each entry has: query text, expected_category (always checked), and either expected_id (exact record must appear in top-K — used for faq/correction where a same-category-wrong-record hit is a real miss) or expected_id=null (category-level match is the honest bar — used for manual_walkthrough/rules2018/application_process where adjacent records legitimately overlap in content, and login_instructions where there's only 1 record so the distinction is moot). min_similarity is a soft floor: below it, treat as 'known-thin coverage' per the project's own lesson (low similarity signals missing coverage, not broken retrieval) rather than an automatic fail — the eval script should warn, not hard-fail, on a sub-threshold hit that still lands the right category/record. This is BDRIS's (and the project's) first gold query set — start small, expand once the pattern proves out on real runs.",
+  "strictness": "hybrid",
+  "top_k": 4,
+  "queries": [
+    {
+      "id": "gq_001",
+      "query": "What documents do I need to correct my parents' names on my birth certificate if they don't have their own registration number and were born before 2001?",
+      "lang": "en",
+      "expected_category": "bdris_correction",
+      "expected_id": "bdris_correction_003",
+      "min_similarity": 0.65
+    },
+    {
+      "id": "gq_002",
+      "query": "পিতা-মাতার জন্ম নিবন্ধন নম্বর থাকলে তাদের নাম কিভাবে সংশোধন করব?",
+      "lang": "bn",
+      "expected_category": "bdris_correction",
+      "expected_id": "bdris_correction_002",
+      "min_similarity": 0.65
+    },
+    {
+      "id": "gq_003",
+      "query": "amar babar name change korte hobe, tar own BRN nai, and he's dead, ami 2005 e jonmo hoise",
+      "lang": "banglish",
+      "expected_category": "bdris_correction",
+      "expected_id": "bdris_correction_004",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_004",
+      "query": "correction er jonno mobile number lagbe naki email?",
+      "lang": "banglish",
+      "expected_category": "bdris_correction",
+      "expected_id": "bdris_correction_005",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_005",
+      "query": "আমার জন্ম নিবন্ধনে 'possible duplicate' দেখাচ্ছে, এখন কী করব?",
+      "lang": "bn",
+      "expected_category": "bdris_faq",
+      "expected_id": "bdris_faq_014",
+      "min_similarity": 0.60
+    },
+    {
+      "id": "gq_006",
+      "query": "How do I add a mobile number to my birth certificate that doesn't have one?",
+      "lang": "en",
+      "expected_category": "bdris_faq",
+      "expected_id": "bdris_faq_016",
+      "min_similarity": 0.60
+    },
+    {
+      "id": "gq_007",
+      "query": "twin baby der jonmo nibondhon ekshathe korte gele ki kono somossa hoy?",
+      "lang": "banglish",
+      "expected_category": "bdris_faq",
+      "expected_id": "bdris_faq_special_populations_1",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_008",
+      "query": "Can a married woman register her birth at her husband's address if she was never registered before?",
+      "lang": "en",
+      "expected_category": "bdris_faq",
+      "expected_id": "bdris_faq_registration_basics_2",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_009",
+      "query": "everify.bdris.gov.bd দিয়ে জন্ম সনদ যাচাই কিভাবে করব?",
+      "lang": "bn",
+      "expected_category": "bdris_faq",
+      "expected_id": "bdris_faq_017",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_010",
+      "query": "How do I register a birth online step by step from the bdris website homepage?",
+      "lang": "en",
+      "expected_category": "bdris_manual_walkthrough",
+      "expected_id": null,
+      "min_similarity": 0.60
+    },
+    {
+      "id": "gq_011",
+      "query": "OTP na aslo, ki korbo?",
+      "lang": "banglish",
+      "expected_category": "bdris_manual_walkthrough",
+      "expected_id": null,
+      "min_similarity": 0.45,
+      "note": "hard/adversarial — OTP timing is ALSO covered in bdris_login_instructions; this probes whether the registration-flow OTP step (stage 6) or the login OTP rule wins, both are defensible"
+    },
+    {
+      "id": "gq_012",
+      "query": "জন্ম নিবন্ধন আবেদনের সময় জন্মস্থান নাকি স্থায়ী ঠিকানা বেছে নেব?",
+      "lang": "bn",
+      "expected_category": "bdris_manual_walkthrough",
+      "expected_id": "bdris_manual_stage_2_address_basis",
+      "min_similarity": 0.60
+    },
+    {
+      "id": "gq_013",
+      "query": "জন্ম নিবন্ধনের ফি কত টাকা?",
+      "lang": "bn",
+      "expected_category": "bdris_rules2018",
+      "expected_id": "bdris_rules2018_021_fees",
+      "min_similarity": 0.65
+    },
+    {
+      "id": "gq_014",
+      "query": "Where is a birth certificate legally required besides proving your age?",
+      "lang": "en",
+      "expected_category": "bdris_rules2018",
+      "expected_id": "bdris_rules2018_022_certificate_uses",
+      "min_similarity": 0.60
+    },
+    {
+      "id": "gq_015",
+      "query": "amar birth certificate hariye gese, koto din e notun copy pabo?",
+      "lang": "banglish",
+      "expected_category": "bdris_rules2018",
+      "expected_id": "bdris_rules2018_013_duplicate_certificate",
+      "min_similarity": 0.50,
+      "note": "hard — duplicate certificate has BOTH a rules2018 record and overlaps conceptually with correction-adjacent FAQ content; category ambiguity is realistic here"
+    },
+    {
+      "id": "gq_016",
+      "query": "How do I apply for birth registration if I live abroad through the embassy?",
+      "lang": "en",
+      "expected_category": "bdris_rules2018",
+      "expected_id": "bdris_rules2018_010_expat_birth",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_017",
+      "query": "লগইন করতে গিয়ে বার বার পাসওয়ার্ড ভুল হচ্ছে, কতক্ষণ ব্লক থাকবে?",
+      "lang": "bn",
+      "expected_category": "bdris_login_instructions",
+      "expected_id": "bdris_login_instructions_001",
+      "min_similarity": 0.45,
+      "note": "known-thin category (only 1 record) — expect a lower similarity ceiling than other categories even on a well-matched query; this is the calibration point for what 'thin but correct' looks like"
+    },
+    {
+      "id": "gq_018",
+      "query": "আজকে আবহাওয়া কেমন থাকবে, বৃষ্টি হবে কি?",
+      "lang": "bn",
+      "expected_category": null,
+      "expected_id": null,
+      "min_similarity": null,
+      "note": "OUT-OF-SCOPE probe (revised) — weather has zero conceptual/vocabulary overlap with anything in a birth/death registration corpus, unlike the original 'mobile vs computer' probe which shared the word 'mobile' with mobile-number-rule records and produced a false fail (sim=0.60 against a 0.55 ceiling). Checks the eval script correctly reports 'no good match' rather than forcing a false-positive category label onto whatever happens to rank first."
+    }
+  ]
+}

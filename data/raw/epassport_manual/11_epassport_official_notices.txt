@@ -1,0 +1,65 @@
+SECTION: Official Notices (সরকারি বিজ্ঞপ্তি)
+SOURCE: epassport.gov.bd/landing/notices
+LANGUAGE: Bilingual (English + Bangla, verbatim portal copy)
+
+Dhaka Cantonment Passport Office Jurisdiction Redistribution of e-Passport Service / ঢাকা সেনানিবাস পাসপোর্ট অফিস থেকে ই-পাসপোর্ট সেবা গ্রহনের অধিক্ষেত্র পুণঃবন্টন সংক্রান্ত নোটিশ
+
+1. The jurisdictions of Divisional Passport and Visa Office, Agargaon and Passport Office, Dhaka Cantonment have been redistributed. Jurisdictions of Divisional Passport and Visa Office, Agargaon includes Sher-e-bangla Nagar, Mirpur, Kafrul, Rupnagar, Gulshan, Banani, Shahbag, Dhanmondi, Kalabagan, Ramna, Tejgaon, Tejgaon Industrial Area and Dhaka Cantonment (for citizens residing under the jurisdiction of Dhaka Cantonment Police Station) (Total 13).
+2. To avail the passport service from Dhaka Cantonment Passport Office, serving and retired military personnel and civilians working under Ministry of Defense at Dhaka station should follow the instructions:
+a. Military Personnel and their families (spouse and children only): serving in Dhaka Cantonment/Station or on deputation in Dhaka can apply on the basis of Government Order (GO)/NOC. GO is mandatory for military personnel serving in other cantonments/stations and on deputation outside Dhaka; NOC from other stations is not acceptable.
+b. Retired military personnel (spouse and children only): residents of Dhaka Cantonment per present address; residents of all DOHS in Dhaka and Jolshiri Abashon; residents under Dhaka Cantonment Police Station (Manikdi/Matikata/Khanpalli/Mastertek/Manikdi Namapara/Damalkot/ECB Chattor); for retired personnel, documents proving retirement to be furnished.
+c. Civilians working under Ministry of Defense at Dhaka Station (spouse and children only): current address under any Police Station of Dhaka city; GO/NOC mandatory where applicable.
+
+Documents Checklist for e-Passport Enrollment / পাসপোর্টের আবেদন জমা নেওয়ার ক্ষেত্রে চেকলিস্ট
+
+Checklist for submitting a passport application:
+1. Applicant's printed copy of the online-submitted (PDF) form.
+2. Chalan receipt for passport fee payment (for offline payment).
+3. Online birth registration certificate (English version) - original and photocopy.
+4. National ID card - original and photocopy (for citizens above 20 years).
+5. Proof of present address - original of Job ID/Student ID/gas/electricity/telephone/water bill (whichever applicable).
+6. For adoption/guardianship - copy of order issued by Security Services Division, Ministry of Home Affairs.
+7. For technical profession proof - copy of technical certificate (doctor, engineer, driver, etc.).
+8. For reissue - original previous passport and its photocopy.
+9. Grey-background 3R size photo (for children under 6 years).
+10. For minor applicants - copy of parents' National ID.
+11. Medical certificate (in case of eye iris / fingerprint missing).
+12. Copy of Government Order (GO)/No Objection Certificate (NOC)/attestation, which must be uploaded on the issuing authority's own website (where applicable).
+13. Copy of PRL order/pension book (where applicable).
+14. For change of marital status - copy of marriage certificate/kabin nama.
+15. For divorce - copy of divorce certificate/talaq nama.
+16. For lost passport - original copy of General Diary (GD).
+17. Sworn affidavit in prescribed format if previous passport and NID/BRC data mismatch.
+18. Sworn affidavit in prescribed format for multiple active passports.
+19. For information correction of minors - educational certificate (JSC/SSC/HSC/equivalent).
+20. For government employees' information correction - NID, educational certificate, and office attestation per service record, plus photocopy of service record.
+21. For dual citizenship - Dual Citizenship certificate from Ministry of Home Affairs (where applicable).
+22. For minor applicants - parents' consent letter and presence of both or any one parent.
+(NB: For biometric enrolment photo, wear coloured clothing instead of white.)
+
+Documents need to be carried while enrolment at Passport offices / পাসপোর্ট অফিসে আবেদনপত্র জমা দেওয়ার সময় যে সকল প্রয়োজনীয় কাগজপত্র নিয়ে যেতে হবে
+
+Required documents:
+1. Printed application summary including appointment (if any).
+2. Identification documents (NID card / Birth certificate - Original).
+3. Payment Slip for Offline Payment only.
+4. Previous Passport (if any).
+5. GO/NOC for government service holder (as applicable).
+6. Printed application form.
+7. Further necessity of documents depends on nature of application/corrections (if any).
+
+List of functional e-Passport Offices / চালুকৃত ই-পাসপোর্ট অফিসগুলির তালিকা
+
+Currently the following e-Passport Offices are functional (72 total): Agargaon, Jatrabari, Uttara, Dhaka Cantonment, Bangladesh Secretariate, Gazipur, Mansurabad, Mymensingh, Ministry of Foreign Affairs, Gaibandha, Gopalganj, Manikganj, Narsingdi, Noakhali, Feni, Chandgaon, Comilla, Munshiganj, Sylhet, Moulovibazar, Sunamganj, Habiganj, Jashore, Khulna, Kushtia, Brahmanbaria, Rajshahi, Chapainawabganj, Bogura, Rangpur, Dinajpur, Naogaon, Joypurhat, Barishal, Patuakhali, Pabna, Sirajganj, Kishoreganj, Natore, Magura, Norail, Lakshmipur, Tangail, Jamalpur, Sherpur, Netrokona, Madaripur, Faridpur, Rajbari, Jhenidah, Satkhira, Bagerhat, Bhola, Barguna, Chudanga, Jhalokhathi, Kurigram, Lalmonirhat, Meherpur, Nilphamari, Panchagar, Pirojpur, Shariatpur, Thakurgaon, Bandarban, Chandpur, Coxs Bazar, Khagrachori, Narayanganj, Rangamati, Dhaka East (Aftab Nagar), and Dhaka West (Mohammadpur).
+NB: Please follow the Covid-19 health protocol while visiting Passport Offices.
+
+Special Attention against Fraudulent Activities / প্রতারণা প্রতিরোধে বিশেষ সতর্কতা
+
+1. Do not pay any individual or organization to correct information or resolve issues related to your e-Passport. No payment is ever required to correct any information submitted in an e-Passport application.
+2. When paying the e-Passport fee, use only the authorized payment methods specified on the official e-Passport portal. Do not make any payment through any individual, organization, or unauthorized channel.
+3. The e-Passport authority does not send links via SMS. For your security, do not follow or click on any links received through SMS.
+4. Official e-Passport SMS messages are sent only from the sender name "EPASSPORTBD". To protect yourself from fraud, ignore any SMS messages received from any other sender name or phone number.
+
+Special Notice: Resumption of Operations of the Narayanganj Regional Passport Office / বিশেষ নোটিশঃ নারায়ণগঞ্জ আঞ্চলিক পাসপোর্ট অফিসের কার্যক্রম পুনরায় শুরু প্রসঙ্গে
+
+From 01 May 2025, the Narayanganj Regional Passport Office will resume operations, and from that date onwards, online applications submitted by applicants from Narayanganj District will be processed by the Narayanganj Regional Passport Office. For applications from Narayanganj where biometrics have already been completed before the mentioned date, the remaining procedures will be handled by the respective Enrollment Offices (i.e., Keraniganj, Munshiganj, and Narsingdi Passport Offices). For applications from Narayanganj where biometrics have not yet been completed before the mentioned date, all procedures, including Biometric Enrollment, will be carried out by the reopened Narayanganj Regional Passport Office.

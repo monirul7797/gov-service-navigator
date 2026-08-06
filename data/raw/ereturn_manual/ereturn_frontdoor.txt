@@ -1,0 +1,25 @@
+SECTION: NBR and e-Return front-door landing pages (not previously captured — closes the front-door coverage gap identified via eval_ereturn_frontdoor.py)
+SOURCE: https://etaxnbr.gov.bd/ (e-Return portal landing page) and https://nbr.gov.bd/ (parent NBR homepage)
+LANGUAGE: English (etaxnbr.gov.bd tiles) and bilingual (nbr.gov.bd homepage)
+
+etaxnbr.gov.bd — e-Return portal landing page
+
+The e-Return portal presents six service tiles on its landing page, under the National Board of Revenue, Bangladesh header:
+- eTIN — Register as a taxpayer
+- eReturn — File your tax return / Download Express Certificate
+- ReturnVerify/PSR — Verify your Return
+- eReturnLedger — Update your tax payment
+- eTaxPayment (eTDS) — Manage your source tax
+- eTaxService — Interact online with tax support team
+
+This is the entry point a first-time visitor sees before registering or signing in — distinct from the post-registration "Return submission" flow (Assessment / Income / Rebate / Expenditure / Asset & liabilities / Tax & payment / Return view) already documented elsewhere in the corpus.
+
+nbr.gov.bd — parent NBR homepage
+
+The main National Board of Revenue homepage is the umbrella site above etaxnbr.gov.bd; it covers NBR's three broad domains (NBR general, VAT, Customs) alongside Income Tax and eTIN/eReturn as one of several quick-link tiles (others: Baggage Rules, VAT Registration/VAT Return Filing).
+
+Top navigation: About Us, eServices, Regulations, Form, Tax Types, Budget, Project, Publications, EFDMS, FAQ (plus a language toggle to বাংলা).
+
+Contact numbers displayed prominently in the header: 16555 (VAT), 333 (general government helpline, not tax-specific), 16139/BSW, and 09643717171 (labeled "e-Return Hotline Number" — matches the number already documented in the e-Return FAQ's support-contact record). A separate "কল সেন্টার" (call center) promotional box elsewhere on the page lists a second number, ০৯৬১২২৮২৪২৪ — not previously documented, a distinct contact channel from the main e-Return hotline.
+
+Other homepage features: a 13-digit BIN (Business Identification Number) search tool for looking up basic taxpayer information; a Latest Updates / Press Notes / News & Media tabbed panel listing recent NBR notices (postings, transfers, retirement orders — internal administrative notices, not citizen-facing); sections for About Us, National Integrity Strategy, Annual Performance Agreement, Right to Information, ICT Corner, Grievance Redress System, and Citizens Charter.

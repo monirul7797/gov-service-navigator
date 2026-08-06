@@ -1,0 +1,61 @@
+{
+  "_readme": "Small, targeted gold query set for e-Return — built specifically to give a definitive, repeatable answer on the 'front-door landing / helpline' coverage question flagged in the project notes, rather than relying on eyeballed pattern-matching. Same hybrid strictness convention as bdris_gold_queries.json: expected_id set means an exact record must appear in top-K; expected_id=null means category-level (here, subcategory-level) is the honest bar. min_similarity is a soft floor — falling short WARNS, not FAILS, per the 'low similarity signals missing coverage' lesson. This is deliberately small (6 queries) and narrowly scoped to the one open question, not a full e-Return gold set — expand later if useful.",
+  "strictness": "hybrid",
+  "top_k": 4,
+  "queries": [
+    {
+      "id": "gq_er_001",
+      "query": "Where do I contact for help with any e-Return problem?",
+      "lang": "en",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-support-contact",
+      "min_similarity": 0.70,
+      "note": "helpline check — this record exists and should score high; confirms the manifest's silence on a dedicated helpline source was misleading, not a real gap"
+    },
+    {
+      "id": "gq_er_002",
+      "query": "e-Return এর কোন সমস্যায় কোথায় যোগাযোগ করব?",
+      "lang": "bn",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-support-contact",
+      "min_similarity": 0.70,
+      "note": "helpline check, Bangla phrasing — same expected record, confirming cross-lingual retrieval isn't the weak point here"
+    },
+    {
+      "id": "gq_er_003",
+      "query": "NBR er website e gele প্রথমে কি দেখা যাবে? homepage e ki ki option thake?",
+      "lang": "banglish",
+      "expected_subcategory": null,
+      "expected_id": null,
+      "min_similarity": 0.55,
+      "note": "front-door probe — no record describes the pre-registration public homepage; expecting a low/no strong match. If something scores well above the floor, the gap may already be closed and this note is wrong"
+    },
+    {
+      "id": "gq_er_004",
+      "query": "What does the NBR income tax homepage look like before I register?",
+      "lang": "en",
+      "expected_subcategory": null,
+      "expected_id": null,
+      "min_similarity": 0.55,
+      "note": "front-door probe, English phrasing — same expectation as gq_er_003, checking the gap isn't just a Banglish-retrieval artifact"
+    },
+    {
+      "id": "gq_er_005",
+      "query": "How do I start filing my return online?",
+      "lang": "en",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-how-to-start",
+      "min_similarity": 0.65,
+      "note": "control query — confirms the post-registration 'getting started' content IS well covered, isolating the gap specifically to the pre-registration public homepage rather than 'getting started' broadly"
+    },
+    {
+      "id": "gq_er_006",
+      "query": "www.incometax.gov.bd সাইটটা দেখতে কেমন, প্রথম পেজে কি থাকে?",
+      "lang": "bn",
+      "expected_subcategory": null,
+      "expected_id": null,
+      "min_similarity": 0.55,
+      "note": "front-door probe targeting the specific portal URL mentioned in several answers (incometax.gov.bd) but never described visually/structurally itself"
+    }
+  ]
+}

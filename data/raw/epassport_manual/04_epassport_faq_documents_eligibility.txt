@@ -1,0 +1,106 @@
+SECTION: FAQ — Documents & Eligibility (কাগজপত্র ও যোগ্যতা)
+SOURCE: epassport.gov.bd/landing/faqs
+LANGUAGE: Bilingual (English + Bangla, verbatim portal copy)
+
+Q (EN): My present address changed compared to my previous passport - where do I need to apply?
+প্রশ্ন (BN): আমার পূর্ববর্তী পাসপোর্টের তুলনায় আমার বর্তমান ঠিকানাটি পরিবর্তিত হয়েছে - আমাকে কোথায় আবেদন করতে হবে?
+A (EN): State your new present address in the ePassport application.
+When you enter your present address in the online application your responsible passport office will be automatically detected. You can only apply there.
+উত্তর (BN): ই-পাসপোর্ট অ্যাপ্লিকেশনটিতে আপনার নতুন বর্তমান ঠিকানাটি লিখুন।
+আপনি যখন অনলাইনে আবেদনের মাধ্যমে আপনার বর্তমান ঠিকানাটি ব্যবহার করবেন তখন আপনার আবেদনটি কোন পাসপোর্ট অফিসে জমা দিতে হবে তা স্বয়ংক্রিয়ভাবে সনাক্ত হয়ে যায়। আপনি কেবল সেখানে আবেদন করতে পারেন।
+
+Q (EN): I have an MRP - how is the process to get the ePassport?
+প্রশ্ন (BN): আমার একটি এমআরপি আছে – আমি কিভাবে ই-পাসপোর্ট এর জন্য আবেদন করতে পারি?
+A (EN): If you already have an MRP please fill in the complete online application form. There is no "auto fill-in" of data from MRP.
+After submission please visit the passport office for enrolment. Bring your MRP, NID/BRC and all other required supporting documents with you.
+
+Also in the case you have an MRP another clearance by Special Branch Police may not be required. Please ask at the passport office during enrolment.
+উত্তর (BN): আপনার যদি ইতিমধ্যে এমআরপি থাকে তবে দয়া করে সম্পূর্ণ অনলাইন আবেদন ফর্মটি পূরণ করুন। এমআরপি থেকে প্রাপ্ত ডেটার কোনও "অটো ফিল-ইন" নেই।
+জমা দেওয়ার পরে নিবন্ধনের জন্য পাসপোর্ট অফিসে যান। আপনার এমআরপি, এনআইডি / বিআরসি এবং অন্যান্য সমস্ত প্রয়োজনীয় সহায়ক নথি আপনার সাথে আনুন।
+
+এছাড়াও আপনার যদি এমআরপি থেকে থাকে তবে বিশেষ শাখা পুলিশ কর্তৃক অন্য ছাড়পত্রের প্রয়োজন পড়বে না। নিবন্ধনের সময় পাসপোর্ট অফিসে জিজ্ঞাসা করুন।
+
+Q (EN): How do I fill in the “Given Name” and “Surname” part of the name?
+প্রশ্ন (BN): নামের “Given Name” এবং “Surname” অংশটি কিভাবে পূরণ করব?
+A (EN): Instruction to Fill up “Given Name” and “Surname”:
+
+Case 1: Name with single part
+Example: Bakar
+a. Given Name: -------------
+b. Surname: Bakar
+
+Case 2: Name with double part
+Example: Md Bakar
+Option 1 -> a. Given Name: Md ; b. Surname: Bakar
+Option 2 -> c. Given Name: ------------- ; d. Surname: Md Bakar
+
+Case 3: Name with triple part
+Example: Md Abu Bakar
+Option 1 -> a. Given Name: Md Abu ; b. Surname: Bakar
+Option 2 -> c. Given Name: Md ; d. Surname: Abu Bakar
+
+Case 4: Name with four part
+Example: Md Abu Bakar Siddique
+Option 1 -> a. Given Name: Md Abu Bakar ; b. Surname: Siddique
+Option 2 -> c. Given Name: Md Abu ; d. Surname: Bakar Siddique
+Option 3 -> e. Given Name: Md ; f. Surname: Abu Bakar Siddique
+উত্তর (BN): “Given Name” এবং “Surname” পূরণের নির্দেশনা:
+
+কেস ১: একক অংশের নাম — উদাহরণ: Bakar — Given Name: ------------- ; Surname: Bakar
+কেস ২: দুই অংশের নাম — উদাহরণ: Md Bakar — অপশন ১: Given Name: Md, Surname: Bakar; অপশন ২: Given Name: -------------, Surname: Md Bakar
+কেস ৩: তিন অংশের নাম — উদাহরণ: Md Abu Bakar — অপশন ১: Given Name: Md Abu, Surname: Bakar; অপশন ২: Given Name: Md, Surname: Abu Bakar
+কেস ৪: চার অংশের নাম — উদাহরণ: Md Abu Bakar Siddique — অপশন ১: Given Name: Md Abu Bakar, Surname: Siddique; অপশন ২: Given Name: Md Abu, Surname: Bakar Siddique; অপশন ৩: Given Name: Md, Surname: Abu Bakar Siddique
+
+Q (EN): I have retired from Government service. Now what documents are required to complete enrollment process of E-Passport?
+প্রশ্ন (BN): আমি সরকারি চাকরি থেকে অবসর নিয়েছি। এখন ই-পাসপোর্টে প্রক্রিয়া সম্পূর্ণ করতে কী কী কাগজপত্রাদি প্রয়োজন?
+A (EN): When you will go to Passport office for enrollment/finger print for passport you have to carry following documents:
+1. PRL Order copy
+2. NID
+3. Previous Passport
+4. Hard copy of Application Form
+5. Print Summary
+6. Payment Slip
+উত্তর (BN): আপনি যখন পাসপোর্টের প্রক্রিয়া সম্পন্নের জন্য পাসপোর্ট অফিসে যাবেন তখন আপনাকে নিম্নলিখিত কাগজপত্রাদি বহন করতে হবে:
+ক। পিআরএল অর্ডার কপি
+খ। এনআইডি
+গ। আগের পাসপোর্ট (মূল কপি)
+ঘ। আবেদনপত্রের হার্ড কপি
+ঙ। প্রিন্ট সারাংশ (অ্যাপয়েন্টমেন্ট কপি)
+চ। পাসপোর্ট ফি প্রদানের রশিদ
+
+Q (EN): How much is it important to provide previous passport number?
+প্রশ্ন (BN): পূর্ববর্তী পাসপোর্ট নম্বর প্রদান করা কতটা গুরুত্বপূর্ণ?
+A (EN): It is the most important and must. Without declaration of previous passport, passport issuance process will not be completed.
+উত্তর (BN): পূর্ববর্তী পাসপোর্ট সংক্রান্ত তথ্য ঘোষনা করা অতিব জরুরী ও আবশ্যক। পূর্ববর্তী পাসপোর্টের তথ্য ব্যতীত পাসপোর্ট প্রাপ্তি সম্ভব হবে না।
+
+Q (EN): During LPR/PRL, can I use official passport?
+প্রশ্ন (BN): এলপিআর/পিআরএল চলাকালীন, আমি কি অফিসিয়াল পাসপোর্ট ব্যবহার করতে পারি?
+A (EN): Yes, you can use official passport up to the end of LPR/PRL period.
+উত্তর (BN): হ্যাঁ, আপনি LPR/PRL সময়কালীন পর্যন্ত অফিসিয়াল পাসপোর্ট ব্যবহার করতে পারেন।
+
+Q (EN): Do I need attest my photograph for e-Passport?
+প্রশ্ন (BN): ই পাসপোর্ট এর জন্য কি ছবি সত্যায়িত করার প্রয়োজন আছে?
+A (EN): No attested photograph is needed.
+উত্তর (BN): না, কোন সত্যায়িত ছবির প্রয়োজন নেই।
+
+Q (EN): If someone applies for new e-Passport, but he is having a Machine-Readable Passport (MRP) with validity, in this case can he get new e-Passport before finishing the validity of his previous passport? Can someone use previous Machine-Readable Passport after getting a new e-Passport?
+প্রশ্ন (BN): কোন ব্যক্তি যদি ই-পাসপোর্ট করার জন্য আবেদন করেন, কিন্তু তার পূর্বের মেশিন রিডেবল পাসপোর্টটির এখনো মেয়াদ রয়েছে, এক্ষেত্রে পূর্বের পাসপোর্ট এর মেয়াদ শেষ হওয়ার পূর্বে তিনি কি ই-পাসপোর্ট পেতে পারেন? নতুন ই-পাসপোর্ট পাওয়ার পর কেউ পূর্বের মেশিন রিডেবল পাসপোর্ট ব্যবহার করতে পারবেন?
+A (EN): Any person can apply for e-Passport even if his/her Machine Readable Passport (MRP) still having validity.
+If someone is issued with new e-Passport, then he/she will not be able to use his previous MRP. Because its validity will be cancelled from the system automatically.
+উত্তর (BN): মেশিন রিডেবল পাসপোর্ট এর মেয়াদ না শেষ হলেও যেকোন ব্যক্তি ই-পাসপোর্টে আবেদন করতে পারবেন।
+নতুন ই-পাসপোর্ট পাবার পর কোন ব্যক্তি পূর্বের মেশিন রিডেবল পাসপোর্ট টি ব্যবহার করতে পারবেন না।
+
+Q (EN): Can anyone below 18 years get a passport for 10 years?
+প্রশ্ন (BN): ১৮ বছরের নিচে কেউ কি ১০ বছরের জন্য পাসপোর্ট করতে পারবেন?
+A (EN): No one below 18 years of age can hold a passport for 10 years. If someone under 18 years of age wants to get a passport, he has to get a passport with a validity of 05 years.
+উত্তর (BN): ১৮ বছরের নিচের বয়সের কেউ ১০ বছরের জন্য পাসপোর্ট করতে পারবেন না। ১৮ বছরের নিচের বয়সের কেউ পাসপোর্ট করতে চাইলে তাকে ০৫ বছর মেয়াদী পাসপোর্ট করতে হবে।
+
+Q (EN): I want to get a passport, I am 21 years old, but I don't have an ID card, I have birth registration, can I get a passport with birth registration?
+প্রশ্ন (BN): আমি পাসপোর্ট করতে চাচ্ছি, আমার বয়স ২১, কিন্তু আমার আইডি কার্ড নেই, জন্ম নিবন্ধন আছে, আমি কি জন্ম নিবন্ধন দিয়ে পাসপোর্ট করতে পারবো?
+A (EN): As your age is above 20 years then you must collect NID card and make your passport according to NID card.
+উত্তর (BN): আপনার বয়স যেহেতু ২০ বছরের উপরে তাই অবশ্যই এনআইডি কার্ড অনুযায়ী আপনার পাসপোর্টটি করতে হবে।
+
+Q (EN): In case of minors, who can collect the Passport?
+প্রশ্ন (BN): অপ্রাপ্ত বয়স্কদের ক্ষেত্রে কারা Passport collection করতে পারবে?
+A (EN): In case of minors Passport collection, the father/mother of the applicant should come directly or the person who will receive the passport should bring his/her NID card and the Authorization Letter from applicant's father/mother.
+উত্তর (BN): অপ্রাপ্ত বয়স্কদের ক্ষেত্রে Passport collection এর জন্য আবেদনকারীর বাবা/মাকে সরাসরি আসতে হবে অথবা যিনি পাসপোর্ট রিসিভ করবেন উনার এনআইডি কার্ড এবং আবেদনকারীর বাবা/মা কর্তৃক Authorization Letter সহ নিয়ে পাসপোর্ট সংগ্রহ করতে আসতে হবে।

@@ -1,0 +1,12 @@
+SECTION: Issuance of Duplicate NID / Re-Issue (হারানো বা নষ্ট এনআইডি রিইস্যু)
+SOURCE: nidw.gov.bd / services.nidw.gov.bd
+
+RULES FOR LOST OR DAMAGED CARDS:
+If a National Identity Card of any citizen is lost or damaged in any way, he/she may apply in a prescribed manner to the NID Wing for a fresh one online.
+
+PROCESS & REQUIREMENTS:
+1. A General Diary (GD) must be filed at the local police station immediately if the card is lost. The GD copy must clearly mention the NID number or Voter number.
+2. The applicant must select "Lost/Damaged" on the online Reissue application form.
+3. A scanned copy of the Police GD must be attached to the application.
+4. Upon receiving and approving the application, the NID Wing will issue a fresh National Identity Card. 
+5. Users will be notified via SMS and can download the temporary NID (online copy) from the portal or collect the smart card from the election office.

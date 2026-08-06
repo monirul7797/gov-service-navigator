@@ -1,0 +1,158 @@
+{
+  "_readme": "Gold query set for e-Passport retrieval eval, following the BDRIS/e-Return/NID pattern. Hybrid strictness: expected_id set means the exact record must appear in top-K (used heavily here since e-Passport's fee tables are page-count/validity/delivery-tier specific — the wrong fee record gives a wrong BDT/USD amount, which is a serious factual error, not a stylistic miss); expected_id=null means category-level. min_similarity is a soft floor — WARN not FAIL. Includes a probe specifically targeting the one record already flagged source_url_unverified (dhaka-cantonment-jurisdiction) to see whether it's even retrievable, plus a genuine out-of-scope probe. Built from the full epassport corpus (62 records) pasted directly into the session.",
+  "strictness": "hybrid",
+  "top_k": 4,
+  "queries": [
+    {
+      "id": "gq_ep_001",
+      "query": "How much does a 48 page e-passport with 5 years validity cost inside Bangladesh, regular delivery?",
+      "lang": "en",
+      "expected_category": "fees-payment",
+      "expected_id": "epassport-fees-inside-bd-48pg-5yr",
+      "min_similarity": 0.60,
+      "note": "precision test — four near-identical fee records exist differing only by page count and validity; a wrong match gives a wrong BDT figure"
+    },
+    {
+      "id": "gq_ep_002",
+      "query": "৬৪ পাতা ১০ বছর মেয়াদী পাসপোর্টের সুপার এক্সপ্রেস ফি কত?",
+      "lang": "bn",
+      "expected_category": "fees-payment",
+      "expected_id": "epassport-fees-inside-bd-64pg-10yr",
+      "min_similarity": 0.60
+    },
+    {
+      "id": "gq_ep_003",
+      "query": "ami bideshe thaki, student visa te achi, amar passport fee koto USD lagbe?",
+      "lang": "banglish",
+      "expected_category": "fees-payment",
+      "expected_id": "epassport-fees-mission-labor-student",
+      "min_similarity": 0.50,
+      "note": "targets the labor/student mission fee tier specifically, distinct from the general-applicant mission fee table"
+    },
+    {
+      "id": "gq_ep_004",
+      "query": "Can I upgrade my application to express delivery after I already submitted it?",
+      "lang": "en",
+      "expected_category": "fees-payment",
+      "expected_id": "epassport-faq-8-is-it-possible-to-upgrade-to-express-delivery-after-the-enrolment-for-epassport-",
+      "min_similarity": 0.65
+    },
+    {
+      "id": "gq_ep_005",
+      "query": "সুপার এক্সপ্রেস পাসপোর্ট কোথা থেকে সংগ্রহ করতে হয়, শুধু আগারগাঁও থেকে নাকি যেকোনো অফিস থেকে?",
+      "lang": "bn",
+      "expected_category": "appointment",
+      "expected_id": "epassport-urgent-super-express",
+      "min_similarity": 0.55,
+      "note": "targets the specific 'super express delivery ONLY from Agargaon' rule — a wrong-but-related record (general appointment FAQ) would miss this restriction entirely"
+    },
+    {
+      "id": "gq_ep_006",
+      "query": "police clearance certificate dile koto tarataari passport pabo?",
+      "lang": "banglish",
+      "expected_category": "appointment",
+      "expected_id": "epassport-instructions-urgent-timelines",
+      "min_similarity": 0.50
+    },
+    {
+      "id": "gq_ep_007",
+      "query": "My name is Md Abu Bakar Siddique, how do I split this into Given Name and Surname on the form?",
+      "lang": "en",
+      "expected_category": "documents-eligibility",
+      "expected_id": "epassport-faq-72-how-do-i-fill-in-the-given-name-and-surname-part-of-the-name",
+      "min_similarity": 0.60
+    },
+    {
+      "id": "gq_ep_008",
+      "query": "আমার আগের পাসপোর্ট নম্বর মনে নেই এবং হারিয়ে গেছে, পুরনো নম্বর কিভাবে পাব?",
+      "lang": "bn",
+      "expected_category": "reissue-changes",
+      "expected_id": "epassport-faq-278-i-have-lost-my-e-passport-i-dont-have-my-previous-e-passport-number-how-can-i-ge",
+      "min_similarity": 0.60
+    },
+    {
+      "id": "gq_ep_009",
+      "query": "Is a doctor's certificate or professional certificate required if my job changed since my last passport?",
+      "lang": "en",
+      "expected_category": "reissue-changes",
+      "expected_id": "epassport-faq-21-some-of-my-data-changed-compared-to-my-previous-passport-how-can-i-apply",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_ep_010",
+      "query": "ঢাকা সেনানিবাসের বাসিন্দা হলে কি ঢাকা ক্যান্টনমেন্ট পাসপোর্ট অফিস থেকেই আবেদন করতে হবে?",
+      "lang": "bn",
+      "expected_category": "notices",
+      "expected_id": "epassport-notice-dhaka-cantonment-jurisdiction",
+      "min_similarity": 0.50,
+      "note": "targets the ONE record in the whole corpus already flagged source_url_unverified — checks whether it's even retrievable at all, separate from whether its source is confirmed. A miss here would mean an unverified-source record is also poorly indexed, compounding two problems into one"
+    },
+    {
+      "id": "gq_ep_011",
+      "query": "kon bank e offline payment kora jay epassport fee er jonno, kon app use korte pari?",
+      "lang": "banglish",
+      "expected_category": "fees-payment",
+      "expected_id": "epassport-fees-payment-methods",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_ep_012",
+      "query": "What documents does a retired government employee need to bring for enrollment?",
+      "lang": "en",
+      "expected_category": "documents-eligibility",
+      "expected_id": "epassport-faq-270-i-have-retired-from-government-service-now-what-documents-are-required-to-comple",
+      "min_similarity": 0.60
+    },
+    {
+      "id": "gq_ep_013",
+      "query": "আমার সন্তানের বয়স ১৭, সে কি ১০ বছর মেয়াদী পাসপোর্ট পাবে?",
+      "lang": "bn",
+      "expected_category": "documents-eligibility",
+      "expected_id": "epassport-faq-284-can-anyone-below-18-years-get-a-passport-for-10-years",
+      "min_similarity": 0.60
+    },
+    {
+      "id": "gq_ep_014",
+      "query": "amar mobile e SMS notification aseni kintu email peyechi passport collection er, ki korbo?",
+      "lang": "banglish",
+      "expected_category": "collection",
+      "expected_id": "epassport-faq-277-i-have-received-an-e-mail-for-collection-of-a-new-passport-from-passport-office-",
+      "min_similarity": 0.50
+    },
+    {
+      "id": "gq_ep_015",
+      "query": "What is the process if I want a diplomatic passport instead of an ordinary one?",
+      "lang": "en",
+      "expected_category": "documents-eligibility",
+      "expected_id": "epassport-instructions-diplomatic-passport",
+      "min_similarity": 0.55,
+      "note": "originally targeted a rule buried inside the dense epassport-instructions-submission-office record and failed for exactly that reason (chunk-granularity dilution); that record was split into 6 focused records and this expected_id was updated to point at the new epassport-instructions-diplomatic-passport record"
+    },
+    {
+      "id": "gq_ep_016",
+      "query": "who determines which passport office is responsible for my application?",
+      "lang": "en",
+      "expected_category": "process",
+      "expected_id": "epassport-onboarding-region-check",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_ep_017",
+      "query": "কতগুলো পাসপোর্ট অফিস এখন সক্রিয়ভাবে ই-পাসপোর্ট সেবা দিচ্ছে?",
+      "lang": "bn",
+      "expected_category": null,
+      "expected_id": null,
+      "min_similarity": 0.55,
+      "note": "category-agnostic observational probe \u2014 two records could plausibly answer this: the functional-offices notice list (72 offices) and the five-step-overview record which cites 'Step 1' pointing to that same list. Observing which one (or both) surfaces informs whether the two are meaningfully distinguishable to the retriever"
+    },
+    {
+      "id": "gq_ep_018",
+      "query": "আজকে বিকেলে কোথায় ভালো বিরিয়ানি পাওয়া যাবে?",
+      "lang": "bn",
+      "expected_category": null,
+      "expected_id": null,
+      "min_similarity": 0.55,
+      "note": "OUT-OF-SCOPE probe \u2014 restaurant recommendations, zero conceptual/vocabulary overlap with passport content. Should find nothing strong."
+    }
+  ]
+}

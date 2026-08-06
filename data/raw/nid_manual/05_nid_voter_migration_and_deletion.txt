@@ -1,0 +1,8 @@
+SECTION: Migration of Voter Area & Deletion of Death Voter (ঠিকানা পরিবর্তন ও মৃত ভোটার কর্তন)
+SOURCE: nidw.gov.bd
+
+MIGRATION OF VOTER AREA:
+Those who are already registered as a voter but need to migrate their voter area must fill up a migration form. These forms must be sent to the concerned Upazila/Thana Election Offices for verification. A photocopy of the current NID card must be attached to the migration form.
+
+DELETION OF DEATH VOTER:
+Citizens must inform the respective Upazila/Thana Election Office about the death of a voter to have them deleted from the active voter registry.
