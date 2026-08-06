@@ -8,16 +8,16 @@
       "query": "How much does a 48 page e-passport with 5 years validity cost inside Bangladesh, regular delivery?",
       "lang": "en",
       "expected_category": "fees-payment",
-      "expected_id": "epassport-fees-inside-bd-48pg-5yr",
+      "expected_id": "epassport-fees-inside-bd-all",
       "min_similarity": 0.60,
-      "note": "precision test — four near-identical fee records exist differing only by page count and validity; a wrong match gives a wrong BDT figure"
+      "note": "the four inside-Bangladesh fee tables (48/64pg × 5/10yr) were consolidated into one record, epassport-fees-inside-bd-all, holding every page/validity/delivery amount — so any inside-Bangladesh passport fee query should retrieve it"
     },
     {
       "id": "gq_ep_002",
       "query": "৬৪ পাতা ১০ বছর মেয়াদী পাসপোর্টের সুপার এক্সপ্রেস ফি কত?",
       "lang": "bn",
       "expected_category": "fees-payment",
-      "expected_id": "epassport-fees-inside-bd-64pg-10yr",
+      "expected_id": "epassport-fees-inside-bd-all",
       "min_similarity": 0.60
     },
     {
