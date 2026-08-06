@@ -52,6 +52,8 @@ ANSWER_SYSTEM_PROMPT = (
     "- Ground every SPECIFIC fact — fee amounts, form/document names, steps, deadlines — in the "
     "context passages. Do NOT invent or recall specific figures from your own memory; if a "
     "specific value is not in the context, do not state it as fact.\n"
+    "- Give money amounts as the numeric figure only (e.g. ৳১০,৩৫০), copied from the context; "
+    "NEVER spell an amount out in words. When answering in Bangla, write all numbers in Bengali numerals.\n"
     "- You MAY use your own words and general understanding to explain what something is, why it "
     "matters, and how the options relate. The grounding rule is about specific facts, not phrasing.\n"
     "- When the exact answer depends on details the user hasn't given (e.g. a passport fee depends "
@@ -141,6 +143,43 @@ def answer(question, backend, model, colls, only_service=None):
             "normalized": norm.normalized, "services": services}
 
 
+def handle_turn(raw, state, backend, model, colls, reg):
+    """Process one user turn given conversation state — the single orchestration shared by
+    both the CLI and the Streamlit app. Returns (response, new_state).
+      state    = {"pending": (orig_q, offered_services) | None, "last": (q, service) | None}
+      response = {"kind": "clarify", "question": str}
+              or answer()'s dict + {"kind": "answer", "scoped": service | None}
+    """
+    pending, last = state.get("pending"), state.get("last")
+    q, only_service, handled = raw, None, False
+
+    # 1) reply to a pending service-clarify (e.g. "passport")
+    if pending:
+        orig, offered = pending
+        chosen = match_reply_to_service(raw, offered, reg)
+        if chosen:
+            q, only_service, handled = orig, chosen, True
+
+    # 2) a short follow-up naming no NEW service → refine the previous answer
+    if not handled and last and len(raw.split()) <= 6 and not named_services(raw, reg):
+        prev_q, prev_service = last
+        q, only_service, handled = f"{raw} {prev_q}", prev_service, True
+
+    # 3) fresh question → consult the registry
+    if not handled:
+        d = decide(raw, reg)
+        if d["action"] == "clarify":
+            return ({"kind": "clarify", "question": d["question"]},
+                    {"pending": (raw, d["services"]), "last": last})
+        if d["action"] == "scope":
+            only_service = d["service"]
+
+    result = answer(q, backend, model, colls, only_service=only_service)
+    result["kind"] = "answer"
+    result["scoped"] = only_service
+    return result, {"pending": None, "last": (q, only_service)}
+
+
 def main():
     backend = get_backend()
     print(f"LLM backend: {backend.name}")
@@ -159,8 +198,7 @@ def main():
     print("=" * 74)
 
     reg = load_registry()
-    pending = None            # (original_question, offered_services) from a registry service-clarify
-    last = None               # (question, service) previous answered turn — for short follow-ups
+    state = {"pending": None, "last": None}
 
     while True:
         try:
@@ -170,48 +208,25 @@ def main():
         if not raw:
             break
 
-        q, only_service, handled = raw, None, False
+        resp, state = handle_turn(raw, state, backend, model, colls, reg)
 
-        # 1) reply to a registry service-clarify (e.g. "passport")
-        if pending:
-            orig, offered = pending
-            pending = None
-            chosen = match_reply_to_service(raw, offered, reg)
-            if chosen:
-                q, only_service, handled = orig, chosen, True
+        if resp["kind"] == "clarify":
+            print(f"\n{resp['question']}")
+            continue
 
-        # 2) a short follow-up that names no NEW service → refine the previous answer
-        #    (e.g. after a passport-fee answer: "10 year 64 page regular")
-        if not handled and last and len(raw.split()) <= 6 and not named_services(raw, reg):
-            prev_q, prev_service = last
-            q, only_service, handled = f"{raw} {prev_q}", prev_service, True
-
-        # 3) fresh question → consult the registry
-        if not handled:
-            d = decide(raw, reg)
-            if d["action"] == "clarify":
-                print(f"\n{d['question']}")
-                pending = (raw, d["services"])
-                continue
-            if d["action"] == "scope":
-                only_service = d["service"]
-
-        result = answer(q, backend, model, colls, only_service=only_service)
-        last = (q, only_service)      # remember for follow-ups
-
-        if result["normalized"]:
-            print(f"  (normalized: {result['normalized']})")
-        if only_service:
-            print(f"  (scoped to: {only_service})")
-        print(f"\n{result['answer']}\n")
-        if result["sources"]:
+        if resp["normalized"]:
+            print(f"  (normalized: {resp['normalized']})")
+        if resp["scoped"]:
+            print(f"  (scoped to: {resp['scoped']})")
+        print(f"\n{resp['answer']}\n")
+        if resp["sources"]:
             print("Sources:")
-            for s in result["sources"]:
+            for s in resp["sources"]:
                 print(f"  - {s}")
-        if result["services"]:
-            print(f"\n  answered from: {', '.join(result['services'])}")
+        if resp["services"]:
+            print(f"\n  answered from: {', '.join(resp['services'])}")
         print("  retrieved:")
-        for h in result["hits"]:
+        for h in resp["hits"]:
             print(f"    [{h['service']}] sim={h['sim']:.3f} ({h['category']}) {h['heading'][:52]}")
 
 
