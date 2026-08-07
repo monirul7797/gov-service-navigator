@@ -3,19 +3,23 @@
   "built": "2026-07-15",
   "chunks_file": "data/chunks/ereturn.jsonl",
   "raw_dir": "data/raw/ereturn_manual/",
-  "total_records": 81,
+  "total_records": 83,
   "sources": [
     {
       "url": "https://nbr.gov.bd/all-faq/ban",
       "note": "NBR FAQ page, Income Tax tab (Bangla). Both sections captured; Customs and VAT tabs excluded."
+    },
+    {
+      "url": "https://www.incometax.gov.bd/Help/FaqAnswer",
+      "note": "incometax.gov.bd browser security-certificate warning workaround (per-browser steps), added from a user-supplied screenshot on 2026-08-07."
     }
   ],
   "categories": {
-    "faq": 81
+    "faq": 83
   },
   "subcategories": {
     "income_tax_general": 36,
-    "online_return": 45
+    "online_return": 47
   },
   "raw_files": [
     {
@@ -27,6 +31,11 @@
       "file": "faq_online_return.txt",
       "section": "অনলাইন আয়কর রিটার্ন সংক্রান্ত সচরাচর জিজ্ঞাসা (Online Income Tax Return FAQ)",
       "entries": 45
+    },
+    {
+      "file": "PENDING — not yet created as a raw .txt (record was transcribed directly from a screenshot; add a raw source .txt to match the txt/jsonl convention when convenient)",
+      "section": "incometax.gov.bd security certificate warning workaround",
+      "entries": 1
     }
   ],
   "conventions": {
@@ -46,5 +55,8 @@
     "ereturn-faq-gen-company-tax-rate-structure",
     "ereturn-faq-online-2025-2026-mandatory"
   ],
-  "flags": []
+  "flags": [
+    "Manifest was stale before this refresh: it listed 81 records / online_return:45 via only the two original raw_files entries (36+45=81), but the live jsonl already held 82 (two extra records — ereturn-faq-frontdoor-landing-pages and ereturn-faq-online-support-contact — appear to have been added after the original build without a matching raw_files update). This refresh reconciles counts to the actual file (83) but does not retroactively backfill raw_files entries for those two pre-existing extra records — only the newest addition (security-certificate-warning) is noted above as PENDING."
+  ],
+  "last_updated": "2026-08-07"
 }

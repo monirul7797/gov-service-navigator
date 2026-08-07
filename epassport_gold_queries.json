@@ -9,7 +9,7 @@
       "lang": "en",
       "expected_category": "fees-payment",
       "expected_id": "epassport-fees-inside-bd-all",
-      "min_similarity": 0.60,
+      "min_similarity": 0.6,
       "note": "the four inside-Bangladesh fee tables (48/64pg × 5/10yr) were consolidated into one record, epassport-fees-inside-bd-all, holding every page/validity/delivery amount — so any inside-Bangladesh passport fee query should retrieve it"
     },
     {
@@ -18,7 +18,7 @@
       "lang": "bn",
       "expected_category": "fees-payment",
       "expected_id": "epassport-fees-inside-bd-all",
-      "min_similarity": 0.60
+      "min_similarity": 0.6
     },
     {
       "id": "gq_ep_003",
@@ -26,7 +26,7 @@
       "lang": "banglish",
       "expected_category": "fees-payment",
       "expected_id": "epassport-fees-mission-labor-student",
-      "min_similarity": 0.50,
+      "min_similarity": 0.5,
       "note": "targets the labor/student mission fee tier specifically, distinct from the general-applicant mission fee table"
     },
     {
@@ -52,7 +52,7 @@
       "lang": "banglish",
       "expected_category": "appointment",
       "expected_id": "epassport-instructions-urgent-timelines",
-      "min_similarity": 0.50
+      "min_similarity": 0.5
     },
     {
       "id": "gq_ep_007",
@@ -60,7 +60,7 @@
       "lang": "en",
       "expected_category": "documents-eligibility",
       "expected_id": "epassport-faq-72-how-do-i-fill-in-the-given-name-and-surname-part-of-the-name",
-      "min_similarity": 0.60
+      "min_similarity": 0.6
     },
     {
       "id": "gq_ep_008",
@@ -68,7 +68,7 @@
       "lang": "bn",
       "expected_category": "reissue-changes",
       "expected_id": "epassport-faq-278-i-have-lost-my-e-passport-i-dont-have-my-previous-e-passport-number-how-can-i-ge",
-      "min_similarity": 0.60
+      "min_similarity": 0.6
     },
     {
       "id": "gq_ep_009",
@@ -84,7 +84,7 @@
       "lang": "bn",
       "expected_category": "notices",
       "expected_id": "epassport-notice-dhaka-cantonment-jurisdiction",
-      "min_similarity": 0.50,
+      "min_similarity": 0.5,
       "note": "targets the ONE record in the whole corpus already flagged source_url_unverified — checks whether it's even retrievable at all, separate from whether its source is confirmed. A miss here would mean an unverified-source record is also poorly indexed, compounding two problems into one"
     },
     {
@@ -101,7 +101,7 @@
       "lang": "en",
       "expected_category": "documents-eligibility",
       "expected_id": "epassport-faq-270-i-have-retired-from-government-service-now-what-documents-are-required-to-comple",
-      "min_similarity": 0.60
+      "min_similarity": 0.6
     },
     {
       "id": "gq_ep_013",
@@ -109,7 +109,7 @@
       "lang": "bn",
       "expected_category": "documents-eligibility",
       "expected_id": "epassport-faq-284-can-anyone-below-18-years-get-a-passport-for-10-years",
-      "min_similarity": 0.60
+      "min_similarity": 0.6
     },
     {
       "id": "gq_ep_014",
@@ -117,7 +117,7 @@
       "lang": "banglish",
       "expected_category": "collection",
       "expected_id": "epassport-faq-277-i-have-received-an-e-mail-for-collection-of-a-new-passport-from-passport-office-",
-      "min_similarity": 0.50
+      "min_similarity": 0.5
     },
     {
       "id": "gq_ep_015",
@@ -143,7 +143,7 @@
       "expected_category": null,
       "expected_id": null,
       "min_similarity": 0.55,
-      "note": "category-agnostic observational probe \u2014 two records could plausibly answer this: the functional-offices notice list (72 offices) and the five-step-overview record which cites 'Step 1' pointing to that same list. Observing which one (or both) surfaces informs whether the two are meaningfully distinguishable to the retriever"
+      "note": "category-agnostic observational probe — two records could plausibly answer this: the functional-offices notice list (72 offices) and the five-step-overview record which cites 'Step 1' pointing to that same list. Observing which one (or both) surfaces informs whether the two are meaningfully distinguishable to the retriever"
     },
     {
       "id": "gq_ep_018",
@@ -152,7 +152,34 @@
       "expected_category": null,
       "expected_id": null,
       "min_similarity": 0.55,
-      "note": "OUT-OF-SCOPE probe \u2014 restaurant recommendations, zero conceptual/vocabulary overlap with passport content. Should find nothing strong."
+      "note": "OUT-OF-SCOPE probe — restaurant recommendations, zero conceptual/vocabulary overlap with passport content. Should find nothing strong."
+    },
+    {
+      "id": "gq_ep_019",
+      "query": "what documents do I need for a new passport",
+      "lang": "en",
+      "expected_category": "documents-eligibility",
+      "expected_id": "epassport-faq-3-what-documents-do-i-need-to-bring-for-epassport-enrolment",
+      "min_similarity": 0.55,
+      "note": "gap guard: this query previously surfaced the 'collection' record (faq-272, about collecting a FINISHED passport). faqs/3 is the exact-title enrolment-documents FAQ and should now win. If it is legitimately outranked by the also-correct notices checklists (notices/34 documents-carried-enrolment or notices/160 checklist, both category 'notices'), relax expected_id to null and keep expected_category."
+    },
+    {
+      "id": "gq_ep_020",
+      "query": "নতুন পাসপোর্ট আবেদনের জন্য কি কি কাগজপত্র লাগে",
+      "lang": "bn",
+      "expected_category": "documents-eligibility",
+      "expected_id": null,
+      "min_similarity": null,
+      "note": "category-level (Bangla) — passes on any documents-eligibility hit; the point is it must NOT be only the 'collection' record."
+    },
+    {
+      "id": "gq_ep_021",
+      "query": "do I need to bring photos for e-passport application",
+      "lang": "en",
+      "expected_category": "documents-eligibility",
+      "expected_id": "epassport-faq-4-do-i-have-to-bring-photos-for-applying-for-the-epassport",
+      "min_similarity": 0.55,
+      "note": "new faqs/4 record retrievability"
     }
   ]
 }

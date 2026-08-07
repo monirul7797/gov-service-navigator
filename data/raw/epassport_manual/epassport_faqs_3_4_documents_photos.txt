@@ -1,0 +1,53 @@
+SECTION: Documents for e-Passport Enrolment — FAQ (ই-পাসপোর্ট আবেদনের জন্য কি কি দলিলাদি প্রয়োজন?)
+SOURCE: https://www.epassport.gov.bd/landing/faqs/3
+LANGUAGE: bn (authoritative) + en (translation)
+LAST_UPDATED: 24 May 2025
+
+[বাংলা — মূল]
+ই-পাসপোর্ট আবেদনের জন্য কি কি দলিলাদি প্রয়োজন?
+ই-পাসপোর্ট আবেদনের জন্য নিম্মবর্ণিত কাগজপত্রের প্রয়োজনঃ
+১. প্রিন্টকৃত আবেদন ফরম ও সামারি স্লিপ।
+২. জাতীয় পরিচয়পত্রের / জন্মনিবন্ধনের মূল ও ফটোকপি।
+৩. পূর্বের পাসপোর্ট ও এর ফটোকপি (যদি থাকে)।
+৪. ১৮ (আঠার) বছরের নিম্মে আবেদনকারীদের ক্ষেত্রে অনলাইন জন্মনিবন্ধন সনদ ও পিতা/মাতার এনআইডি।
+৫. ০৬ (ছয়) বছরের নিম্মে আবেদনকারীদের ক্ষেত্রে '3R' আর সাইজের ছবি।
+৬. পেমেন্ট স্লিপ (অফলাইন)।
+
+তথ্য/তথ্যাবলি পরিবর্তন করতে সংশ্লিষ্ট দলিলাদি দাখিল করতে হবে যেমন :
+স্থায়ী ঠিকানা, বৈবাহিক অবস্থা, পেশা অথবা অন্যান্য তথ্যাদি পরিবর্তনের ক্ষেত্রে প্রয়োজনীয় দলিলাদি দাখিল করতে হবে।
+
+আপনি যদি নিশ্চিত না হন যে কি কি কাগজপত্র সাথে আনবেন, তাহলে আপনার নিকটস্থ পাসপোর্ট অফিসে যোগাযোগ করুন।
+
+[English — translation]
+What documents do I need to bring for ePassport enrolment?
+These are the typical documents you need for your ePassport application:
+1. Printed application form and summary slip
+2. NID card / BRC
+3. Previous passport (if you have one)
+4. Birth certificate (if application is done for citizens younger than 18 years) and Father/Mother's NID
+5. 3R Size photo if applicant is below 6 years
+6. Payment Slip (Offline)
+
+You also may need further documents in the following cases:
+When data changed compared to your previous passport (e.g. address change, marriage, new profession, or others) you need to provide supporting documents to the enrolment officer at the passport office.
+If you are not sure what to bring along please contact your responsible passport office before your visit for enrolment.
+
+
+SECTION: Photos for e-Passport Application — FAQ (ই-পাসপোর্টে আবেদনের জন্য সাথে করে ছবি আনতে হবে কি না?)
+SOURCE: https://www.epassport.gov.bd/landing/faqs/4
+LANGUAGE: bn (authoritative) + en (translation)
+LAST_UPDATED: 24 May 2025
+
+[বাংলা — মূল]
+ই-পাসপোর্টে আবেদনের জন্য সাথে করে ছবি আনতে হবে কি না ?
+না, পাসপোর্ট অফিসে তালিকাভুক্তির সময় ডিজিটাল ক্যামেরা দিয়ে ছবি তোলা হবে। সুতরাং আবেদনকারীদেরকে আবেদনের সঙ্গে ছবি দিতে হবে না।
+ব্যতিক্রম :
+• ০৬ (ছয়) বছরের নিম্মে বাচ্চাদের ক্ষেত্রে '3R' সাইজের ছবি বায়োমেট্রিক তালিকাভুক্তির কাজ সম্পাদনের লক্ষে দাখিল করতে হবে।
+• ১৫ (পনের) বছরের নিম্মে আবেদনকারীদের ক্ষেত্রে পিতা-মাতার ছবি আবেদনের সঙ্গে দাখিল করতে হবে।
+
+[English — translation]
+Do I have to bring photos for applying for the ePassport?
+The face image for the new passport is taken during the enrolment at the passport office with a digital camera. So for most people there is no need to provide photos with the application.
+There are exceptions for applications of minors:
+• For children up to 5 years the parents may provide a photo which will be scanned during enrolment. This photo should fulfill the requirements of biometric face images.
+• For all applications of children up to 15 years both parents have to provide their photos with the application.
