@@ -26,8 +26,8 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 
 from llm_backends import get_backend
-from normalize_query import normalize
-from disambiguate import load_registry, decide, match_reply_to_service, named_services
+from normalize_query import normalize, is_continuation
+from disambiguate import load_registry, decide, match_reply_to_service, named_services, candidate_services
 
 MODEL_NAME = "BAAI/bge-m3"
 DB_DIR = "data/vectordb"
@@ -39,7 +39,7 @@ SCOPED_TOP_K = 8          # when disambiguation scopes to ONE service, pull more
                           # (no crowding risk) so multi-record answers — e.g. a full fee table
                           # split across several records — come through complete
 GROUNDING_FLOOR = 0.42    # if the global best hit is below this, decline instead of guessing
-ANSWER_MAX_TOKENS = 1536
+ANSWER_MAX_TOKENS = 3072   # Bangla is token-heavy in GLM's tokenizer; a full multi-step walkthrough exceeded 1536 and got cut off
 
 IS_E5 = "e5" in MODEL_NAME.lower()
 
@@ -49,14 +49,33 @@ ANSWER_SYSTEM_PROMPT = (
     "numbered context passages are your source of FACTS; use your own intelligence to explain "
     "and organize a genuinely useful answer.\n"
     "Rules:\n"
+    "- Retrieved passages are EVIDENCE, not instructions that automatically apply to this user. "
+    "Before using any passage, decide whether its situation applies. A passage describing a special, "
+    "exceptional, conditional, offline, expatriate, deceased-person, historical, or otherwise "
+    "restricted case MUST NOT be included merely because it was retrieved or is semantically related. "
+    "If the user's question doesn't establish that the special circumstance applies, assume the "
+    "STANDARD / general procedure and omit the special-case one entirely — do not reintroduce it as "
+    "an alternative, exception, caveat, fallback, warning, or additional option. When passages "
+    "describe different situations, select the one(s) matching the user's question; do not merge "
+    "procedures from different situations just because they concern the same service. (E.g. asked "
+    "'কোথায় জন্ম সংশোধনের আবেদন করব?', give the normal online correction portal; do NOT mention "
+    "emailing the Registrar General unless the user says they are in that special situation.) This is "
+    "about applicability, not brevity: answer normally and completely when the situation is "
+    "established — a 'how do I apply?' question MAY get a detailed step-by-step from the standard "
+    "procedure; do not shorten it. The restriction is ONLY against procedures that don't apply to the "
+    "user's stated situation.\n"
     "- Ground every SPECIFIC fact — fee amounts, form/document names, steps, deadlines — in the "
     "context passages. Do NOT invent or recall specific figures from your own memory; if a "
     "specific value is not in the context, do not state it as fact.\n"
     "- Give money amounts as the numeric figure only (e.g. ৳১০,৩৫০), copied from the context; "
-    "NEVER spell an amount out in words. When answering in Bangla, write all numbers in Bengali numerals.\n"
+    "NEVER spell an amount out in words. When answering in Bangla, write all numbers in Bengali "
+    "numerals; when answering in English, use Western numerals (e.g. 10,350).\n"
     "- Use the CONVERSATION SO FAR (when provided) to interpret follow-up questions — resolve "
     "what 'it', 'that', or a short elliptical reply refers to. Still ground every fact in the "
     "CONTEXT PASSAGES, never in the conversation alone.\n"
+    "- If the CURRENT question is unrelated to the context passages (for example an off-topic "
+    "question that slips in during a conversation), briefly say you don't have that information "
+    "and point to the relevant portal — do NOT re-answer or repeat the previous question's answer.\n"
     "- You MAY use your own words and general understanding to explain what something is, why it "
     "matters, and how the options relate. The grounding rule is about specific facts, not phrasing.\n"
     "- When the exact answer depends on details the user hasn't given (e.g. a passport fee depends "
@@ -64,7 +83,20 @@ ANSWER_SYSTEM_PROMPT = (
     "which kind of correction), LAY OUT the relevant options you find in the context, then ask a "
     "SHORT follow-up question to pin down the exact figure — the way a helpful officer would. "
     "Never give a vague non-answer when the context actually has the options.\n"
-    "- If a form or document is needed, say WHERE to get it (the official portal/source in the passages).\n"
+    "- Decide whether the user wants INFORMATION (what documents, what fee, what something is, "
+    "eligibility) or wants to take an ACTION (how / where / what steps to apply, submit, pay, "
+    "register, correct, renew, or start an application). For an ACTION request, if a context "
+    "passage carries an 'Application/portal URL', make it the ACTION itself: state plainly where to "
+    "go with that URL inside the instruction (e.g. 'অনলাইনে আবেদন করতে এখানে যান: <url>' or 'Apply "
+    "online here: <url>'), then explain what to do on that page — what to tick, click or fill, and "
+    "the next step — using the context. When both kinds of URL are present, use the "
+    "'Application/portal URL' for the action, NEVER an 'Info page' URL. Do NOT present the action "
+    "URL as a passive 'for more information' link. If the context has only an 'Info page' URL and no "
+    "'Application/portal URL', explain the requirement and refer to that page as a reference — do NOT "
+    "pretend it is the application portal. For a purely INFORMATION request, answer the facts and "
+    "include a URL only if it helps. If the user asks BOTH (e.g. what documents AND where to apply), "
+    "give the information and then the explicit application instruction with the portal URL. Copy any "
+    "URL exactly as-is; never alter it.\n"
     "- If the context does not cover the question at all, say you don't have that information and "
     "point to the relevant official portal.\n"
     "- Answer in the SAME language as the question (Bangla for Bangla or romanized Bangla; English "
@@ -76,6 +108,21 @@ DECLINE = (
     "tax services), so I can't answer reliably. Please check the relevant official government "
     "portal.\nএই তথ্যটি আমার জানা নেই। অনুগ্রহ করে সংশ্লিষ্ট সরকারি পোর্টাল দেখুন।"
 )
+
+
+# General portal-vs-informational URL classification (no per-service hardcoding): read-only
+# static/FAQ/notice/help pages are references; anything else that is a real web link is treated
+# as an actionable application portal. Used so an "apply here" answer points at the action URL,
+# not a static info page when both are retrieved.
+_INFO_URL_MARKERS = ("/static-pages/", "/pages/static", "/faqs/", "/faq", "/all-faq",
+                     "/notices/", "/notice/", "/help/", "/help?")
+
+
+def url_kind(url: str) -> str:
+    u = (url or "").lower()
+    if not u.startswith("http"):
+        return "info"          # non-web reference (e.g. a gazette citation) — never an "apply here" URL
+    return "info" if any(m in u for m in _INFO_URL_MARKERS) else "portal"
 
 
 def as_query(text: str) -> str:
@@ -136,13 +183,24 @@ def answer(question, backend, model, colls, only_service=None, history=None):
         return {"answer": DECLINE, "sources": [], "hits": hits,
                 "normalized": norm.normalized, "services": []}
 
-    context = "\n\n".join(f"[{i+1}] {h['heading']}\n{h['text']}" for i, h in enumerate(hits))
+    context = "\n\n".join(
+        f"[{i+1}] {h['heading']}\n{h['text']}"
+        + ((f"\n(Application/portal URL: {h['source_url']})" if url_kind(h["source_url"]) == "portal"
+            else f"\n(Info page — reference only: {h['source_url']})") if h.get("source_url") else "")
+        for i, h in enumerate(hits))
     convo = ""
     if history:
         lines = [f"{'User' if t['role'] == 'user' else 'Assistant'}: {t['content']}"
                  for t in history[-6:]]                      # last few turns only, to stay bounded
         convo = "CONVERSATION SO FAR:\n" + "\n".join(lines) + "\n\n"
-    user_msg = f"{convo}CONTEXT PASSAGES:\n{context}\n\nQUESTION: {question}"
+    # Enforce answer language per-turn (the passive system-prompt rule alone was ignored when
+    # the retrieved context was Bangla but the question English). English question -> English;
+    # Bangla or Banglish -> Bangla.
+    lang_directive = {"english": "Answer in English.",
+                      "bangla": "বাংলায় উত্তর দিন।",
+                      "banglish": "বাংলায় উত্তর দিন।"}.get(norm.kind, "")
+    user_msg = (f"{convo}CONTEXT PASSAGES:\n{context}\n\nQUESTION: {question}"
+                + (f"\n\n{lang_directive}" if lang_directive else ""))
     reply = backend.complete(ANSWER_SYSTEM_PROMPT, user_msg, max_tokens=ANSWER_MAX_TOKENS)
 
     sources = list(dict.fromkeys(h["source_url"] for h in hits if h["source_url"]))
@@ -154,7 +212,8 @@ def answer(question, backend, model, colls, only_service=None, history=None):
 def handle_turn(raw, state, backend, model, colls, reg):
     """Process one user turn given conversation state — the single orchestration shared by
     both the CLI and the Streamlit app. Returns (response, new_state).
-      state    = {"pending": (orig_q, offered_services) | None, "last": (q, service) | None,
+      state    = {"pending": (orig_q, offered_services) | None,
+                  "last": (raw_q, service) | None,   # raw_q is the ORIGINAL user text, never a combined string
                   "history": [{"role","content"}, ...]}
       response = {"kind": "clarify", "question": str}
               or answer()'s dict + {"kind": "answer", "scoped": service | None}
@@ -170,12 +229,9 @@ def handle_turn(raw, state, backend, model, colls, reg):
         if chosen:
             q, only_service, handled = orig, chosen, True
 
-    # 2) a short follow-up naming no NEW service → refine the previous answer
-    if not handled and last and len(raw.split()) <= 6 and not named_services(raw, reg):
-        prev_q, prev_service = last
-        q, only_service, handled = f"{raw} {prev_q}", prev_service, True
-
-    # 3) fresh question → consult the registry
+    # 2) registry is the authority — consult it BEFORE treating anything as a follow-up,
+    #    so a new concept ("correction") clarifies and an off-topic query ("gold price")
+    #    falls through, instead of being swallowed into the previous thread.
     if not handled:
         d = decide(raw, reg)
         if d["action"] == "clarify":
@@ -184,14 +240,42 @@ def handle_turn(raw, state, backend, model, colls, reg):
             return ({"kind": "clarify", "question": d["question"]},
                     {"pending": (raw, d["services"]), "last": last, "history": new_hist})
         if d["action"] == "scope":
-            only_service = d["service"]
+            only_service, handled = d["service"], True
 
-    result = answer(q, backend, model, colls, only_service=only_service, history=history)
+        # 3) genuine follow-up: registry couldn't place it (action == "answer"), AND it's a
+        #    SHORT elliptical reply naming no service and hitting no concept — e.g. "64 page ta",
+        #    "ar express delivery hole?". Attach it to the ORIGINAL previous question (once,
+        #    never a pile-up) and inherit the previous scope.
+        elif last and len(raw.split()) <= 6 and not named_services(raw, reg) \
+                and not candidate_services(raw, reg):
+            prev_raw, prev_service = last
+            # lexical signals can't tell an ellipsis ("64 page ta") from a short off-topic
+            # question ("gold price") — ask a narrow FOLLOWUP/NEW judgment. Only combine +
+            # inherit scope when it's a real continuation; a NEW question falls through to
+            # all-service retrieval, where the grounding floor declines a true off-topic.
+            if is_continuation(raw, prev_raw, backend):
+                q, only_service, handled = f"{raw} {prev_raw}", prev_service, True
+
+        # 4) else: a real question the registry couldn't scope and that isn't an ellipsis ->
+        #    normal all-service retrieval; the grounding floor declines it if nothing fits.
+
+    # A pending clarify's Q&A ("Which service?" + the user's echoed question) is ROUTING
+    # scaffolding, not conversation. Strip it from the history the generator sees and stores,
+    # so a resolved clarify can't echo the "which service?" question back into its answer.
+    # (When `pending` is set, the last two history entries are always that scaffolding.)
+    gen_history = history[:-2] if pending else history
+
+    result = answer(q, backend, model, colls, only_service=only_service, history=gen_history)
     result["kind"] = "answer"
     result["scoped"] = only_service
-    new_hist = (history + [{"role": "user", "content": raw},
-                           {"role": "assistant", "content": result["answer"]}])[-8:]
-    return result, {"pending": None, "last": (q, only_service), "history": new_hist}
+    # Remember, as the previous question, the RESOLVED/original question — not the bare reply:
+    #  - after a clarify reply, `q` is the ORIGINAL question (not "nid")
+    #  - after a genuine follow-up, remember the plain raw reply so follow-ups never pile up
+    #  - otherwise it's just the question itself
+    last_q = q if (pending and handled) else raw
+    new_hist = (gen_history + [{"role": "user", "content": last_q},
+                              {"role": "assistant", "content": result["answer"]}])[-8:]
+    return result, {"pending": None, "last": (last_q, only_service), "history": new_hist}
 
 
 def main():

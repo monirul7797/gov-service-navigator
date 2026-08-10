@@ -1,0 +1,147 @@
+{
+  "_readme": "Gold query set for e-Return retrieval eval. Same hybrid-strictness pattern as the BDRIS/NID/e-Passport suites, adapted for e-Return: because every e-Return record shares category=='faq', this suite gates on SUBCATEGORY (income_tax_general | online_return) — the meaningful coarse axis — via 'expected_subcategory', with 'expected_id' for record-level precision. min_similarity is a soft floor (WARN not FAIL). Includes one broad observational probe and one genuine out-of-scope probe. Built against the 83-record corpus with every expected_id validated to exist.",
+  "strictness": "hybrid",
+  "top_k": 4,
+  "queries": [
+    {
+      "id": "gq_er_001",
+      "query": "What documents are required to obtain an e-TIN?",
+      "lang": "en",
+      "expected_subcategory": "income_tax_general",
+      "expected_id": "ereturn-faq-gen-etin-required-documents",
+      "min_similarity": 0.6
+    },
+    {
+      "id": "gq_er_002",
+      "query": "আয়কর রিটার্ন কবের মধ্যে জমা দিতে হবে?",
+      "lang": "bn",
+      "expected_subcategory": "income_tax_general",
+      "expected_id": "ereturn-faq-gen-return-filing-deadline",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_er_003",
+      "query": "income tax return na dile ki jorimana hobe?",
+      "lang": "banglish",
+      "expected_subcategory": "income_tax_general",
+      "expected_id": "ereturn-faq-gen-penalty-for-not-filing",
+      "min_similarity": 0.5
+    },
+    {
+      "id": "gq_er_004",
+      "query": "কত টাকা আয় হলে আয়কর দিতে হয়? করমুক্ত সীমা কত?",
+      "lang": "bn",
+      "expected_subcategory": "income_tax_general",
+      "expected_id": "ereturn-faq-gen-taxable-threshold",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_er_005",
+      "query": "What is a tax rebate?",
+      "lang": "en",
+      "expected_subcategory": "income_tax_general",
+      "expected_id": "ereturn-faq-gen-what-is-tax-rebate",
+      "min_similarity": 0.6
+    },
+    {
+      "id": "gq_er_006",
+      "query": "I want to file my return online, how do I start?",
+      "lang": "en",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-how-to-start",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_er_007",
+      "query": "e-return e password bhule gele kivabe reset korbo?",
+      "lang": "banglish",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-password-set-reset",
+      "min_similarity": 0.5
+    },
+    {
+      "id": "gq_er_008",
+      "query": "e-Return এর কোনো সমস্যায় সহায়তার জন্য কোথায় যোগাযোগ করব?",
+      "lang": "bn",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-support-contact",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_er_009",
+      "query": "For whom is e-Return filing mandatory in the 2025-2026 tax year?",
+      "lang": "en",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-2025-2026-mandatory",
+      "min_similarity": 0.6,
+      "note": "volatile record (year-specific) — keep the year in the query so it pins the right one"
+    },
+    {
+      "id": "gq_er_010",
+      "query": "tax website e security certificate warning ashche, kivabe site e dhukbo?",
+      "lang": "banglish",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-security-certificate-warning",
+      "min_similarity": 0.45,
+      "note": "the record added this session; Banglish + browser-jargon = hardest phrasing, low floor expected"
+    },
+    {
+      "id": "gq_er_011",
+      "query": "I paid my tax in e-Return but it still shows unpaid, what do I do?",
+      "lang": "en",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-paid-but-still-unpaid",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_er_012",
+      "query": "অনলাইনে জমা দেওয়া রিটার্নে ভুল থাকলে কিভাবে সংশোধন করব?",
+      "lang": "bn",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-correct-filed-return",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_er_013",
+      "query": "As a lawyer, where do I show my income in e-Return?",
+      "lang": "en",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-doctor-lawyer-income",
+      "min_similarity": 0.55
+    },
+    {
+      "id": "gq_er_014",
+      "query": "online e return dile ki information secure thake?",
+      "lang": "banglish",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-online-data-security",
+      "min_similarity": 0.5
+    },
+    {
+      "id": "gq_er_015",
+      "query": "ই-রিটার্ন পোর্টালে কী কী সেবা বা টাইল আছে?",
+      "lang": "bn",
+      "expected_subcategory": "online_return",
+      "expected_id": "ereturn-faq-frontdoor-landing-pages",
+      "min_similarity": 0.5
+    },
+    {
+      "id": "gq_er_016",
+      "query": "how do income taxes work in Bangladesh",
+      "lang": "en",
+      "expected_subcategory": null,
+      "expected_id": null,
+      "min_similarity": 0.55,
+      "note": "broad probe — could land on several general FAQs; observe which surfaces, no pass/fail"
+    },
+    {
+      "id": "gq_er_017",
+      "query": "আজকে ঢাকা স্টক এক্সচেঞ্জে কোন শেয়ারের দাম বাড়ল?",
+      "lang": "bn",
+      "expected_subcategory": null,
+      "expected_id": null,
+      "min_similarity": null,
+      "note": "OUT-OF-SCOPE — stock market prices; finance-adjacent but zero income-tax-return overlap; should find nothing strong"
+    }
+  ]
+}

@@ -48,6 +48,7 @@ SOURCES = [
     ("data/chunks/bdris_application_process.jsonl", "bdris_application_process"),
     ("data/chunks/bdris_manual_walkthrough.jsonl", "bdris_manual_walkthrough"),
     ("data/chunks/bdris_correction.jsonl", "bdris_correction"),
+    ("data/chunks/bdris_payment.jsonl", "bdris_payment"),
     ("data/chunks/bdris_login_instructions.jsonl", "bdris_login_instructions"),
     ("data/chunks/bdris_rules2018.jsonl", "bdris_rules2018"),
 ]

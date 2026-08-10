@@ -90,6 +90,50 @@ def normalize(query: str, backend, *, max_tokens: int = 2048) -> NormalizedQuery
     return NormalizedQuery(q, None, "english", [q])
 
 
+# ---------------------------------------------------------------------------------------
+# Continuation classifier (multi-turn routing) — a single NARROW binary LLM judgment used
+# ONLY by handle_turn's follow-up branch, for the one case lexical signals provably cannot
+# decide: a short reply that names no service and hits no registry concept is EITHER a
+# genuine elliptical follow-up ("64 page ta") OR a new off-topic question ("gold price").
+# The probe (probe_followup.py) showed embedding similarity cannot separate these — an
+# off-topic "bkash" query outscored a real follow-up — so we ask the LLM a yes/no instead.
+# This is deliberately NOT service-routing (the deterministic registry still owns that);
+# it only decides whether to inherit the previous turn's scope.
+CONTINUATION_SYSTEM_PROMPT = (
+    "In a Bangladeshi government-services chat (NID, birth/death registration, passport, "
+    "income tax), decide whether the user's new MESSAGE is a FOLLOW-UP that refines their "
+    "PREVIOUS question, or a NEW/unrelated question.\n"
+    "A FOLLOW-UP drills into the same topic — picks an option, narrows a detail, or asks "
+    "'what about X?' about the same thing (e.g. after a passport fee question: '64 page ta', "
+    "'abroad theke korle?', '5 year er ta').\n"
+    "A NEW question changes the subject — a different service, or something off-topic "
+    "entirely (weather, gold/stock prices, sports, general chit-chat).\n"
+    "Reply with EXACTLY one word: FOLLOWUP or NEW. No explanation.\n\n"
+    "Previous: 10 year passport fee koto?\nMessage: 64 page ta\n-> FOLLOWUP\n\n"
+    "Previous: 10 year passport fee koto?\nMessage: abroad theke korle?\n-> FOLLOWUP\n\n"
+    "Previous: correction korte ki ki document lagbe?\nMessage: আজকে ঢাকায় সোনার দাম কত?\n-> NEW\n\n"
+    "Previous: জন্ম নিবন্ধন সংশোধন করতে কী কী লাগে?\nMessage: ajke Dhaka te brishti hobe?\n-> NEW"
+)
+
+
+def is_continuation(message: str, prev_question: str, backend, *, max_tokens: int = 8) -> bool:
+    """True if `message` continues `prev_question` (so handle_turn should inherit its scope);
+    False if it's a new/off-topic question (so it should fall through to normal retrieval,
+    where the grounding floor declines a true off-topic like a gold-price query).
+
+    Bias: only a clear leading 'NEW' blocks continuation. Any other / ambiguous output keeps
+    the working follow-up behavior (losing a real follow-up is a worse demo regression than a
+    rare off-topic slipping through, and the answer prompt's off-topic rule is a second guard).
+    """
+    user = f"Previous: {prev_question}\nMessage: {message}"
+    try:
+        out = backend.complete(CONTINUATION_SYSTEM_PROMPT, user,
+                               max_tokens=max_tokens, temperature=0.0).strip().upper()
+    except Exception:
+        return True   # never let a classifier error break a legitimate follow-up
+    return not out.startswith("NEW")
+
+
 def _demo() -> None:
     """Show the transliteration on a batch of messy, code-mixed Banglish — no ChromaDB
     needed, just the LLM. Run: python normalize_query.py"""
