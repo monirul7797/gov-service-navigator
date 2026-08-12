@@ -24,6 +24,7 @@ Provider is swappable via llm_backends.get_backend() — Gemini free tier by def
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 # Fraction of *letters* that must be Bangla-script for us to treat the query as already
@@ -53,6 +54,39 @@ SYSTEM_PROMPT = (
 )
 
 
+# English function words that essentially never appear as romanized Bangla. Their presence
+# marks a query as English, so we skip the transliteration LLM entirely instead of trusting
+# it to "return English unchanged" — GLM-4.x translates it to Bangla instead (found via live
+# testing; see report Section V-D). Deliberately EXCLUDES English nouns commonly borrowed
+# into Banglish (card, fee, document, online, must, add, download, name, GD...) and ambiguous
+# short tokens that collide with romanized Bangla ("to"=তো, "or"=ওর, "a", "i"), so a Banglish
+# query that borrows an English noun is NOT misread as English.
+ENGLISH_MARKERS = {
+    "the", "is", "are", "am", "was", "were", "be", "been", "being",
+    "what", "which", "how", "when", "where", "why", "who", "whom", "whose",
+    "do", "does", "did", "can", "could", "should", "would", "will", "shall", "may", "might",
+    "for", "of", "with", "without", "about", "into", "onto", "than", "from",
+    "and", "if", "because", "while", "during",
+    "my", "your", "their", "our", "his", "her", "its",
+    "have", "has", "had",
+    "this", "that", "these", "those", "there",
+    "inside", "outside", "much", "many", "please",
+}
+
+
+def looks_english(s: str) -> bool:
+    """True if the (Latin-script) query contains a clear English function word.
+
+    Conservative by design: keys on grammatical function words, not borrowed English nouns
+    that also appear inside Banglish. A natural-language English question ("What is the fee
+    for...") always contains several of these; romanized Bangla uses its own function words
+    (ki, koto, er, hobe, lagbe, korte) and so contains none, even when it borrows an English
+    noun. Noun-only English fragments ("passport fee") match nothing here and fall through to
+    the LLM, exactly as before — the gate fixes natural-language English, the common case."""
+    tokens = re.findall(r"[a-z]+", s.lower())
+    return any(t in ENGLISH_MARKERS for t in tokens)
+
+
 def bangla_ratio(s: str) -> float:
     letters = [c for c in s if c.isalpha()]
     if not letters:
@@ -79,7 +113,14 @@ def normalize(query: str, backend, *, max_tokens: int = 2048) -> NormalizedQuery
     if bangla_ratio(q) >= BANGLA_SKIP_RATIO:
         return NormalizedQuery(q, None, "bangla", [q])
 
-    # Latin script: could be English or Banglish. Let the LLM decide + transliterate.
+    # Guard 2: clear English -> skip the LLM. We do NOT rely on the LLM to "return English
+    # unchanged" (GLM-4.x translates it to Bangla, which then drives the answer into Bangla).
+    # Detect English deterministically, the same way Guard 1 detects Bangla deterministically.
+    if looks_english(q):
+        return NormalizedQuery(q, None, "english", [q])
+
+    # Latin script, no clear English markers: could be English fragment or Banglish. Let the
+    # LLM decide + transliterate. (English fragments the LLM leaves unchanged fall to "english".)
     out = backend.complete(SYSTEM_PROMPT, q, max_tokens=max_tokens, temperature=0.0).strip()
 
     # Interpret the result. Banglish -> the model produced Bangla script different from input.
