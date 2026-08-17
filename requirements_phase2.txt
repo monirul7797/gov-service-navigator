@@ -1,5 +1,13 @@
-# Phase 2 (embedding + retrieval) dependencies
+# Phase 2 (embedding + retrieval) dependencies, plus everything else the app imports.
 # Install with:  pip install -r requirements_phase2.txt
 sentence-transformers>=3.0.0
 chromadb>=0.5.0
 # torch is pulled in automatically by sentence-transformers (CPU build is fine).
+
+streamlit>=1.35.0
+pyyaml>=6.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+playwright>=1.44.0
+pdfplumber>=0.11.0
+openai>=1.30.0   # OpenAI-compatible backend — also used for the z.ai GLM endpoint

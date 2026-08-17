@@ -154,8 +154,8 @@ def test_7_classifier_parsing():
     check("NEW -> False", NQ.is_continuation("gold price", "prev", FakeBackend("NEW")) is False)
     check("' new ' lowercase/padded -> False", NQ.is_continuation("x", "prev", FakeBackend("  new  ")) is False)
     check("garbage -> True (bias: keep follow-up)", NQ.is_continuation("x", "prev", FakeBackend("hmm?")) is True)
-    check("backend error -> True (never break a follow-up)",
-          NQ.is_continuation("x", "prev", FakeBackend(RuntimeError("boom"))) is True)
+    check("backend error -> False (fails to NEW, not a silent scope-lock)",
+          NQ.is_continuation("x", "prev", FakeBackend(RuntimeError("boom"))) is False)
 
 
 def test_8_resolved_clarify_no_history_leak():

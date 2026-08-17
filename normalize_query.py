@@ -171,7 +171,12 @@ def is_continuation(message: str, prev_question: str, backend, *, max_tokens: in
         out = backend.complete(CONTINUATION_SYSTEM_PROMPT, user,
                                max_tokens=max_tokens, temperature=0.0).strip().upper()
     except Exception:
-        return True   # never let a classifier error break a legitimate follow-up
+        # Fail toward NEW, not FOLLOWUP. A classifier error should fall through to normal
+        # all-service retrieval, where the grounding floor declines a true off-topic query —
+        # NOT silently lock scope to the previous service. (The answer prompt's own off-topic
+        # rule is NOT a reliable second guard here: it was already observed to be ignored once
+        # scope was inherited, during this project's earlier multi-turn debugging.)
+        return False
     return not out.startswith("NEW")
 
 

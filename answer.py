@@ -41,6 +41,11 @@ SCOPED_TOP_K = 8          # when disambiguation scopes to ONE service, pull more
 GROUNDING_FLOOR = 0.42    # if the global best hit is below this, decline instead of guessing
 ANSWER_MAX_TOKENS = 3072   # Bangla is token-heavy in GLM's tokenizer; a full multi-step walkthrough exceeded 1536 and got cut off
 
+# The only collections production retrieval is allowed to search. Anything else sitting in
+# the same persistent Chroma directory (an experimental rebuild, a stale test collection,
+# a reranker scratch index) is ignored rather than silently joining unscoped search results.
+ALLOWED_COLLECTIONS = {"nid", "bdris", "epassport", "ereturn"}
+
 IS_E5 = "e5" in MODEL_NAME.lower()
 
 ANSWER_SYSTEM_PROMPT = (
@@ -130,11 +135,13 @@ def as_query(text: str) -> str:
 
 
 def load_collections(client):
-    """Auto-discover every embedded collection. Returns {name: collection}."""
+    """Load only the known government-service collections (ALLOWED_COLLECTIONS), skipping
+    anything else in the same Chroma directory. Returns {name: collection}."""
     colls = {}
     for c in client.list_collections():
         name = c.name if hasattr(c, "name") else str(c)
-        colls[name] = client.get_collection(name)
+        if name in ALLOWED_COLLECTIONS:
+            colls[name] = client.get_collection(name)
     return colls
 
 
@@ -287,8 +294,7 @@ def main():
     if not colls:
         raise SystemExit(f"No collections found in {DB_DIR}. Run your embed_*.py steps first.")
     print("searching services: " + ", ".join(f"{n} ({c.count()})" for n, c in colls.items()))
-    expected = {"nid", "bdris", "epassport", "ereturn"}
-    missing = expected - set(colls)
+    missing = ALLOWED_COLLECTIONS - set(colls)
     if missing:
         print(f"  (not embedded yet, so not searched: {', '.join(sorted(missing))} — run their embed step to include them)")
     print("=" * 74)
