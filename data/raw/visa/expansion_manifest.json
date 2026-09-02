@@ -1,0 +1,102 @@
+{
+  "phase": "3.6",
+  "built_at": "2026-09-03",
+  "primary_source": {
+    "document": "VISA POLICY 2026, Ministry of Home Affairs, Immigration Wing, Bangladesh",
+    "publication_date_stated": "August/2026",
+    "url": "https://immi.specialbranch.gov.bd/docs/visa_policy.pdf",
+    "acquisition": "direct_pdf_verified (sha256 recorded in evidence manifest)",
+    "authority_label": "immigration_operational / central_policy"
+  },
+  "other_sources": [
+    {
+      "url": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+      "authority_label": "voa_operational"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/public/voa-info-bn.html",
+      "authority_label": "voa_operational",
+      "lang": "bn",
+      "authoritative": true
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/public/voa-instructions.html",
+      "authority_label": "voa_operational"
+    }
+  ],
+  "added_records": [
+    "visa-category-tourist",
+    "visa-category-business",
+    "visa-category-student",
+    "visa-category-employment-e1",
+    "visa-category-employment-e2-e3",
+    "visa-category-investor-pi",
+    "visa-category-journalist",
+    "visa-category-ngo",
+    "visa-category-transit",
+    "visa-category-family-dependent",
+    "visa-nvr-eligibility-documents-fee",
+    "visa-voa-policy-conditions",
+    "visa-voa-circular-2016-bn",
+    "visa-voa-application-steps",
+    "visa-extension-application-rule",
+    "visa-category-change-conversion",
+    "visa-overstay-penalties",
+    "visa-work-permit-condition",
+    "visa-issuing-authority",
+    "visa-entry-registration-requirement",
+    "visa-general-conditions-fees",
+    "visa-categories-index"
+  ],
+  "conflicts": [
+    {
+      "topic": "VOA fee amount",
+      "sources": {
+        "immi.specialbranch.gov.bd (LP/VoA page text)": "US Dollar 50 (Fifty)",
+        "2016 VOA circular (BN)": "fees in foreign currency at port, amount not stated",
+        "Visa Policy 2026": "no amount stated"
+      },
+      "resolution": "no VOA fee amount recorded in any corpus record",
+      "status": "TODO(Monirul): verify current VOA fee against a dated official source"
+    },
+    {
+      "topic": "VOA circular vs Visa Policy 2026",
+      "sources": {
+        "2016 VOA circular": "still published on voa.specialbranch.gov.bd",
+        "Visa Policy 2026 condition 33": "repeals previously issued visa circulars"
+      },
+      "resolution": "circular record carries a precedence note; Policy 2026 prevails where they differ"
+    },
+    {
+      "topic": "Transit duration",
+      "sources": {
+        "2016 circular (VoA context)": "72 hours, USD 20, airline-requested at port",
+        "Visa Policy 2026 TR category": "up to 96 hours (pre-issued transit visa)",
+        "Visa Policy 2026 condition 12(h)": "VoA transit up to 72 hours, USD 20"
+      },
+      "resolution": "not a true conflict: different instruments (TR visa category vs VoA transit at port); both recorded with their scope"
+    }
+  ],
+  "excluded_candidates": [
+    {
+      "source": "bida.gov.bd/faq + /commercial-wings",
+      "disposition": "UNVERIFIED_CAPTURE_ONLY / not fetchable",
+      "reason": "ERR_SSL_VERSION_OR_CIPHER_MISMATCH in both strict and evidence contexts (TLS protocol mismatch, not a certificate-validation issue; no evasion). PI/E visa requirements are covered by Visa Policy 2026 category rows; BIDA-side recommendation process remains a gap."
+    },
+    {
+      "source": "ssd.gov.bd circular archive (individual circular PDFs)",
+      "disposition": "PII_EXCLUDED (not crawled)",
+      "reason": "Phase 3.6 §5 forbids recursive crawling of the notice/order archive; hub pages captured as evidence only (titles + last-updated May 2025)"
+    },
+    {
+      "source": "*.mofa.gov.bd mission pages",
+      "disposition": "MISSION_SPECIFIC_NOT_GENERAL / not needed",
+      "reason": "no remaining gap that central sources (Visa Policy 2026, VOA site) don't cover; mission-local procedures must not be generalized"
+    },
+    {
+      "source": "immi.specialbranch.gov.bd COVID/procurement/e-SAM suspension PDFs",
+      "disposition": "STALE_OR_SUPERSEDED / out of scope",
+      "reason": "temporary operational notices, not durable visa policy"
+    }
+  ]
+}

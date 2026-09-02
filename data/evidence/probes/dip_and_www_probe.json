@@ -56,6 +56,35 @@
           "browser: blocked Page.goto: net::ERR_CONNECTION_RESET at https://www.visa.gov.bd/\nCall log:\n  - navigating to \"https://www.visa.gov.bd/\","
         ]
       }
+    },
+    {
+      "url": "https://www.dip.gov.bd/",
+      "disposition": "captured",
+      "provenance": {
+        "url": "https://www.dip.gov.bd/",
+        "normalized_url": "https://www.dip.gov.bd/",
+        "acquisition_method": "capture_only_tls_invalid",
+        "http_status": 200,
+        "tls_verified": false,
+        "tls_error": "Page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://www.dip.gov.bd/\nCall log:\n  - navigating to \"https://www.dip.gov.bd/\", waiting until \"domcontentloaded\"\n",
+        "rendered": true,
+        "verification_status": "capture_only",
+        "requires_secondary_verification": true,
+        "content_sha256": "bec912d081564fddf32ce146dc5c94af3cad68dbe49b15a7f2201bc5f5094d8d",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:11:48Z",
+        "artifacts": {
+          "text": "data/evidence/dip_gov_bd_www\\www_dip_gov_bd.txt",
+          "html": "data/evidence/dip_gov_bd_www\\www_dip_gov_bd.html",
+          "screenshot_png": "data/evidence/dip_gov_bd_www\\www_dip_gov_bd.png",
+          "pdf": null
+        },
+        "notes": [
+          "robots_unreachable",
+          "capture_only: rendered with certificate errors ignored for evidence; NOT verified; requires secondary verification"
+        ]
+      }
     }
-  ]
+  ],
+  "note": "Phase 3.6 §0: www.dip.gov.bd probe added to complete the four-host validation"
 }

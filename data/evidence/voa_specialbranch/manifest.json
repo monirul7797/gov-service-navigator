@@ -1,0 +1,188 @@
+{
+  "crawl_config": {
+    "seeds": [
+      "https://voa.specialbranch.gov.bd/public/voa-info.html",
+      "https://voa.specialbranch.gov.bd/public/voa-instructions.html"
+    ],
+    "allowlist": [
+      "voa.specialbranch.gov.bd"
+    ],
+    "max_depth": 1,
+    "max_pages": 10,
+    "user_agent": "FreshnessChecker",
+    "interval_seconds": 1.0
+  },
+  "finished_at": "2026-09-02T21:12:59Z",
+  "summary": {
+    "nodes": 10,
+    "pages_captured": 3,
+    "dispositions": {
+      "captured_verified_normal": 3,
+      "excluded_wizard": 2,
+      "js_dynamic_state": 1,
+      "dynamic_state_no_new_content": 4
+    }
+  },
+  "nodes": [
+    {
+      "url": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+      "parent": "",
+      "depth": 0,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+        "normalized_url": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "7f1df1d0aae54182ae797e429f49461c7cb428e8d745370f44782593f77e8554",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:12:24Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\voa_specialbranch_gov_bd_public_voa_info_html.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\voa_specialbranch_gov_bd_public_voa_info_html.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\voa_specialbranch_gov_bd_public_voa_info_html.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:12:24Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:12:26Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+      "parent_page": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Bangla",
+      "trigger_locator": "a:has-text('Bangla')",
+      "state_name": "Bangla",
+      "state": {
+        "source_url": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+        "state_name": "Bangla",
+        "trigger_text": "Bangla",
+        "parent_page": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+        "captured_at": "2026-09-02T21:12:29Z",
+        "content_sha256": "92c239cb99783ad5bc4bf532410a3bd912d4b05ef09a6e0e8efbe46b5d6ad242",
+        "chars": 5037,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\state_https_voa_specialbranch_gov_bd_public_voa_info_html_Bangla.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\state_https_voa_specialbranch_gov_bd_public_voa_info_html_Bangla.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\state_https_voa_specialbranch_gov_bd_public_voa_info_html_Bangla.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:12:29Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Print",
+      "captured_at": "2026-09-02T21:12:34Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "I Understand",
+      "captured_at": "2026-09-02T21:12:38Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/public/voa-instructions.html",
+      "parent": "",
+      "depth": 0,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://voa.specialbranch.gov.bd/public/voa-instructions.html",
+        "normalized_url": "https://voa.specialbranch.gov.bd/public/voa-instructions.html",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "1295f7ad6b36c8bd32b0d15d3b51d9cdf9c9ad1770292269f42eb5033f96d522",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:12:44Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\voa_specialbranch_gov_bd_public_voa_instructions_html.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\voa_specialbranch_gov_bd_public_voa_instructions_html.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\voa_specialbranch_gov_bd_public_voa_instructions_html.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:12:44Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://voa.specialbranch.gov.bd/public/voa-instructions.html",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:12:46Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/public/voa-instructions.html",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Print",
+      "captured_at": "2026-09-02T21:12:48Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/public/voa-instructions.html",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "I Understand",
+      "captured_at": "2026-09-02T21:12:53Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/public/voa-info-bn.html",
+      "parent": "https://voa.specialbranch.gov.bd/public/voa-info.html",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://voa.specialbranch.gov.bd/public/voa-info-bn.html",
+        "normalized_url": "https://voa.specialbranch.gov.bd/public/voa-info-bn.html",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "56319be1fc39e0d780327aca079429120c0a45f2e6b5b986dab049f510422bf6",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:12:59Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\voa_specialbranch_gov_bd_public_voa_info_bn_html.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\voa_specialbranch_gov_bd_public_voa_info_bn_html.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\voa_specialbranch\\voa_specialbranch_gov_bd_public_voa_info_bn_html.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:12:59Z"
+    }
+  ]
+}
