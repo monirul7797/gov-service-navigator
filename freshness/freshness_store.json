@@ -1,0 +1,32 @@
+{
+  "15770bd6890cd97e": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T18:52:09Z",
+    "source_url": "https://services.nidw.gov.bd/"
+  },
+  "7363c9ad2eae758e": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T18:52:09Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "8ec4e1c12ae8f73c": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T18:52:09Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "be3ab1811a39c740": {
+    "content_hash": "9440a8f735f98eadfbddfe4a65fbfd00d25b0f16c9f72ac6fe125db70d142b37",
+    "last_changed": null,
+    "last_checked": "2026-09-02T18:52:09Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/claim-account"
+  },
+  "fd6068bcdc8f3237": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T18:52:09Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  }
+}

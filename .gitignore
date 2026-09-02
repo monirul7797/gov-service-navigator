@@ -1,4 +1,4 @@
 setenv.bat
 data/vectordb/
 __pycache__/
-*.pyc
+*.pycfreshness/last_known_text/
