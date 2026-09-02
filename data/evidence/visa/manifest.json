@@ -1,0 +1,391 @@
+{
+  "crawl_config": {
+    "seeds": [
+      "https://visa.gov.bd/"
+    ],
+    "allowlist": [
+      "visa.gov.bd"
+    ],
+    "max_depth": 2,
+    "max_pages": 40,
+    "user_agent": "FreshnessChecker",
+    "interval_seconds": 1.0
+  },
+  "finished_at": "2026-09-02T20:53:41Z",
+  "summary": {
+    "nodes": 27,
+    "pages_captured": 4,
+    "dispositions": {
+      "captured_verified_normal": 3,
+      "excluded_wizard": 9,
+      "excluded_boilerplate": 9,
+      "js_dynamic_state": 2,
+      "interaction_rejected": 1,
+      "duplicate": 1,
+      "excluded_out_of_allowlist": 1,
+      "direct_pdf_verified": 1
+    }
+  },
+  "nodes": [
+    {
+      "url": "https://visa.gov.bd/",
+      "parent": "",
+      "depth": 0,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://visa.gov.bd/",
+        "normalized_url": "https://visa.gov.bd/",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "4e8bc1b1590f938ebac296324a111d18dce3e9874de3d6b9e1b438e745f7f27b",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T20:53:12Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T20:53:12Z"
+    },
+    {
+      "url": "https://visa.gov.bd/Incomplete.aspx",
+      "parent": "https://visa.gov.bd/",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:15Z"
+    },
+    {
+      "url": "https://visa.gov.bd/ViewStatus.aspx",
+      "parent": "https://visa.gov.bd/",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:15Z"
+    },
+    {
+      "url": "https://visa.gov.bd/Reprint.aspx",
+      "parent": "https://visa.gov.bd/",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:15Z"
+    },
+    {
+      "url": "https://visa.gov.bd/CompFeedback.aspx",
+      "parent": "https://visa.gov.bd/",
+      "depth": "?",
+      "disposition": "excluded_boilerplate",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:15Z"
+    },
+    {
+      "url": "https://visa.gov.bd/TermsCondition.aspx",
+      "parent": "https://visa.gov.bd/",
+      "depth": "?",
+      "disposition": "excluded_boilerplate",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:15Z"
+    },
+    {
+      "url": "https://visa.gov.bd/PrivacyPolicy.aspx",
+      "parent": "https://visa.gov.bd/",
+      "depth": "?",
+      "disposition": "excluded_boilerplate",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:15Z"
+    },
+    {
+      "url": "https://visa.gov.bd/",
+      "parent_page": "https://visa.gov.bd/",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "supported countries",
+      "trigger_locator": "a:has-text('supported countries')",
+      "state_name": "supported countries",
+      "state": {
+        "source_url": "https://visa.gov.bd/",
+        "state_name": "supported countries",
+        "trigger_text": "supported countries",
+        "parent_page": "https://visa.gov.bd/",
+        "captured_at": "2026-09-02T20:53:17Z",
+        "content_sha256": "6afd564ebf8ee37eeb56bed93020b4869402372f012cf68085c8005887300fae",
+        "chars": 3853,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\state_https_visa_gov_bd_supported_countries.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\state_https_visa_gov_bd_supported_countries.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\state_https_visa_gov_bd_supported_countries.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T20:53:17Z"
+    },
+    {
+      "url": "https://visa.gov.bd/",
+      "parent_page": "https://visa.gov.bd/",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Here",
+      "trigger_locator": "a:has-text('Here')",
+      "state_name": "Here",
+      "state": {
+        "source_url": "https://visa.gov.bd/",
+        "state_name": "Here",
+        "trigger_text": "Here",
+        "parent_page": "https://visa.gov.bd/",
+        "captured_at": "2026-09-02T20:53:23Z",
+        "content_sha256": "61111ca7179478cb7ac1444a342157bd3c3d6d5e5db859caa19bdcdc1b415530",
+        "chars": 8846,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\state_https_visa_gov_bd_Here.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\state_https_visa_gov_bd_Here.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\state_https_visa_gov_bd_Here.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T20:53:23Z"
+    },
+    {
+      "url": "https://visa.gov.bd/",
+      "disposition": "interaction_rejected",
+      "reason": "safe-click policy: form input control",
+      "trigger_text": "Next",
+      "captured_at": "2026-09-02T20:53:26Z"
+    },
+    {
+      "url": "https://visa.gov.bd/Home.aspx",
+      "parent": "https://visa.gov.bd/",
+      "depth": 1,
+      "disposition": "duplicate",
+      "provenance": {
+        "url": "https://visa.gov.bd/Home.aspx",
+        "normalized_url": "https://visa.gov.bd/Home.aspx",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "4e8bc1b1590f938ebac296324a111d18dce3e9874de3d6b9e1b438e745f7f27b",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T20:53:31Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd_Home_aspx.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd_Home_aspx.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd_Home_aspx.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "reason": "identical content already captured (same sha256)",
+      "captured_at": "2026-09-02T20:53:31Z"
+    },
+    {
+      "url": "https://visa.gov.bd/DownloadMRVForm.aspx",
+      "parent": "https://visa.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://visa.gov.bd/DownloadMRVForm.aspx",
+        "normalized_url": "https://visa.gov.bd/DownloadMRVForm.aspx",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "fa5d4afa199fac7818ddb20231249daf16762677811f4af9894cbaeedd4a2c60",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T20:53:33Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd_DownloadMRVForm_aspx.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd_DownloadMRVForm_aspx.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd_DownloadMRVForm_aspx.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T20:53:33Z"
+    },
+    {
+      "url": "https://visa.gov.bd/Incomplete.aspx",
+      "parent": "https://visa.gov.bd/DownloadMRVForm.aspx",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:35Z"
+    },
+    {
+      "url": "https://visa.gov.bd/ViewStatus.aspx",
+      "parent": "https://visa.gov.bd/DownloadMRVForm.aspx",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:35Z"
+    },
+    {
+      "url": "https://visa.gov.bd/Reprint.aspx",
+      "parent": "https://visa.gov.bd/DownloadMRVForm.aspx",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:35Z"
+    },
+    {
+      "url": "https://visa.gov.bd/CompFeedback.aspx",
+      "parent": "https://visa.gov.bd/DownloadMRVForm.aspx",
+      "depth": "?",
+      "disposition": "excluded_boilerplate",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:35Z"
+    },
+    {
+      "url": "https://visa.gov.bd/TermsCondition.aspx",
+      "parent": "https://visa.gov.bd/DownloadMRVForm.aspx",
+      "depth": "?",
+      "disposition": "excluded_boilerplate",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:35Z"
+    },
+    {
+      "url": "https://visa.gov.bd/PrivacyPolicy.aspx",
+      "parent": "https://visa.gov.bd/DownloadMRVForm.aspx",
+      "depth": "?",
+      "disposition": "excluded_boilerplate",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:35Z"
+    },
+    {
+      "url": "https://visa.gov.bd/FAQ.aspx",
+      "parent": "https://visa.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://visa.gov.bd/FAQ.aspx",
+        "normalized_url": "https://visa.gov.bd/FAQ.aspx",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "ea4eba03985dcfc19a93ddae3625933080c3537350a09ff6470609be6744e58a",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T20:53:38Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd_FAQ_aspx.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd_FAQ_aspx.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd_FAQ_aspx.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T20:53:38Z"
+    },
+    {
+      "url": "https://visa.gov.bd/Incomplete.aspx",
+      "parent": "https://visa.gov.bd/FAQ.aspx",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:40Z"
+    },
+    {
+      "url": "https://visa.gov.bd/ViewStatus.aspx",
+      "parent": "https://visa.gov.bd/FAQ.aspx",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:40Z"
+    },
+    {
+      "url": "https://visa.gov.bd/Reprint.aspx",
+      "parent": "https://visa.gov.bd/FAQ.aspx",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:40Z"
+    },
+    {
+      "url": "https://visa.gov.bd/CompFeedback.aspx",
+      "parent": "https://visa.gov.bd/FAQ.aspx",
+      "depth": "?",
+      "disposition": "excluded_boilerplate",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:40Z"
+    },
+    {
+      "url": "https://visa.gov.bd/TermsCondition.aspx",
+      "parent": "https://visa.gov.bd/FAQ.aspx",
+      "depth": "?",
+      "disposition": "excluded_boilerplate",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:40Z"
+    },
+    {
+      "url": "https://visa.gov.bd/PrivacyPolicy.aspx",
+      "parent": "https://visa.gov.bd/FAQ.aspx",
+      "depth": "?",
+      "disposition": "excluded_boilerplate",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T20:53:40Z"
+    },
+    {
+      "url": "http://www.symantec.com/ssl-certificates",
+      "parent": "https://visa.gov.bd/",
+      "depth": 1,
+      "disposition": "excluded_out_of_allowlist",
+      "reason": "outside the crawl's domain allowlist",
+      "captured_at": "2026-09-02T20:53:40Z"
+    },
+    {
+      "url": "https://visa.gov.bd/Img/MRV_FORM.pdf",
+      "parent": "https://visa.gov.bd/DownloadMRVForm.aspx",
+      "depth": 2,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://visa.gov.bd/Img/MRV_FORM.pdf",
+        "normalized_url": "https://visa.gov.bd/Img/MRV_FORM.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "fb2d675a5a98f7ed9a06a11699cdf426cb6a8a26d34ca1c2da89fd58fa353f7d",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T20:53:41Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\visa\\visa_gov_bd_Img_MRV_FORM_pdf.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T20:53:41Z"
+    }
+  ]
+}

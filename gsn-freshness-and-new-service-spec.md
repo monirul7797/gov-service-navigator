@@ -320,3 +320,44 @@ Do not start Part B before Part A's definition of done is met, and do not
 start the NBR family before visa's definition of done is met — partial,
 unvalidated work across multiple services at once is how corpus quality
 regressions slip in unnoticed on this project.
+
+---
+
+## Part E (addendum, Phase 3.5) — Acquisition Layer
+
+Phase 3.5 added a shared, provenance-aware acquisition layer that supersedes
+the assumption that every TLS-invalid or normally-unfetchable page must
+immediately become a manual-screenshot task. It does not weaken the
+verification gate. Full architecture note: `docs/ACQUISITION_LAYER.md`;
+implementation: `acquisition/` + `crawl.py`; tests: `test_acquisition.py`.
+
+Fallback hierarchy (verification status is NEVER inflated):
+
+```
+verified HTTP/browser fetch          → verified_normal / direct_pdf_verified / verified_browser
+        ↓ failure or JS-only content
+browser-rendered fallback            → verified_browser (Chromium strict context,
+                                       certificate validation ON)
+        ↓ only when the TLS certificate itself is invalid
+invalid-TLS capture-only evidence    → capture_only_tls_invalid
+        (Chromium evidence context, ignore_https_errors=True;
+         requires_secondary_verification=true; original TLS error preserved)
+        ↓ only when the browser itself is blocked
+manual screenshot                    → needs_manual_screenshot (LAST fallback)
+```
+
+`ignore_https_errors=True` does **not** make a source verified. It exists only
+on a dedicated evidence context. All anti-evasion rules (no proxy rotation, no
+CAPTCHA bypass, no login automation, no UA spoofing, no rate-limit bypass) and
+the PII/wizard exclusions remain fully in force; the safe-click policy
+(`acquisition/safeclick.py`) never activates submit/apply/login/pay/save/next/
+reprint/status actions, and ambiguous interactions are skipped with
+`TODO(Monirul): review interaction`.
+
+Integration: `freshness/fetch.py` now sources extraction, robots, and URL
+primitives from `acquisition/` (one implementation — byte-identical
+extraction verified before commit, so freshness hashes are unchanged). The
+bounded crawler (`crawl.py`) is service-agnostic: seeds + allowlist + depth,
+with evidence artifacts (HTML/text/PNG/PDF) and a full provenance manifest
+under `data/evidence/<service>/`. Corpus construction still prefers real
+HTML/text/PDF text; screenshots are evidence for human review only.

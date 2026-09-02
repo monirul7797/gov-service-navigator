@@ -1,0 +1,61 @@
+{
+  "probe_date": "2026-09-03",
+  "nodes": [
+    {
+      "url": "https://dip.gov.bd/",
+      "disposition": "captured",
+      "provenance": {
+        "url": "https://dip.gov.bd/",
+        "normalized_url": "https://dip.gov.bd/",
+        "acquisition_method": "verified_browser",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": true,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "bec912d081564fddf32ce146dc5c94af3cad68dbe49b15a7f2201bc5f5094d8d",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T20:55:45Z",
+        "artifacts": {
+          "text": "data/evidence/dip_gov_bd\\dip_gov_bd.txt",
+          "html": "data/evidence/dip_gov_bd\\dip_gov_bd.html",
+          "screenshot_png": "data/evidence/dip_gov_bd\\dip_gov_bd.png",
+          "pdf": null
+        },
+        "notes": [
+          "robots_unreachable"
+        ]
+      }
+    },
+    {
+      "url": "https://www.visa.gov.bd/",
+      "disposition": "needs_manual_screenshot",
+      "provenance": {
+        "url": "https://www.visa.gov.bd/",
+        "normalized_url": "https://www.visa.gov.bd/",
+        "acquisition_method": "",
+        "http_status": null,
+        "tls_verified": false,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "unreachable",
+        "requires_secondary_verification": false,
+        "content_sha256": "",
+        "disposition": "needs_manual_screenshot",
+        "captured_at": "2026-09-02T20:55:45Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": null
+        },
+        "notes": [
+          "robots_unreachable",
+          "strict: connection ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', Non",
+          "browser: blocked Page.goto: net::ERR_CONNECTION_RESET at https://www.visa.gov.bd/\nCall log:\n  - navigating to \"https://www.visa.gov.bd/\","
+        ]
+      }
+    }
+  ]
+}
