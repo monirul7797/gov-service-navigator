@@ -1,14 +1,344 @@
 {
+  "02a1d96a8c5d587d": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
+  "0328798228089b51": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.ecs.gov.bd/",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_403"
+  },
+  "06fa70af6e4ba764": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "0982bcd5b1fce095": {
+    "content_hash": "9440a8f735f98eadfbddfe4a65fbfd00d25b0f16c9f72ac6fe125db70d142b37",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/claim-account"
+  },
+  "0e3653dd7a978f1b": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/"
+  },
+  "126a707e5e5bf33a": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "13ee24118e681b64": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
   "15770bd6890cd97e": {
     "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
     "last_changed": null,
     "last_checked": "2026-09-02T18:52:09Z",
     "source_url": "https://services.nidw.gov.bd/"
   },
+  "1586ea397b933bbb": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
+  "17fc0562d6cca694": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "1aab056669f4156b": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "1aef331cb17dafc9": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/"
+  },
+  "1d13e74b7e974eca": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "20c845cc504ff402": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "221cccb1be6d3cb6": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "23bb4cd47935a6f9": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "24be518039161868": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "2528d0bcd58e35f9": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "2633f4a05ccee5c5": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "271f4ff1bdf79dbc": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "29afb5d36d58023c": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "3496f8355387e10d": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "37228d4f0b4585ec": {
+    "content_hash": "9440a8f735f98eadfbddfe4a65fbfd00d25b0f16c9f72ac6fe125db70d142b37",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/claim-account"
+  },
+  "3723e1c830b7b1e2": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "39b85598b9f99b88": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "3cc4f4e29fa01a34": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
+  "3dd48a8da4cacd3b": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "42873deced9a71b8": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "4527137ca60f5a10": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "4806fc0db369e558": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "49269d28f061649a": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "4f0c9e099d49e4d7": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "4f196f8c3773bc37": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "50d66a66a22cd5a0": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "52d7026dba9a7d99": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "5378832e7420a386": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
+  "56890c8106a66d5c": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "5b7f3970557399bb": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "5ef211149a9564b3": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "600baa514f80ce80": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "6367ec9f93d88546": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.ecs.gov.bd/",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_403"
+  },
+  "6741335370d40b58": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "67f8843f0918c127": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
+  "69036e44760278d0": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/form-download",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_404"
+  },
+  "6b5fbaea8722995a": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "6eb6f34f519abe79": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "6fbc804202616b57": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "704d206a57a6eff5": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "71b5305eca794b21": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
   "7363c9ad2eae758e": {
     "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
     "last_changed": null,
     "last_checked": "2026-09-02T18:52:09Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "736ea9a77fe77a71": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
+  "7957b0a2fe57d6ef": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "79abb3857edf8e76": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "7a2d56f2794d65ee": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "7ccf9bcc62d6162d": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
+  "7d450ebcae4b8759": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "876129ea97b1b512": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
     "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
   },
   "8ec4e1c12ae8f73c": {
@@ -17,11 +347,1409 @@
     "last_checked": "2026-09-02T18:52:09Z",
     "source_url": "https://services.nidw.gov.bd/nid-pub/"
   },
+  "8fe710702047a4eb": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "90b6c4cb92da34b4": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "9185446981238a65": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
+  "9260a976f7fcb9e9": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
+  "99b73f516742b5e6": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "9a2f9664e30f7c39": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "a2d14592450e6d63": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "a35fead08f8be3b8": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/"
+  },
+  "a741e791de7cf463": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "a8d90e207418dc05": {
+    "content_hash": "9440a8f735f98eadfbddfe4a65fbfd00d25b0f16c9f72ac6fe125db70d142b37",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/claim-account"
+  },
+  "ac0292cfe8eae19d": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "ae463ace914d6134": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/"
+  },
+  "b0d14c7e3137baa9": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "b5e53545a4949574": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "b70b0fc7bbd59bb4": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "b7d46b701dece60f": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/form-download",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_404"
+  },
+  "bdris_correction_001": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://bdris.gov.bd/br-correction",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_403"
+  },
+  "bdris_correction_002": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://bdris.gov.bd/br-correction",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_403"
+  },
+  "bdris_correction_003": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://bdris.gov.bd/br-correction",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_403"
+  },
+  "bdris_correction_004": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://bdris.gov.bd/br-correction",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_403"
+  },
+  "bdris_correction_005": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://bdris.gov.bd/br-correction",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_403"
+  },
+  "bdris_correction_006": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://bdris.gov.bd/br-correction",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_403"
+  },
+  "bdris_faq_001": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_002": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_003": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_004": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_009": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_012": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_013": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_014": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_015": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_016": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_017": {
+    "content_hash": "dcda59300598eb48f060519097624753f3b18d3127cb96582886126833c7f506",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://everify.bdris.gov.bd"
+  },
+  "bdris_faq_registration_basics_1": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_registration_basics_2": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_registration_basics_3": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_registration_basics_4": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_special_populations_1": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_faq_special_populations_2": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_login_instructions_001": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://bdris.gov.bd/login",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_403"
+  },
+  "bdris_manual_stage_0_prerequisites": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922db5f933eb65569e09bfd",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_manual_stage_1_entry": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922db5f933eb65569e09bfd",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_manual_stage_2_address_basis": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922db5f933eb65569e09bfd",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_manual_stage_3_personal_parent_info": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922db5f933eb65569e09bfd",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_manual_stage_4_addresses": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922db5f933eb65569e09bfd",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_manual_stage_5_applicant_declaration_documents": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922db5f933eb65569e09bfd",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_manual_stage_6_review_otp": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922db5f933eb65569e09bfd",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_manual_stage_7_confirmation_next_steps": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://orgbdr.gov.bd/pages/static-pages/6922db5f933eb65569e09bfd",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "bdris_payment_001": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://eservices.bdris.gov.bd/",
+    "status": "needs_manual_screenshot",
+    "status_reason": "Page.goto: net::ERR_CONNECTION_REFUSED at https://eservices.bdris.gov.bd/\nCall log:\n  - navigating to \"https://eservices"
+  },
+  "bdris_rules2018_009_domestic_birth": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "gazette:S.R.O.79-Law/2018 (জন্ম ও মৃত্যু নিবন্ধন বিধিমালা, ২০১৮)",
+    "status": "skipped",
+    "status_reason": "no_source_url_or_non_http"
+  },
+  "bdris_rules2018_010_expat_birth": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "gazette:S.R.O.79-Law/2018 (জন্ম ও মৃত্যু নিবন্ধন বিধিমালা, ২০১৮)",
+    "status": "skipped",
+    "status_reason": "no_source_url_or_non_http"
+  },
+  "bdris_rules2018_011_domestic_death": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "gazette:S.R.O.79-Law/2018 (জন্ম ও মৃত্যু নিবন্ধন বিধিমালা, ২০১৮)",
+    "status": "skipped",
+    "status_reason": "no_source_url_or_non_http"
+  },
+  "bdris_rules2018_012_expat_death": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "gazette:S.R.O.79-Law/2018 (জন্ম ও মৃত্যু নিবন্ধন বিধিমালা, ২০১৮)",
+    "status": "skipped",
+    "status_reason": "no_source_url_or_non_http"
+  },
+  "bdris_rules2018_013_duplicate_certificate": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "gazette:S.R.O.79-Law/2018 (জন্ম ও মৃত্যু নিবন্ধন বিধিমালা, ২০১৮)",
+    "status": "skipped",
+    "status_reason": "no_source_url_or_non_http"
+  },
+  "bdris_rules2018_015_correction_cancellation": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "gazette:S.R.O.79-Law/2018 (জন্ম ও মৃত্যু নিবন্ধন বিধিমালা, ২০১৮)",
+    "status": "skipped",
+    "status_reason": "no_source_url_or_non_http"
+  },
+  "bdris_rules2018_018_supervision": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "gazette:S.R.O.79-Law/2018 (জন্ম ও মৃত্যু নিবন্ধন বিধিমালা, ২০১৮)",
+    "status": "skipped",
+    "status_reason": "no_source_url_or_non_http"
+  },
+  "bdris_rules2018_021_fees": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "gazette:S.R.O.79-Law/2018 (জন্ম ও মৃত্যু নিবন্ধন বিধিমালা, ২০১৮)",
+    "status": "skipped",
+    "status_reason": "no_source_url_or_non_http"
+  },
+  "bdris_rules2018_022_certificate_uses": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "gazette:S.R.O.79-Law/2018 (জন্ম ও মৃত্যু নিবন্ধন বিধিমালা, ২০১৮)",
+    "status": "skipped",
+    "status_reason": "no_source_url_or_non_http"
+  },
   "be3ab1811a39c740": {
     "content_hash": "9440a8f735f98eadfbddfe4a65fbfd00d25b0f16c9f72ac6fe125db70d142b37",
     "last_changed": null,
     "last_checked": "2026-09-02T18:52:09Z",
     "source_url": "https://services.nidw.gov.bd/nid-pub/claim-account"
+  },
+  "bea536f88fe35b59": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "c0c61255b9705ad6": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "c50dad1b7601c214": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "c7639f975f9a0d08": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "c857a6590a5f4a16": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "ca4118c508a7a344": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "ca8059601d85f53f": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/"
+  },
+  "cd082d08716df83d": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "cd46a82c47074e76": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "d4178a0bfaa9d7ca": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "d8586d01c0df532c": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "d8950d64f8c97dea": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "d9e46d089fa7e9a2": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.ecs.gov.bd/",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_403"
+  },
+  "dd1e1f795f9cdc9a": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "dd89289d0f55d8ca": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "dde1d582a1671384": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "dede10f1e7568ccd": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "ee75b6a7467a3e86": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "epassport-faq-10-i-dont-have-an-email-address-can-i-also-apply-online": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/10",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-11-i-did-not-receive-the-account-activation-email-what-should-i-do": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/11",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-12-can-i-cancel-or-re-schedule-an-online-appointment-at-passport-office": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/12",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-13-can-i-change-the-email-address-for-my-online-application-account": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/13",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-14-can-i-change-the-mobile-number-registered-in-my-online-account": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/14",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-149-having-trouble-viewing-online-status-application-id-online-registration-id-is-re": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/149",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-15-how-can-i-schedule-an-appointment-at-passport-office": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/15",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-150-how-do-i-apply-for-super-express": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/150",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-19-can-i-schedule-online-appointments-even-if-i-dont-use-online-application-but-pdf": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/19",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-20-i-made-mistakes-in-my-application-data-and-my-application-is-already-submitted-w": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/20",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-21-some-of-my-data-changed-compared-to-my-previous-passport-how-can-i-apply": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/21",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-22-my-present-address-changed-compared-to-my-previous-passport-where-do-i-need-to-a": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/22",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-24-i-experienced-issues-with-online-payment-what-can-i-do": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/24",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-25-i-cant-get-an-appointment-at-my-passport-office-in-the-near-future-what-can-i-do": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/25",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-26-i-have-an-mrp-how-is-the-process-to-get-the-epassport": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/26",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-270-i-have-retired-from-government-service-now-what-documents-are-required-to-comple": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/270",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-271-i-have-lost-my-delivery-slip-now-how-i-will-collect-my-passport": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/271",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-272-what-types-of-documents-are-required-to-show-at-passport-office-to-collect-a-new": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/272",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-273-after-receiving-a-new-passport-if-i-find-any-printing-error-in-my-passport-then-": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/273",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-274-how-much-is-it-important-to-provide-previous-passport-number": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/274",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-275-how-can-i-check-my-e-passport-status": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/275",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-276-during-lprprl-can-i-use-official-passport": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/276",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-277-i-have-received-an-e-mail-for-collection-of-a-new-passport-from-passport-office-": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/277",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-278-i-have-lost-my-e-passport-i-dont-have-my-previous-e-passport-number-how-can-i-ge": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/278",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-279-while-checking-my-passport-status-i-see-pending-for-backend-verification-now-wha": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/279",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-280-what-are-the-reasons-for-getting-passport-delayed": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/280",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-281-do-i-need-attest-my-photograph-for-e-passport": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/281",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-282-if-someone-applies-for-new-e-passport-but-he-is-having-a-machine-readable-passpo": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/282",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-283-how-can-i-change-my-information-in-the-passport-after-i-changing-information-of-": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/283",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-284-can-anyone-below-18-years-get-a-passport-for-10-years": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/284",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-285-after-how-many-years-e-passport-must-be-re-issued": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/285",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-286-when-the-passport-validity-date-expires-is-there-any-fee-to-be-paid-for-the-expi": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/286",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-287-i-want-to-get-a-passport-i-am-21-years-old-but-i-dont-have-an-id-card-i-have-bir": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/287",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-288-i-have-applied-for-my-passport-in-chittagong-can-i-collect-it-from-dhaka": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/288",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-289-in-case-of-minors-who-can-collect-the-passport": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/289",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-3-what-documents-do-i-need-to-bring-for-epassport-enrolment": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/3",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-4-do-i-have-to-bring-photos-for-applying-for-the-epassport": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/4",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-7-how-can-i-check-the-status-of-my-passport-application": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/7",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-72-how-do-i-fill-in-the-given-name-and-surname-part-of-the-name": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/72",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-8-is-it-possible-to-upgrade-to-express-delivery-after-the-enrolment-for-epassport-": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/8",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-9-i-forgot-the-password-of-my-online-application-account-what-should-i-do": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs/9",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-faq-taxonomy-index": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/faqs",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-fees-inside-bd-all": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/passport-fees",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-fees-mission-general": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/passport-fees",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-fees-mission-labor-student": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/passport-fees",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-fees-payment-methods": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/passport-fees",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-instructions-adoption-guardianship": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/instructions",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-instructions-diplomatic-passport": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/instructions",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-instructions-documents-eligibility": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/instructions",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-instructions-five-step-overview": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/five-step-to-your-epassport",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-instructions-foreign-mission-contact-address": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/instructions",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-instructions-minor-validity": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/instructions",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-instructions-submission-jurisdiction": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/instructions",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-instructions-urgent-timelines": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/instructions",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-instructions-vat-fees-domestic-foreign": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/instructions",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-notice-dhaka-cantonment-jurisdiction": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/notices/158",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-notice-documents-carried-enrolment": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/notices/34",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-notice-documents-checklist-enrollment": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/notices/160",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-notice-functional-epassport-offices": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/notices/33",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-notice-narayanganj-rpo-resumption": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/notices/158",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-notice-special-attention-fraud": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/landing/notices/194",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-onboarding-region-check": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/onboarding",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "epassport-payref-chalan-verification": {
+    "content_hash": "5dc32ef5d5312633a5a784a26ae913064b591fc74cf0897ea1ca78aa1671e429",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://challanverification.finance.gov.bd/echalan/"
+  },
+  "epassport-payref-fee-taxonomy": {
+    "content_hash": "b17e2feaefcbf0e53ea377cc63f403f18c4a07fe313e4a065991731207a5a6aa",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://achallan.gov.bd/acs/v2/general/challan-payment?id=1"
+  },
+  "epassport-payref-receipt-download": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://receipt.dgepay.net/search/details",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_404"
+  },
+  "epassport-urgent-super-express": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.epassport.gov.bd/instructions/urgent-applications",
+    "status": "needs_manual_screenshot",
+    "status_reason": "known_blocked_domain"
+  },
+  "ereturn-faq-frontdoor-landing-pages": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://etaxnbr.gov.bd/, https://nbr.gov.bd/",
+    "status": "skipped",
+    "status_reason": "no_source_url_or_non_http"
+  },
+  "ereturn-faq-gen-area-wise-minimum-tax": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-cancel-registration-below-threshold": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-cancel-tin-after-fathers-death": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-change-address": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-company-tax-rate-structure": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-consequence-of-late-return": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-etin-required-documents": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-find-tax-jurisdiction": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-firm-aop-income-in-total": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-heads-of-income": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-how-to-apply-etin": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-how-to-pay-income-tax": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-individual-tax-rate-structure": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-mandatory-return-filing": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-penalty-for-not-filing": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-rebate-eligible-investments-donations": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-return-filing-deadline": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-return-filing-method": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-spouse-minor-child-income": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-tax-free-income-heads": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-taxable-threshold": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-taxpayer-location-determination": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-time-extension-request": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-what-is-assessment": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-what-is-etin": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-what-is-income": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-what-is-income-tax": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-what-is-income-tax-registration": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-what-is-return": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-what-is-tax-rebate": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-what-is-tax-year": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-what-is-total-income": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-where-to-file-return": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-where-to-get-return-form": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-who-files-return": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-gen-who-must-pay-tax": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-2025-2026-mandatory": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-asset-autofill": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-bank-sanchaypatra-dividend-credit": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-benefits": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-car-advance-tax-credit": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-car-tax-not-adjusting": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-certified-copy": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-claim-withholding-advance-tax": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-correct-filed-return": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-data-security": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-declared-bank-tds-mismatch": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-doctor-lawyer-income": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-file-after-deadline": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-file-with-source-advance-tax": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-gender-wrongly-male": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-gold-market-value": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-how-to-sign-in": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-how-to-start": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-how-to-start-filling": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-joint-sanchaypatra": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-meeting-fee-honorarium-income": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-mobile-phone-filing": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-mpo-teachers-salary": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-multiple-work-locations": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-nid-name-dob-corrected": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-no-need-to-resubmit-at-circle": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-paid-but-still-unpaid": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-password-set-reset": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-pay-tax-via-system": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-pre-2019-sanchaypatra-credit": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-previous-year-excess-tax": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-prior-print-return-not-showing": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-register-without-old-mobile": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-registration-method": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-registration-requirements": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-salary-source-tax-credit": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-sanchaypatra-data-not-found": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-security-certificate-warning": {
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://www.incometax.gov.bd/Help/FaqAnswer",
+    "status": "needs_manual_screenshot",
+    "status_reason": "http_500"
+  },
+  "ereturn-faq-online-show-all-previous-assets": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-submission-process": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-support-contact": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-supporting-documents": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-surcharge-applicability": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-tax-service-month-support": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-two-employers-income": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "ereturn-faq-online-verify-mobile-in-own-name": {
+    "content_hash": "210bc2f718664c4176df3b7057686606fdbea9b3ca87ea47836d4bfbfe195543",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:35:33Z",
+    "source_url": "https://nbr.gov.bd/all-faq/ban"
+  },
+  "f1ebe6f9f6405672": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/"
+  },
+  "f23e07114e19a33d": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "f41e6c4730be9554": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/"
+  },
+  "f48c970cb050a6ae": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
+  "f6e4d33f4de08afc": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
+  },
+  "f8561a84ae9d881d": {
+    "content_hash": "8d803f28ecdedd09d6b0503f3d7111e5a6ca4cb7347978a2f32be56bcb6fd9e5",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/"
+  },
+  "fa3c5c2cffc84ebc": {
+    "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/fees"
+  },
+  "fd42e67fa25c51a3": {
+    "content_hash": "b0c4f59fcc98db8f97e5be696d803604f5353756fb8ff515f68c81409096a87d",
+    "last_changed": null,
+    "last_checked": "2026-09-02T19:15:34Z",
+    "source_url": "https://services.nidw.gov.bd/nid-pub/faq"
   },
   "fd6068bcdc8f3237": {
     "content_hash": "d3c0cdd888e31bb6c1380a900ffdf1274bc8874c2d0cd3552cbfa6f78bef550c",

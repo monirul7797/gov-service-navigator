@@ -20,6 +20,7 @@ import re
 
 REPO_ROOT = r"C:\Users\Monirul\Documents\Structured Data\NID\gov-service-navigator\gov-service-navigator"
 LAST_KNOWN_DIR = os.path.join(REPO_ROOT, "freshness", "last_known_text")
+QUEUE_PATH = os.path.join(REPO_ROOT, "freshness", "pending_review.json")
 
 
 def sha256_text(text: str) -> str:
