@@ -1,7 +1,10 @@
 """
 freshness/fetch.py — Playwright re-fetch of each corpus record's source_url.
 
-Part A §A3 of the build spec (gsn-freshness-and-new-service-spec.md).
+Part A §A3 of the build spec (gsn-freshness-and-new-service-spec.md);
+refactored in Phase 3.5 (§11) to source its shared primitives — deterministic
+extraction, robots policy, URL cleaning — from the acquisition layer, so
+freshness checks and new-service crawling use ONE acquisition pipeline.
 
 Mental model:
   Every corpus record carries a source_url. This module walks one or more
@@ -9,25 +12,38 @@ Mental model:
   because the four .jsonl schemas differ — and re-fetches each URL with a
   headless Chromium, extracting the page's main text.
 
+  Freshness deliberately uses the RENDERED-DOM extraction path for every
+  URL (not the strict-HTTP path): the text is only ever compared to itself
+  hash-to-hash across runs, so a page flipping between "static" and
+  "JS-rendered" must not flip its hash — rendered extraction is stable
+  either way. TLS verification for freshness captures rides on Chromium's
+  own certificate validation (a successful strict goto is cert-validated).
+
   The extracted text is NOT compared to the corpus record's text. It is only
-  ever compared to itself (hash-to-hash) across runs, so the extraction does
+  ever compared to itself hash-to-hash across runs, so the extraction does
   not need to be a perfect readability clone — it needs to be DETERMINISTIC.
 
   Records whose URL is missing, non-http, or on a known-blocked domain are
   never fetched. Blocked records are surfaced with status
   "needs_manual_screenshot" so a human can supply a screenshot. We do NOT
-  evade blocks (no fake user-agents, no proxy tricks) — see spec §0 note 6.
+  evade blocks (no fake user-agents, no proxy tricks) — see spec §0 note 6
+  and Phase 3.5 §3.
 """
 from __future__ import annotations
 
 import json
 import re
 import time
-import urllib.error
 import urllib.parse
-import urllib.request
-import urllib.robotparser
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+
+# Shared acquisition primitives (Phase 3.5 §11) — one implementation, reused.
+# freshness is a consumer of the acquisition layer, never a duplicate of it.
+import sys as _sys
+import os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+from acquisition.extract import STRIP_AND_EXTRACT_JS, normalize_text, sha256_text  # noqa: E402,F401
+from acquisition.robots import RobotsCache as _RobotsCacheImpl, robots_check as _robots_check_impl  # noqa: E402,F401
 
 REPO_ROOT = r"C:\Users\Monirul\Documents\Structured Data\NID\gov-service-navigator\gov-service-navigator"
 
@@ -51,6 +67,19 @@ KNOWN_BLOCKED_DOMAINS = {
 FETCH_INTERVAL_SECONDS = 1.0   # rate limit: be polite to gov infrastructure
 PAGE_SETTLE_MS = 1500          # let SPA content paint before extraction (validated stable)
 
+# Backward-compatible aliases (Phase 2 scripts import these names from here).
+_normalize = normalize_text
+_STRIP_AND_EXTRACT_JS = STRIP_AND_EXTRACT_JS
+
+
+class _RobotsCache(_RobotsCacheImpl):
+    """Compat alias for acquisition.robots.RobotsCache."""
+
+
+def _robots_check(robots: "_RobotsCache", url: str, user_agent: str):
+    """Compat delegate to the shared robots policy."""
+    return _robots_check_impl(robots, url, user_agent)
+
 
 @dataclass
 class FetchResult:
@@ -61,12 +90,6 @@ class FetchResult:
     reason: str | None = None        # why a fetch did not happen
     text: str | None = None          # extracted main text (only when status == "fetched")
     http_status: int | None = None
-
-
-@dataclass
-class _RobotsCache:
-    parsers: dict = field(default_factory=dict)
-    unavailable: set = field(default_factory=set)   # domains whose robots.txt could not be read
 
 
 def _clean_url(url: str) -> str | None:
@@ -168,107 +191,26 @@ def collect_targets(services: list[str], record_ids: set[str] | None = None):
 
 
 # ---------------------------------------------------------------------------
-# robots.txt — honor explicit disallow directives; no evasion (spec §0 note 6)
+# robots.txt + extraction now come from the acquisition layer (see imports).
+# The old in-file copies were removed in the Phase 3.5 refactor — one shared
+# implementation, no drift between freshness and the crawler.
 # ---------------------------------------------------------------------------
-
-def _robots_check(robots: _RobotsCache, url: str, user_agent: str) -> tuple[bool, str | None]:
-    """Honor robots.txt directives when the file is actually served.
-
-    Returns (allowed, note). Policy (documented deliberately):
-      * robots.txt 2xx        → parse it; explicit Disallow wins (never evaded).
-      * robots.txt 4xx / 404  → RFC 9309: no restrictions (unrestricted).
-      * robots.txt 5xx/unreachable → proceed with a note. urllib's parser would
-        disallow-all on 5xx, but services.nidw.gov.bd has returned a permanent
-        503 on robots.txt while serving its public pages normally (the whole
-        corpus was built from them) — a misconfigured endpoint must not
-        silently disable change detection. Noted in the report instead.
-    """
-    domain = domain_of(url)
-    if domain in robots.parsers:
-        parser = robots.parsers[domain]
-        note = None
-    elif domain in robots.unavailable:
-        return True, "robots_unreachable"
-    else:
-        parser = urllib.robotparser.RobotFileParser()
-        robots_url = urllib.parse.urljoin(url, "/robots.txt")
-        try:
-            req = urllib.request.Request(robots_url, headers={"User-Agent": user_agent})
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                raw = resp.read().decode("utf-8", errors="replace")
-            parser.parse(raw.splitlines())
-            if not parser.entries and parser.default_entry is None:
-                parser.allow_all = True   # 2xx but zero rules = unrestricted
-            robots.parsers[domain] = parser
-            note = None
-        except urllib.error.HTTPError as exc:
-            if 400 <= exc.code < 500:
-                # RFC 9309: 4xx on robots.txt = no restrictions. NOTE: an empty
-                # RobotFileParser's can_fetch() returns False on CPython 3.12
-                # (observed), so allow_all must be set explicitly.
-                parser.allow_all = True
-                robots.parsers[domain] = parser
-                note = None
-            else:
-                robots.unavailable.add(domain)
-                return True, f"robots_unreachable_http_{exc.code}"
-        except (urllib.error.URLError, OSError, UnicodeDecodeError):
-            robots.unavailable.add(domain)
-            return True, "robots_unreachable"
-    try:
-        return parser.can_fetch(user_agent, url), note
-    except Exception:
-        return True, note
-
-
-# ---------------------------------------------------------------------------
-# Playwright fetch + deterministic main-text extraction
-# ---------------------------------------------------------------------------
-
-# A simple readability-style strip (spec §A3: doesn't need to be exact — the
-# extracted text is compared to itself hash-to-hash over time, never to the
-# corpus text). Runs inside the page; must be a single JS expression.
-_STRIP_AND_EXTRACT_JS = """
-() => {
-    const sels = ['script', 'style', 'noscript', 'nav', 'footer', 'header',
-                  'aside', 'iframe', '[role="banner"]', '[role="navigation"]',
-                  '[role="contentinfo"]'];
-    for (const sel of sels) {
-        document.querySelectorAll(sel).forEach(el => el.remove());
-    }
-    return document.body.innerText;
-}
-"""
-
-
-def _normalize(text: str) -> str:
-    """Deterministic whitespace normalization so hash comparisons don't flip
-    on CRLF or indentation noise."""
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
-    lines = [re.sub(r"[ \t]+", " ", ln).strip() for ln in text.split("\n")]
-    out: list[str] = []
-    blanks = 0
-    for ln in lines:
-        if ln == "":
-            blanks += 1
-            if blanks > 1:
-                continue
-        else:
-            blanks = 0
-        out.append(ln)
-    return "\n".join(out).strip()
 
 
 def fetch_page_text(page, url: str) -> tuple[str, int | None]:
     """Fetch one URL with the shared browser page and return (text, http_status).
-    Raises on navigation failure; callers translate that into a skip."""
+    Raises on navigation failure; callers translate that into a skip.
+
+    This is the freshness path of the shared acquisition layer: always
+    rendered-DOM extraction (deterministic across static and JS pages), with
+    certificate validation left to Chromium's strict context."""
     response = page.goto(url, timeout=30000, wait_until="domcontentloaded")
     page.wait_for_timeout(PAGE_SETTLE_MS)
-    raw = page.evaluate(_STRIP_AND_EXTRACT_JS)
+    raw = page.evaluate(STRIP_AND_EXTRACT_JS)
     status = response.status if response is not None else None
     if status is not None and status >= 400:
         raise RuntimeError(f"http_{status}")
-    return _normalize(raw or ""), status
+    return normalize_text(raw or ""), status
 
 
 def fetch_targets(targets, page, robots: _RobotsCache | None = None) -> list[FetchResult]:

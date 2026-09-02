@@ -1,0 +1,105 @@
+HOME
+
+INCOMPLETE
+APPLICATION
+
+VIEW STATUS
+
+REPRINT APPLICATION
+
+COMPLAINTS
+& FEEDBACK
+
+Home
+
+Terms & Conditions
+
+Privacy Policy
+
+Download MRV Form
+
+FAQ
+
+ABOUT SSL CERTIFICATES
+
+Frequently Asked Questions
+
+ONLINE APPLICATION FORMS
+
+Can I fill in my visa application in a language other than English?
+
+No. At Present our online application system only supports applications made in
+English.
+
+Will I be able to access the online application system using my computer?
+
+We are doing our best to support as many computers, operating systems and internet
+browsers as possible but due to the technologies we use for our online application
+system, there are certain browsers we exclude due to their age or design. Currently
+our site is tested at IE 5.0 or later and Mozilla Firefox 3.5 or later.
+
+Can I save my application mid-way through the application process?
+
+Yes. You can save your online visa application wherever you see the "Save & Exit"
+icon. To login again and complete your application, you will require your unique
+"Visa Application Id". This number will have been sent to the email address that
+you supplied in your application security details. Please note:
+
+• Online forms in progress that are saved are deleted after 7 days. You can
+return within 7 days.
+
+• Online forms are valid for 7 days from the day you submit it. We cannot accept
+application forms after this 7 days period, as the data expires and is deleted.
+You will be asked to complete a new application if you try to submit an expired
+application form to a visa application centre.
+
+I do not understand one of the questions. What can I do?
+
+Throughout the online form we have added "More Info" icons to some questions that
+might require further guidance.
+
+I made a mistake on one of my answers. Can I change it?
+
+If you didn't submit your application finally you can do the change. After submitting
+the application you can't change it.
+
+The date I entered is not being accepted. What is the correct format?
+
+All date fields in our forms are set up in the following format: dd/mm/yyyy (for
+example 21/08/2011).
+
+I have not received my Completed Application confirmation email. Can you resend it
+to me?
+
+Yes. But please check first that your inbox has not treated our email confirmation
+as SPAM and that you have given us the correct email address. If you have not received
+your confirmation email after 24 hours please contact us through Complain and Feedback
+link.
+
+SECURITY, APPOINTMENTS AND PAYMENTS
+
+I am unable to retrieve my application. What can I do?
+
+This could be because you did not save your application by selecting the "Save &
+Exit" option flagged by the following image on the application form or your did
+not retrieve your application within 7 days of last saving it. If you are sure you
+saved your application in the last seven days, empty your browser cache(temporary
+internet files) and try again.
+
+How can I change my appointment location?
+
+You can't edit appointment location after the final submission of your application.
+
+Can I get a refund?
+
+No.
+
+Can I pay for my visa application online?
+
+Currently online payment for visa application is not supported.
+
+© 2012 Department of Immigration & Passports
+
+Government of the Peoples's Republic of Bangladesh ®
+
+Version 1.0.1.0
