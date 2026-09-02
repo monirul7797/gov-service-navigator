@@ -1,0 +1,56 @@
+SECTION: portal
+SOURCE: https://visa.gov.bd/
+LANGUAGE: en
+
+HOME
+INCOMPLETE APPLICATION
+VIEW STATUS
+REPRINT APPLICATION
+COMPLAINTS & FEEDBACK
+Home
+Terms & Conditions
+Privacy Policy
+Download MRV Form
+FAQ
+
+ABOUT SSL CERTIFICATES
+What you need?
+
+Welcome to the Electronic Visa Applications Forms Instructions Page. Forms available on this page can be filled out on-line and assist in the processing of your application.
+
+• If you are using Internet Explorer (Windows), the minimum version that will work with this site is version 9.0.
+• If you are using Mozilla Firefox, the minimum version that will work with this site is version 3.5.
+• You must also have Adobe Acrobat Reader version 8.0 or higher installed on your PC in order to download and print the completed application form. (If you do not have Adobe Acrobat Reader)
+• You should use either an ink-jet or laser printer to print the completed application form.
+
+Before you apply, please check our supported countries where you can find out if the country you are applying accepts on-line applications.
+
+Currently the service allows submission of applications for NEW VISA, EXTENSION OF VISA, NO VISA REQUIRED(NVR) and ON ARRIVAL VISA(OAV).
+
+You will require an Email-address to complete the online forms. This is for security reasons and also so that we can contact you regarding your online application.
+
+We will also ask you to print your online visa application form as part of this process; therefore you will need the ability to print from your computer.
+
+We also suggest that you have the following information on hand:
+• Passport
+• 45mm x 35mm Digital Photo in JPEG format; Maximum size is 300kb (Photo is optional).
+• Address in Bangladesh
+• Email Address
+
+You can save your Visa application on any page where you see this
+The online application process requires the user to:
+Step 1: Fill up and submit the Online Visa Application Form
+Step 2: Print the completed form
+Step 3: Take the printed form enclosed with required documents, payment of visa fees documents to the nearest Visa office / Bangladesh Mission.
+
+Current visa fees are available Here
+
+For details on our data protection and copyright obligations, please refer to our Terms & Conditions and Privacy Policy Ensure that you have read these and all the relevant guidance notes and confirm this by ticking the checkbox below.
+
+Your application may be refused and you may be banned from coming to Bangladesh for several years if you use a false document, lie or withhold relevant information. You may also be banned if you have breached immigration laws in the Bangladesh. "New" travelers to the Bangladesh who produce a false travel document or passport to the Bangladesh immigration authorities for themselves and/or their children are committing an offence. People found guilty of this offence face up to two years in prison or a fine (or both).
+
+I have read the above information and the relevant guidance notes
+
+© 2012 Department of Immigration & Passports
+Government of the Peoples's Republic of Bangladesh ®
+Version 1.0.1.0

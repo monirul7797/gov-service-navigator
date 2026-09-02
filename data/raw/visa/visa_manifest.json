@@ -1,0 +1,77 @@
+{
+  "service": "visa",
+  "built_at": "2026-09-02T20:01:22Z",
+  "seeds": [
+    "https://visa.gov.bd/"
+  ],
+  "excluded_pii": {
+    "status": "not_located",
+    "note": "Spec B2 says a prior session parked visa material containing one real-PII MRV page. That pile was searched for on 2026-09-03 (repo, data/, Documents incl. Codex folder, Desktop, Downloads, prior agent-session artifacts) and does not exist on this machine. Nothing was processed or excluded because nothing was found. If the pile is restored, re-run the PII audit before use.",
+    "pages": []
+  },
+  "wizard_pages_excluded": [
+    {
+      "url": "https://visa.gov.bd/Incomplete.aspx",
+      "anchor": "INCOMPLETE APPLICATION"
+    },
+    {
+      "url": "https://visa.gov.bd/ViewStatus.aspx",
+      "anchor": "VIEW STATUS"
+    },
+    {
+      "url": "https://visa.gov.bd/Reprint.aspx",
+      "anchor": "REPRINT APPLICATION"
+    }
+  ],
+  "blocked_domains": [
+    {
+      "domain": "dip.gov.bd",
+      "reason": "ssl_cert_invalid (www.dip.gov.bd: ERR_CERT_AUTHORITY_INVALID; apex SSL error)",
+      "disposition": "needs_manual_screenshot"
+    }
+  ],
+  "fetch_failures": [],
+  "staged_files": [
+    {
+      "file": "00_visa_gov_bd.txt",
+      "section": "portal",
+      "lang": "en",
+      "anchor": "",
+      "chars": 2995
+    },
+    {
+      "file": "01_visa_gov_bd_DownloadMRVForm_aspx.txt",
+      "section": "mrv-form",
+      "lang": "en",
+      "anchor": "Download MRV Form",
+      "chars": 412
+    },
+    {
+      "file": "02_visa_gov_bd_FAQ_aspx.txt",
+      "section": "faq",
+      "lang": "en",
+      "anchor": "FAQ",
+      "chars": 3239
+    },
+    {
+      "file": "9x_visa_gov_bd_fee_table.txt",
+      "section": "fees",
+      "lang": "en",
+      "anchor": "homepage dialog: fee_table",
+      "chars": 5850
+    },
+    {
+      "file": "9x_visa_gov_bd_supported_countries.txt",
+      "section": "eligibility",
+      "lang": "en",
+      "anchor": "homepage dialog: supported_countries",
+      "chars": 857
+    }
+  ],
+  "mrv_form_pdf": {
+    "url": "https://visa.gov.bd/Img/MRV_FORM.pdf",
+    "http_status": 200,
+    "content_type": "application/pdf",
+    "bytes": 124451
+  }
+}
