@@ -1,0 +1,1834 @@
+{
+  "crawl_config": {
+    "seeds": [
+      "https://immi.specialbranch.gov.bd/"
+    ],
+    "allowlist": [
+      "immi.specialbranch.gov.bd"
+    ],
+    "max_depth": 2,
+    "max_pages": 25,
+    "user_agent": "FreshnessChecker",
+    "interval_seconds": 1.0
+  },
+  "finished_at": "2026-09-02T21:34:07Z",
+  "summary": {
+    "nodes": 100,
+    "pages_captured": 25,
+    "dispositions": {
+      "captured_verified_normal": 12,
+      "invalid_url": 1,
+      "excluded_wizard": 20,
+      "dynamic_state_no_new_content": 23,
+      "interaction_failed": 1,
+      "js_dynamic_state": 23,
+      "excluded_out_of_allowlist": 3,
+      "failed_fetch": 1,
+      "direct_pdf_verified": 12,
+      "captured_verified_browser": 1,
+      "duplicate": 3
+    }
+  },
+  "nodes": [
+    {
+      "url": "https://immi.specialbranch.gov.bd/",
+      "parent": "",
+      "depth": 0,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/",
+        "normalized_url": "https://immi.specialbranch.gov.bd/",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "1fea248ec25a82f2b067355110fa4fbe8a0bebfa43d43c9a292ad6de8d8dce99",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:12:43Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:12:43Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/Practical%20for%20Letter%20(11,%2012%20&%2013).pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": "?",
+      "disposition": "invalid_url",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:12:57Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:12:57Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "X",
+      "captured_at": "2026-09-02T21:12:59Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/",
+      "disposition": "interaction_failed",
+      "reason": "locator/click failed",
+      "trigger_text": "read more",
+      "captured_at": "2026-09-02T21:13:18Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/",
+      "parent_page": "https://immi.specialbranch.gov.bd/",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "trigger_locator": "a:has-text('Special Branch, Bangladesh Police.')",
+      "state_name": "Special Branch, Bangladesh Police.",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/",
+        "state_name": "Special Branch, Bangladesh Police.",
+        "trigger_text": "Special Branch, Bangladesh Police.",
+        "parent_page": "https://immi.specialbranch.gov.bd/",
+        "captured_at": "2026-09-02T21:13:27Z",
+        "content_sha256": "b54fa88558452d903862898bb2f96ba98cd62329316f4fca02f8d34ff9bc1466",
+        "chars": 1307,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Special_Branch_Bangladesh_Po.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Special_Branch_Bangladesh_Po.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Special_Branch_Bangladesh_Po.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:13:27Z"
+    },
+    {
+      "url": "https://play.google.com/store/apps/details?id=com.miaki.hellosb",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "excluded_out_of_allowlist",
+      "reason": "outside the crawl's domain allowlist",
+      "captured_at": "2026-09-02T21:13:42Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/HelloSBApp.pptx",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "failed_fetch",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/HelloSBApp.pptx",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/HelloSBApp.pptx",
+        "acquisition_method": "",
+        "http_status": null,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "unreachable",
+        "requires_secondary_verification": false,
+        "content_sha256": "",
+        "disposition": "failed_fetch",
+        "captured_at": "2026-09-02T21:13:57Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": null
+        },
+        "notes": [
+          "strict: ok ",
+          "browser: navigation Page.goto: Download is starting\nCall log:\n  - navigating to \"https://immi.specialbranch.gov.bd/docs/HelloSBApp.pptx\", wa"
+        ]
+      },
+      "captured_at": "2026-09-02T21:13:57Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Corona",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/Corona",
+        "normalized_url": "https://immi.specialbranch.gov.bd/Corona",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "3506c501168856deab06d5c3b92811a5fb4c812a18b9fe9a2a21ea4045162da8",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:14:20Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Corona.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Corona.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Corona.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:14:20Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/Corona",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:14:33Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Corona",
+      "parent_page": "https://immi.specialbranch.gov.bd/Corona",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Foreigner's Registration",
+      "trigger_locator": "a:has-text(\"Foreigner's Registration\")",
+      "state_name": "Foreigner's Registration",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Corona",
+        "state_name": "Foreigner's Registration",
+        "trigger_text": "Foreigner's Registration",
+        "parent_page": "https://immi.specialbranch.gov.bd/Corona",
+        "captured_at": "2026-09-02T21:14:35Z",
+        "content_sha256": "69973974dfbf57f74a7299480f4db67ae52d96e78f2e57736ee4a519f94bcb72",
+        "chars": 341,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Corona_Foreigner_s_Registrat.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Corona_Foreigner_s_Registrat.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Corona_Foreigner_s_Registrat.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:14:35Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Corona",
+      "parent_page": "https://immi.specialbranch.gov.bd/Corona",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Law & Rules",
+      "trigger_locator": "a:has-text('Law & Rules')",
+      "state_name": "Law & Rules",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Corona",
+        "state_name": "Law & Rules",
+        "trigger_text": "Law & Rules",
+        "parent_page": "https://immi.specialbranch.gov.bd/Corona",
+        "captured_at": "2026-09-02T21:14:54Z",
+        "content_sha256": "003dbbd228365d4ed0f770309e61f2bdaa69bb91bd2863e33c11dfcb262e25ea",
+        "chars": 392,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Corona_Law_Rules.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Corona_Law_Rules.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Corona_Law_Rules.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:14:54Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Corona",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "About",
+      "captured_at": "2026-09-02T21:15:11Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Corona",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "captured_at": "2026-09-02T21:15:27Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/CDCCircular.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/CDCCircular.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/CDCCircular.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "35dc6e1f0f05cccde2bf829e34c7c2e6db79579692f4ad7d3ee0302243385630",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:15:45Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_CDCCircular_pdf.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:15:45Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/docs/CDCCircular.pdf",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:15:45Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/CAABCircular2.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/CAABCircular2.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/CAABCircular2.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "4a44ff9d70e199cc302ff2561c6622898f5aa7596f92aab607a403adcd256fa8",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:15:50Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_CAABCircular2_pdf.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:15:50Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/docs/CAABCircular2.pdf",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:15:50Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/Circular_on_Requirement_of_COVID_19_Test_Certificate.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/Circular_on_Requirement_of_COVID_19_Test_Certificate.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/Circular_on_Requirement_of_COVID_19_Test_Certificate.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "43b66ee1bc230cdc754bc9938662b0b792632aca90145bd44d9d7fde6d91fde7",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:15:54Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_Circular_on_Requirement_of_CO.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:15:54Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/docs/Circular_on_Requirement_of_COVID_19_Test_Certificate.pdf",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:15:54Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/sotorkikoron_notice.jpg",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_browser",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/sotorkikoron_notice.jpg",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/sotorkikoron_notice.jpg",
+        "acquisition_method": "verified_browser",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": true,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:15:58Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_sotorkikoron_notice_jpg.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_sotorkikoron_notice_jpg.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_sotorkikoron_notice_jpg.png",
+          "pdf": null
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:15:58Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/SBPoster.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/SBPoster.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/SBPoster.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "1c643ce5080149dd0ca320526df5bd730e6ea86f775122ba60c7b361f746a1f0",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:16:06Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_SBPoster_pdf.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:16:06Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/notice6.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/notice6.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/notice6.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "772c39699a9cae7105b66182cb0b17a8646fad80a5b2a88be23b9781e7aa5959",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:16:11Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_notice6_pdf.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:16:11Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/AnnualProcurementPlan.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/AnnualProcurementPlan.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/AnnualProcurementPlan.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "a7d67a4c01c691bda4864241a8e2d5c11414e34c92a2582a6bef03c3da7754d4",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:16:18Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_AnnualProcurementPlan_pdf.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:16:18Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+        "normalized_url": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "a4df82b497de151d81df1f7d279cbc45ac3a68dfb7091ae95e9ed9e7925554ed",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:16:42Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_32.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_32.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_32.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:16:42Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:16:56Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+      "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Foreigner's Registration",
+      "trigger_locator": "a:has-text(\"Foreigner's Registration\")",
+      "state_name": "Foreigner's Registration",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+        "state_name": "Foreigner's Registration",
+        "trigger_text": "Foreigner's Registration",
+        "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+        "captured_at": "2026-09-02T21:16:58Z",
+        "content_sha256": "32716e45f4b6b47abff05e79e596e7abac81ded06e3d333630cc068eb5c57791",
+        "chars": 371,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_32_Foreigne.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_32_Foreigne.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_32_Foreigne.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:16:58Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+      "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Law & Rules",
+      "trigger_locator": "a:has-text('Law & Rules')",
+      "state_name": "Law & Rules",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+        "state_name": "Law & Rules",
+        "trigger_text": "Law & Rules",
+        "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+        "captured_at": "2026-09-02T21:17:15Z",
+        "content_sha256": "b3f774fb4666511ab71db7f30ac1cd3da42e73be5cc8d068836dc1bb8ad1bb67",
+        "chars": 422,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_32_Law_Rule.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_32_Law_Rule.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_32_Law_Rule.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:17:15Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "About",
+      "captured_at": "2026-09-02T21:17:32Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/32",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "captured_at": "2026-09-02T21:17:47Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+        "normalized_url": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "67cc702179f6b14c4a2d58a30659fb55d0a6302713ce4a606b954bd9915c1b97",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:18:25Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_29.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_29.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_29.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:18:25Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:18:38Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+      "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Foreigner's Registration",
+      "trigger_locator": "a:has-text(\"Foreigner's Registration\")",
+      "state_name": "Foreigner's Registration",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+        "state_name": "Foreigner's Registration",
+        "trigger_text": "Foreigner's Registration",
+        "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+        "captured_at": "2026-09-02T21:18:40Z",
+        "content_sha256": "06370946bd392ac7a2253db2810f92986fceeb4a0a0b76e04e37b14db608d2d6",
+        "chars": 492,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_29_Foreigne.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_29_Foreigne.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_29_Foreigne.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:18:40Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+      "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Law & Rules",
+      "trigger_locator": "a:has-text('Law & Rules')",
+      "state_name": "Law & Rules",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+        "state_name": "Law & Rules",
+        "trigger_text": "Law & Rules",
+        "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+        "captured_at": "2026-09-02T21:18:57Z",
+        "content_sha256": "67ba1d2aec766dd37dff7af869a81bce2551b0538208b2564c7ab3e9cf9c41f6",
+        "chars": 543,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_29_Law_Rule.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_29_Law_Rule.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_29_Law_Rule.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:18:57Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "About",
+      "captured_at": "2026-09-02T21:19:14Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/29",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "captured_at": "2026-09-02T21:19:30Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+        "normalized_url": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "51c9d1852d6f292e9a07959227437cb4f1c195d578e1b3ba28729fce39cbfabd",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:20:07Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_28.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_28.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_28.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:20:07Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:20:21Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+      "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Foreigner's Registration",
+      "trigger_locator": "a:has-text(\"Foreigner's Registration\")",
+      "state_name": "Foreigner's Registration",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+        "state_name": "Foreigner's Registration",
+        "trigger_text": "Foreigner's Registration",
+        "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+        "captured_at": "2026-09-02T21:20:23Z",
+        "content_sha256": "7a550a282e3137608d571ccd7e5f00f23ff775042d087c8a32ec5b01127055e5",
+        "chars": 427,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_28_Foreigne.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_28_Foreigne.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_28_Foreigne.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:20:23Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+      "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Law & Rules",
+      "trigger_locator": "a:has-text('Law & Rules')",
+      "state_name": "Law & Rules",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+        "state_name": "Law & Rules",
+        "trigger_text": "Law & Rules",
+        "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+        "captured_at": "2026-09-02T21:20:40Z",
+        "content_sha256": "86088c87f7fb8c58f964440b59cdc171a30f9a66b7a530cba08e1acb7f53a906",
+        "chars": 478,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_28_Law_Rule.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_28_Law_Rule.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_28_Law_Rule.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:20:40Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "About",
+      "captured_at": "2026-09-02T21:20:57Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/28",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "captured_at": "2026-09-02T21:21:13Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+        "normalized_url": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "bf387376d3ebfc56174bb3a1af04957f413fcbfcef543a4c72e34ef352c70589",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:21:50Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_27.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_27.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_27.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:21:50Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:22:04Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+      "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Foreigner's Registration",
+      "trigger_locator": "a:has-text(\"Foreigner's Registration\")",
+      "state_name": "Foreigner's Registration",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+        "state_name": "Foreigner's Registration",
+        "trigger_text": "Foreigner's Registration",
+        "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+        "captured_at": "2026-09-02T21:22:06Z",
+        "content_sha256": "51de026f28f54a34ebb850d204961164faa28ea8ae718c60e87cd18c923e12f4",
+        "chars": 697,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_27_Foreigne.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_27_Foreigne.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_27_Foreigne.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:22:06Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+      "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Law & Rules",
+      "trigger_locator": "a:has-text('Law & Rules')",
+      "state_name": "Law & Rules",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+        "state_name": "Law & Rules",
+        "trigger_text": "Law & Rules",
+        "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+        "captured_at": "2026-09-02T21:22:23Z",
+        "content_sha256": "d348a060a59d9d419dfb7bbecead6568ea7d8c14e41b9c666606e3297c82564e",
+        "chars": 748,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_27_Law_Rule.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_27_Law_Rule.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_27_Law_Rule.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:22:23Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "About",
+      "captured_at": "2026-09-02T21:22:40Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/27",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "captured_at": "2026-09-02T21:22:56Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+        "normalized_url": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "cd8f823b823d4725e646315355c38af24df27d0800316e72845cba9a172e827f",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:23:33Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_26.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_26.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Single_News_Data_26.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:23:33Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:23:46Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+      "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Foreigner's Registration",
+      "trigger_locator": "a:has-text(\"Foreigner's Registration\")",
+      "state_name": "Foreigner's Registration",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+        "state_name": "Foreigner's Registration",
+        "trigger_text": "Foreigner's Registration",
+        "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+        "captured_at": "2026-09-02T21:23:48Z",
+        "content_sha256": "4c28760511c667e746b022f40db76e9fd26202a36121361aad464d1fd2a54958",
+        "chars": 2186,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_26_Foreigne.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_26_Foreigne.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_26_Foreigne.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:23:48Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+      "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Law & Rules",
+      "trigger_locator": "a:has-text('Law & Rules')",
+      "state_name": "Law & Rules",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+        "state_name": "Law & Rules",
+        "trigger_text": "Law & Rules",
+        "parent_page": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+        "captured_at": "2026-09-02T21:24:06Z",
+        "content_sha256": "f87c12fad627437387646b13db277b7db3d9951dc1c09d04a4228f14ad7125bb",
+        "chars": 2237,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_26_Law_Rule.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_26_Law_Rule.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Single_News_Data_26_Law_Rule.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:24:06Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "About",
+      "captured_at": "2026-09-02T21:24:22Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Single-News-Data/26",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "captured_at": "2026-09-02T21:24:38Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/News_list",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/News_list",
+        "normalized_url": "https://immi.specialbranch.gov.bd/News_list",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "83339a868749a986438ff3b18d008ea28806c708596a01d69a0b7df720c789bb",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:25:15Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_News_list.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_News_list.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_News_list.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:25:15Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/News_list",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:25:29Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/News_list",
+      "parent_page": "https://immi.specialbranch.gov.bd/News_list",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Foreigner's Registration",
+      "trigger_locator": "a:has-text(\"Foreigner's Registration\")",
+      "state_name": "Foreigner's Registration",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/News_list",
+        "state_name": "Foreigner's Registration",
+        "trigger_text": "Foreigner's Registration",
+        "parent_page": "https://immi.specialbranch.gov.bd/News_list",
+        "captured_at": "2026-09-02T21:25:31Z",
+        "content_sha256": "28bcbfcbe0f4d53c01f21f6271500375370feb7aa4d0e9e2887995c7cc1f8a39",
+        "chars": 1372,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_News_list_Foreigner_s_Regist.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_News_list_Foreigner_s_Regist.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_News_list_Foreigner_s_Regist.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:25:31Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/News_list",
+      "parent_page": "https://immi.specialbranch.gov.bd/News_list",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Law & Rules",
+      "trigger_locator": "a:has-text('Law & Rules')",
+      "state_name": "Law & Rules",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/News_list",
+        "state_name": "Law & Rules",
+        "trigger_text": "Law & Rules",
+        "parent_page": "https://immi.specialbranch.gov.bd/News_list",
+        "captured_at": "2026-09-02T21:25:48Z",
+        "content_sha256": "d846933e601b882ed54761a7c488d74f9f1e6e9cf58cec7aab1d45e1db866485",
+        "chars": 1423,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_News_list_Law_Rules.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_News_list_Law_Rules.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_News_list_Law_Rules.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:25:48Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/News_list",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "About",
+      "captured_at": "2026-09-02T21:26:04Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/News_list",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "captured_at": "2026-09-02T21:26:20Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/tender_file/7357d891513ef5963f3750da8c180f4e.jpg",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "duplicate",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/tender_file/7357d891513ef5963f3750da8c180f4e.jpg",
+        "normalized_url": "https://immi.specialbranch.gov.bd/tender_file/7357d891513ef5963f3750da8c180f4e.jpg",
+        "acquisition_method": "verified_browser",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": true,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:26:36Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_tender_file_7357d891513ef5963f3750.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_tender_file_7357d891513ef5963f3750.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_tender_file_7357d891513ef5963f3750.png",
+          "pdf": null
+        },
+        "notes": []
+      },
+      "reason": "identical content already captured (same sha256)",
+      "captured_at": "2026-09-02T21:26:36Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/tender_file/dd347699607dda6f1bd2252b06bcf71e.jpg",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "duplicate",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/tender_file/dd347699607dda6f1bd2252b06bcf71e.jpg",
+        "normalized_url": "https://immi.specialbranch.gov.bd/tender_file/dd347699607dda6f1bd2252b06bcf71e.jpg",
+        "acquisition_method": "verified_browser",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": true,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:26:42Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_tender_file_dd347699607dda6f1bd225.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_tender_file_dd347699607dda6f1bd225.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_tender_file_dd347699607dda6f1bd225.png",
+          "pdf": null
+        },
+        "notes": []
+      },
+      "reason": "identical content already captured (same sha256)",
+      "captured_at": "2026-09-02T21:26:42Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/esam_suspended%2008-08-2024%2010.36.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/esam_suspended%2008-08-2024%2010.36.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/esam_suspended%2008-08-2024%2010.36.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "943328f320f9fde7d62c0c906cea7578a1fa0290a438679dc4d6703fdb33df21",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:26:48Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_esam_suspended_2008_08_2024_2.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:26:48Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Contact_us",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/Contact_us",
+        "normalized_url": "https://immi.specialbranch.gov.bd/Contact_us",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "3a8b6221dfc6932075bc29ded5aaf5378afb3a05dcbc89e206c76ad8475194ac",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:27:11Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Contact_us.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Contact_us.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Contact_us.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:27:11Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/Contact_us",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:27:25Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Contact_us",
+      "parent_page": "https://immi.specialbranch.gov.bd/Contact_us",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Foreigner's Registration",
+      "trigger_locator": "a:has-text(\"Foreigner's Registration\")",
+      "state_name": "Foreigner's Registration",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Contact_us",
+        "state_name": "Foreigner's Registration",
+        "trigger_text": "Foreigner's Registration",
+        "parent_page": "https://immi.specialbranch.gov.bd/Contact_us",
+        "captured_at": "2026-09-02T21:27:27Z",
+        "content_sha256": "c91d0a5db396a49f4099034f83cf28b664ddd4a223903b4a739030bf31459914",
+        "chars": 893,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Contact_us_Foreigner_s_Regis.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Contact_us_Foreigner_s_Regis.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Contact_us_Foreigner_s_Regis.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:27:27Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Contact_us",
+      "parent_page": "https://immi.specialbranch.gov.bd/Contact_us",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Law & Rules",
+      "trigger_locator": "a:has-text('Law & Rules')",
+      "state_name": "Law & Rules",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Contact_us",
+        "state_name": "Law & Rules",
+        "trigger_text": "Law & Rules",
+        "parent_page": "https://immi.specialbranch.gov.bd/Contact_us",
+        "captured_at": "2026-09-02T21:27:44Z",
+        "content_sha256": "809d9703f89b694d311a6dcd4cd8730e9c7e5d3f2f6d7e4d15ab3072d7991785",
+        "chars": 944,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Contact_us_Law_Rules.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Contact_us_Law_Rules.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Contact_us_Law_Rules.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:27:44Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Contact_us",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "About",
+      "captured_at": "2026-09-02T21:28:01Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Contact_us",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "captured_at": "2026-09-02T21:28:17Z"
+    },
+    {
+      "url": "https://www.police.gov.bd/en/recruitment_information",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "excluded_out_of_allowlist",
+      "reason": "outside the crawl's domain allowlist",
+      "captured_at": "2026-09-02T21:28:31Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/E_gate_eligibility.jpg",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "duplicate",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/E_gate_eligibility.jpg",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/E_gate_eligibility.jpg",
+        "acquisition_method": "verified_browser",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": true,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:28:35Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_E_gate_eligibility_jpg.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_E_gate_eligibility_jpg.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_E_gate_eligibility_jpg.png",
+          "pdf": null
+        },
+        "notes": []
+      },
+      "reason": "identical content already captured (same sha256)",
+      "captured_at": "2026-09-02T21:28:35Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/e-gate-registration",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/e-gate-registration",
+        "normalized_url": "https://immi.specialbranch.gov.bd/e-gate-registration",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "31c08459025de35572694405295ed049965644f72ebde6bb6893abc36e5d4d99",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:28:58Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_e_gate_registration.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_e_gate_registration.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_e_gate_registration.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:28:58Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/e-gate-registration",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:29:12Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/e-gate-registration",
+      "parent_page": "https://immi.specialbranch.gov.bd/e-gate-registration",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Foreigner's Registration",
+      "trigger_locator": "a:has-text(\"Foreigner's Registration\")",
+      "state_name": "Foreigner's Registration",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/e-gate-registration",
+        "state_name": "Foreigner's Registration",
+        "trigger_text": "Foreigner's Registration",
+        "parent_page": "https://immi.specialbranch.gov.bd/e-gate-registration",
+        "captured_at": "2026-09-02T21:29:14Z",
+        "content_sha256": "b52837636d8f3085b6226b9a7b33d9b34b0630d61c587fe284aa9f885696223f",
+        "chars": 440,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_e_gate_registration_Foreigne.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_e_gate_registration_Foreigne.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_e_gate_registration_Foreigne.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:29:14Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/e-gate-registration",
+      "parent_page": "https://immi.specialbranch.gov.bd/e-gate-registration",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Law & Rules",
+      "trigger_locator": "a:has-text('Law & Rules')",
+      "state_name": "Law & Rules",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/e-gate-registration",
+        "state_name": "Law & Rules",
+        "trigger_text": "Law & Rules",
+        "parent_page": "https://immi.specialbranch.gov.bd/e-gate-registration",
+        "captured_at": "2026-09-02T21:29:31Z",
+        "content_sha256": "e86ded7488b99c485cb02da20f4041de30e668afedffcb5327cbf5e9eb116f00",
+        "chars": 491,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_e_gate_registration_Law_Rule.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_e_gate_registration_Law_Rule.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_e_gate_registration_Law_Rule.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:29:31Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/e-gate-registration",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "About",
+      "captured_at": "2026-09-02T21:29:48Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/e-gate-registration",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "captured_at": "2026-09-02T21:30:04Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/visaform.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/visaform.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/visaform.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "ab54f7ddc1a06b0aa8cac9e47299872cbed61ba31bbd0fff917c061086b79bb5",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:30:22Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_visaform_pdf.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:30:22Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/docs/visaform.pdf",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:30:22Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/Onarrival.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/Onarrival.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/Onarrival.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "eece65321e63ff831146d389c2e73e98b62f5daea884dd5564cdc884b06c1ebc",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:30:27Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_Onarrival_pdf.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:30:27Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/docs/Onarrival.pdf",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:30:27Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Under_Construction",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/Under_Construction",
+        "normalized_url": "https://immi.specialbranch.gov.bd/Under_Construction",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "c2719122be938f05ed9e4aa654c4cce0ad3bf9e1161b7df0ae313a76d55aa582",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:30:51Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Under_Construction.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Under_Construction.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Under_Construction.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:30:51Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/Under_Construction",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:31:05Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Under_Construction",
+      "parent_page": "https://immi.specialbranch.gov.bd/Under_Construction",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Foreigner's Registration",
+      "trigger_locator": "a:has-text(\"Foreigner's Registration\")",
+      "state_name": "Foreigner's Registration",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Under_Construction",
+        "state_name": "Foreigner's Registration",
+        "trigger_text": "Foreigner's Registration",
+        "parent_page": "https://immi.specialbranch.gov.bd/Under_Construction",
+        "captured_at": "2026-09-02T21:31:07Z",
+        "content_sha256": "a7084187639b82f892cd0159b785950e85585fe80c146586aad3897bd0336481",
+        "chars": 206,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Under_Construction_Foreigner.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Under_Construction_Foreigner.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Under_Construction_Foreigner.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:31:07Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Under_Construction",
+      "parent_page": "https://immi.specialbranch.gov.bd/Under_Construction",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Law & Rules",
+      "trigger_locator": "a:has-text('Law & Rules')",
+      "state_name": "Law & Rules",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Under_Construction",
+        "state_name": "Law & Rules",
+        "trigger_text": "Law & Rules",
+        "parent_page": "https://immi.specialbranch.gov.bd/Under_Construction",
+        "captured_at": "2026-09-02T21:31:24Z",
+        "content_sha256": "e72abf5cbca9386abbb12f26e1e6e1915679c2ff8862bd02ab1c0208acd9266e",
+        "chars": 257,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Under_Construction_Law_Rules.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Under_Construction_Law_Rules.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Under_Construction_Law_Rules.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:31:24Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Under_Construction",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "About",
+      "captured_at": "2026-09-02T21:31:41Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Under_Construction",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "captured_at": "2026-09-02T21:31:57Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/MRP_Application.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/MRP_Application.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/MRP_Application.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "cc931c4e5f604f5a0c9476d20b6254c2d04f73834033a133bac467a268e1bcaf",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:32:16Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_MRP_Application_pdf.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:32:16Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/docs/MRP_Application.pdf",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:32:16Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Passport-Verify",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "captured_verified_normal",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/Passport-Verify",
+        "normalized_url": "https://immi.specialbranch.gov.bd/Passport-Verify",
+        "acquisition_method": "verified_normal",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "85825452303a6695ca2a490824cecd4dd71517d283544d222f78fc7654a277a1",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:32:39Z",
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Passport_Verify.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Passport_Verify.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_Passport_Verify.png",
+          "pdf": null
+        },
+        "notes": [
+          "post-capture verification screenshot taken (method unchanged: verified_normal)"
+        ]
+      },
+      "captured_at": "2026-09-02T21:32:39Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/Passport-Verify",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:32:53Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Passport-Verify",
+      "parent_page": "https://immi.specialbranch.gov.bd/Passport-Verify",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Foreigner's Registration",
+      "trigger_locator": "a:has-text(\"Foreigner's Registration\")",
+      "state_name": "Foreigner's Registration",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Passport-Verify",
+        "state_name": "Foreigner's Registration",
+        "trigger_text": "Foreigner's Registration",
+        "parent_page": "https://immi.specialbranch.gov.bd/Passport-Verify",
+        "captured_at": "2026-09-02T21:32:55Z",
+        "content_sha256": "58de2048bfee6e010986f086c58b80477f64d128035f218bf8c57209b71d3e03",
+        "chars": 395,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Passport_Verify_Foreigner_s_.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Passport_Verify_Foreigner_s_.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Passport_Verify_Foreigner_s_.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:32:55Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Passport-Verify",
+      "parent_page": "https://immi.specialbranch.gov.bd/Passport-Verify",
+      "disposition": "js_dynamic_state",
+      "trigger_text": "Law & Rules",
+      "trigger_locator": "a:has-text('Law & Rules')",
+      "state_name": "Law & Rules",
+      "state": {
+        "source_url": "https://immi.specialbranch.gov.bd/Passport-Verify",
+        "state_name": "Law & Rules",
+        "trigger_text": "Law & Rules",
+        "parent_page": "https://immi.specialbranch.gov.bd/Passport-Verify",
+        "captured_at": "2026-09-02T21:33:12Z",
+        "content_sha256": "3f4dcb26c971cb0d5bc9e0fbe3aa2d2ba744e075a5fd2df0b5ff5ed4a10d1c76",
+        "chars": 446,
+        "artifacts": {
+          "text": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Passport_Verify_Law_Rules.txt",
+          "html": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Passport_Verify_Law_Rules.html",
+          "screenshot_png": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\state_https_immi_specialbranch_gov_bd_Passport_Verify_Law_Rules.png"
+        },
+        "js_required": true,
+        "interaction_required": true,
+        "verification_status": "verified"
+      },
+      "captured_at": "2026-09-02T21:33:12Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Passport-Verify",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "About",
+      "captured_at": "2026-09-02T21:33:28Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/Passport-Verify",
+      "disposition": "dynamic_state_no_new_content",
+      "reason": "delta 0 chars < threshold",
+      "trigger_text": "Special Branch, Bangladesh Police.",
+      "captured_at": "2026-09-02T21:33:44Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/docs/VISA_INSTRUCTIONS_COVID19.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/docs/VISA_INSTRUCTIONS_COVID19.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/docs/VISA_INSTRUCTIONS_COVID19.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "aca670fe9847c2a33969b8c751abea01f6ae756fe2f46969c352a597d18cc265",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:34:02Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_docs_VISA_INSTRUCTIONS_COVID19_pdf.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:34:02Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/docs/VISA_INSTRUCTIONS_COVID19.pdf",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:34:02Z"
+    },
+    {
+      "url": "https://www.epassport.gov.bd/onboarding",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "excluded_out_of_allowlist",
+      "reason": "outside the crawl's domain allowlist",
+      "captured_at": "2026-09-02T21:34:02Z"
+    },
+    {
+      "url": "https://immi.specialbranch.gov.bd/scowing/Visa_Catagory.pdf",
+      "parent": "https://immi.specialbranch.gov.bd/",
+      "depth": 1,
+      "disposition": "direct_pdf_verified",
+      "provenance": {
+        "url": "https://immi.specialbranch.gov.bd/scowing/Visa_Catagory.pdf",
+        "normalized_url": "https://immi.specialbranch.gov.bd/scowing/Visa_Catagory.pdf",
+        "acquisition_method": "direct_pdf_verified",
+        "http_status": 200,
+        "tls_verified": true,
+        "tls_error": null,
+        "rendered": false,
+        "verification_status": "verified",
+        "requires_secondary_verification": false,
+        "content_sha256": "9c2a8c3ad67ecff4de4c128c629a12ce2195dd40a9bceed534956e2723efd7ef",
+        "disposition": "captured",
+        "captured_at": "2026-09-02T21:34:07Z",
+        "artifacts": {
+          "text": null,
+          "html": null,
+          "screenshot_png": null,
+          "pdf": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\data\\evidence\\immi_specialbranch\\immi_specialbranch_gov_bd_scowing_Visa_Catagory_pdf.pdf"
+        },
+        "notes": []
+      },
+      "captured_at": "2026-09-02T21:34:07Z"
+    },
+    {
+      "url": "https://voa.specialbranch.gov.bd/login",
+      "parent": "https://immi.specialbranch.gov.bd/scowing/Visa_Catagory.pdf",
+      "depth": "?",
+      "disposition": "excluded_wizard",
+      "reason": "link discovery: URL-level policy",
+      "captured_at": "2026-09-02T21:34:07Z"
+    }
+  ]
+}
