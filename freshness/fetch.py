@@ -197,11 +197,17 @@ def _robots_check(robots: _RobotsCache, url: str, user_agent: str) -> tuple[bool
             with urllib.request.urlopen(req, timeout=10) as resp:
                 raw = resp.read().decode("utf-8", errors="replace")
             parser.parse(raw.splitlines())
+            if not parser.entries and parser.default_entry is None:
+                parser.allow_all = True   # 2xx but zero rules = unrestricted
             robots.parsers[domain] = parser
             note = None
         except urllib.error.HTTPError as exc:
             if 400 <= exc.code < 500:
-                robots.parsers[domain] = parser   # empty rules = allow-all
+                # RFC 9309: 4xx on robots.txt = no restrictions. NOTE: an empty
+                # RobotFileParser's can_fetch() returns False on CPython 3.12
+                # (observed), so allow_all must be set explicitly.
+                parser.allow_all = True
+                robots.parsers[domain] = parser
                 note = None
             else:
                 robots.unavailable.add(domain)
