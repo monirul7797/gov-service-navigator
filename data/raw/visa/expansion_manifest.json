@@ -5,8 +5,11 @@
     "document": "VISA POLICY 2026, Ministry of Home Affairs, Immigration Wing, Bangladesh",
     "publication_date_stated": "August/2026",
     "url": "https://immi.specialbranch.gov.bd/docs/visa_policy.pdf",
-    "acquisition": "direct_pdf_verified (sha256 recorded in evidence manifest)",
-    "authority_label": "immigration_operational / central_policy"
+    "acquisition": "direct_pdf_verified",
+    "authority_label": "immigration_operational / central_policy",
+    "provenance_file": "data/evidence/immi_specialbranch_reacquire/visa_policy_pdf_provenance.json",
+    "sha256": "80630a28464151bcfcc9df23100c888e662d9731ee92d6218648b4eadae40528",
+    "sha256_note": "verified by reacquisition through the strict acquisition layer (Phase 3.6a item 4)"
   },
   "other_sources": [
     {
@@ -37,7 +40,6 @@
     "visa-category-family-dependent",
     "visa-nvr-eligibility-documents-fee",
     "visa-voa-policy-conditions",
-    "visa-voa-circular-2016-bn",
     "visa-voa-application-steps",
     "visa-extension-application-rule",
     "visa-category-change-conversion",
@@ -45,8 +47,7 @@
     "visa-work-permit-condition",
     "visa-issuing-authority",
     "visa-entry-registration-requirement",
-    "visa-general-conditions-fees",
-    "visa-categories-index"
+    "visa-general-conditions-fees"
   ],
   "conflicts": [
     {
@@ -80,8 +81,8 @@
   "excluded_candidates": [
     {
       "source": "bida.gov.bd/faq + /commercial-wings",
-      "disposition": "UNVERIFIED_CAPTURE_ONLY / not fetchable",
-      "reason": "ERR_SSL_VERSION_OR_CIPHER_MISMATCH in both strict and evidence contexts (TLS protocol mismatch, not a certificate-validation issue; no evasion). PI/E visa requirements are covered by Visa Policy 2026 category rows; BIDA-side recommendation process remains a gap."
+      "disposition": "failed_fetch_tls_protocol_mismatch",
+      "reason": "ERR_SSL_VERSION_OR_CIPHER_MISMATCH in both strict and evidence contexts (TLS protocol negotiation fails before any certificate validation; no capture was obtained, and cipher downgrading would be evasion). PI/E visa requirements are covered by Visa Policy 2026 category rows; BIDA-side recommendation process remains a gap."
     },
     {
       "source": "ssd.gov.bd circular archive (individual circular PDFs)",
@@ -97,6 +98,20 @@
       "source": "immi.specialbranch.gov.bd COVID/procurement/e-SAM suspension PDFs",
       "disposition": "STALE_OR_SUPERSEDED / out of scope",
       "reason": "temporary operational notices, not durable visa policy"
+    },
+    {
+      "source": "visa-voa-circular-2016-bn",
+      "disposition": "STALE_OR_SUPERSEDED / evidence retained, not embedded",
+      "reason": "Visa Policy 2026 condition 33 repeals previously issued visa circulars.",
+      "evidence_retained": [
+        "https://voa.specialbranch.gov.bd/public/voa-info-bn.html",
+        "https://voa.specialbranch.gov.bd/public/voa-info.html"
+      ]
+    },
+    {
+      "source": "visa-categories-index",
+      "disposition": "removed_incomplete",
+      "reason": "builder's hardcoded fallback produced an incomplete code list while claiming completeness — fail-loud violation (Phase 3.6a item 2); major categories have dedicated records"
     }
   ]
 }

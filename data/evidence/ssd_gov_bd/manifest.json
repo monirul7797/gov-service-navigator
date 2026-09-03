@@ -1,0 +1,52 @@
+{
+  "service": "ssd_gov_bd",
+  "note": "Phase 3.6a: provenance added for the two SSD hub pages only; the individual notice/order archive is intentionally NOT crawled (PII rule, Phase 3.6 §5).",
+  "nodes": [
+    {
+      "url": "https://ssd.gov.bd/pages/static-pages/6940329d35ce18e1c055f622",
+      "normalized_url": "https://ssd.gov.bd/pages/static-pages/6940329d35ce18e1c055f622",
+      "acquisition_method": "verified_browser",
+      "http_status": 200,
+      "tls_verified": true,
+      "tls_error": null,
+      "rendered": true,
+      "verification_status": "verified",
+      "requires_secondary_verification": false,
+      "content_sha256": "ef5d95c257df25c1d816fc97b8f32717db585faa3fbf210fcfe6b1500e07fc8a",
+      "disposition": "captured",
+      "captured_at": "2026-09-03T00:10:10Z",
+      "artifacts": {
+        "text": "data/evidence/ssd_gov_bd\\ssd_gov_bd_pages_static_pages_6940329d35ce18e1c055f622.txt",
+        "html": "data/evidence/ssd_gov_bd\\ssd_gov_bd_pages_static_pages_6940329d35ce18e1c055f622.html",
+        "screenshot_png": "data/evidence/ssd_gov_bd\\ssd_gov_bd_pages_static_pages_6940329d35ce18e1c055f622.png",
+        "pdf": null
+      },
+      "notes": [
+        "robots_unreachable"
+      ]
+    },
+    {
+      "url": "https://ssd.gov.bd/pages/static-pages/694032b035ce18e1c0560919",
+      "normalized_url": "https://ssd.gov.bd/pages/static-pages/694032b035ce18e1c0560919",
+      "acquisition_method": "verified_browser",
+      "http_status": 200,
+      "tls_verified": true,
+      "tls_error": null,
+      "rendered": true,
+      "verification_status": "verified",
+      "requires_secondary_verification": false,
+      "content_sha256": "016f6c4f96e385c41457abda6b158f766f50192cbf4cf426bdba8f37393a8ac8",
+      "disposition": "captured",
+      "captured_at": "2026-09-03T00:10:14Z",
+      "artifacts": {
+        "text": "data/evidence/ssd_gov_bd\\ssd_gov_bd_pages_static_pages_694032b035ce18e1c0560919.txt",
+        "html": "data/evidence/ssd_gov_bd\\ssd_gov_bd_pages_static_pages_694032b035ce18e1c0560919.html",
+        "screenshot_png": "data/evidence/ssd_gov_bd\\ssd_gov_bd_pages_static_pages_694032b035ce18e1c0560919.png",
+        "pdf": null
+      },
+      "notes": [
+        "robots_unreachable"
+      ]
+    }
+  ]
+}
