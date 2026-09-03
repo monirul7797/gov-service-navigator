@@ -13,16 +13,18 @@ no new schema fields):
 PRIMARY SOURCE: "VISA POLICY 2026", Ministry of Home Affairs, Immigration Wing,
 publication date stated on the document: August/2026 (39-page PDF, verified
 download: immi.specialbranch.gov.bd/docs/visa_policy.pdf). Condition 33 of the
-policy repeals previously issued visa circulars — recorded as a conflict note
-on the 2016 VOA circular record, which the operational VOA site still publishes.
+policy repeals previously issued visa circulars — the 2016 VOA circular is
+therefore NOT an active corpus record (Phase 3.6a item 3); its evidence stays
+in data/evidence/voa_specialbranch/ and the exclusion is recorded in the
+expansion manifest.
 
 HARD RULES:
   * every record's text is sliced VERBATIM from captured evidence; each slice
     anchor is asserted (a changed source breaks the build loudly);
   * the existing 17 records must be present and untouched — this script only
     APPENDS;
-  * Bangla-authoritative convention (Phase 3.6 §10) for the Bangla circular:
-    Bangla text first, official English page text after, clearly labeled;
+  * category slices are one category each — N1/FN1/N2, FA2/FBN etc. are
+    separate records, guarded by fail-loud boundary assertions (Phase 3.6b);
   * no BIDA/mission content (BIDA TLS-blocked; MOFA not needed — no remaining
     gap that central sources don't cover);
   * VOA fee AMOUNT deliberately not recorded anywhere: sources conflict
@@ -42,8 +44,6 @@ from pathlib import Path
 # (Phase 3.6a item 8)
 REPO_ROOT = str(Path(__file__).resolve().parent)
 POLICY_TXT = os.path.join(REPO_ROOT, "data", "evidence", "immi_specialbranch", "visa_policy_2026_fulltext.txt")
-VOA_EN = os.path.join(REPO_ROOT, "data", "evidence", "voa_specialbranch", "voa_specialbranch_gov_bd_public_voa_info_html.txt")
-VOA_BN = os.path.join(REPO_ROOT, "data", "evidence", "voa_specialbranch", "voa_specialbranch_gov_bd_public_voa_info_bn_html.txt")
 VOA_STEPS = os.path.join(REPO_ROOT, "data", "evidence", "voa_specialbranch", "voa_specialbranch_gov_bd_public_voa_instructions_html.txt")
 VISA_JSONL = os.path.join(REPO_ROOT, "data", "chunks", "visa.jsonl")
 EXP_MANIFEST = os.path.join(REPO_ROOT, "data", "raw", "visa", "expansion_manifest.json")
@@ -53,14 +53,9 @@ VOA_INFO_URL = "https://voa.specialbranch.gov.bd/public/voa-info.html"
 VOA_BN_URL = "https://voa.specialbranch.gov.bd/public/voa-info-bn.html"
 VOA_STEPS_URL = "https://voa.specialbranch.gov.bd/public/voa-instructions.html"
 POLICY_LAST_UPDATED = "2026-08"      # stated on the document: Publication Date: August/2026
-CIRCULAR_DATE = "2016-09-15"         # stated on the circular
 
 with open(POLICY_TXT, encoding="utf-8") as f:
     POLICY = f.read().replace("\x0c", "\n")
-with open(VOA_EN, encoding="utf-8") as f:
-    VOA_EN_TXT = f.read()
-with open(VOA_BN, encoding="utf-8") as f:
-    VOA_BN_TXT = f.read()
 with open(VOA_STEPS, encoding="utf-8") as f:
     VOA_STEPS_TXT = f.read()
 
@@ -110,17 +105,24 @@ ROWS = [
     ("visa-category-journalist", "15. J", "16. FJ", "Journalist visa (J)",
      "J visa: news collection, filming and documentaries, professional duties, election observation",
      ["journalist", "j", "media", "film", "documentary", "election"]),
-    ("visa-category-ngo", "19. N1", "21. N2", "NGO visa (N1) and emergency humanitarian visa (N2)",
-     "N1 visa: individuals appointed to registered NGOs in Bangladesh; N2: emergency humanitarian services",
-     ["ngo", "n1", "n2", "humanitarian", "ngo affairs bureau", "volunteer"]),
+    ("visa-category-ngo", "19. N1", "FN1 Purpose:", "NGO visa (N1)",
+     "N1 visa: individuals appointed to registered NGOs in Bangladesh",
+     ["ngo", "n1", "ngo affairs bureau", "work permit", "registered ngo"]),
+    ("visa-category-humanitarian-n2", "21. N2", "22. P",
+     "Emergency Humanitarian Service visa (N2)",
+     "N2 visa: emergency humanitarian services in Bangladesh",
+     ["n2", "humanitarian", "emergency", "emergency humanitarian service"]),
     ("visa-category-transit", "31. TR", "32. MT", "Transit visa (TR)",
      "TR transit visa: travelling through Bangladesh to a third destination, seamen and air crews",
      ["transit", "tr", "seaman", "mariner", "air crew", "connecting flight", "96 hours"]),
-    ("visa-category-family-dependent", "30. FBN", "31. TR",
-     "Family and dependent visas (FBN, FA2) and the dependent-family definition",
-     "FBN: family members of Bangladeshi origin foreigners staying with family; FA2: dependents of A2 holders; "
-     "plus the policy's dependent-family definition",
-     ["family", "dependent", "fbn", "fa2", "spouse", "children"]),
+    ("visa-category-family-fbn", "30. FBN", "31. TR",
+     "Family-member visa of Bangladeshi-origin foreigners (FBN)",
+     "FBN visa: family members of Bangladeshi-origin foreign citizens staying with family in Bangladesh",
+     ["fbn", "family", "bangladeshi origin", "family visit", "dependent"]),
+    ("visa-category-dependent-fa2", "4. FA2", "5. B",
+     "Dependent family visa of A2 principal holders (FA2)",
+     "FA2 visa: spouse and dependent family members of A2 (international-organization officials) principal visa holders",
+     ["fa2", "dependent", "family", "a2", "spouse", "children", "international organization"]),
 ]
 
 for rid, start, end, heading, summary, topics in ROWS:
@@ -129,6 +131,31 @@ for rid, start, end, heading, summary, topics in ROWS:
     new_records.append(rec(rid, "instructions", "documents-eligibility",
                            rid.replace("visa-category-", ""), heading, POLICY_URL,
                            POLICY_LAST_UPDATED, content, topics))
+
+# Phase 3.6b fail-loud boundary assertions — these exact regressions cannot recur:
+_by_id = {r["id"]: r for r in new_records}
+# item 1: N1 record is N1-ONLY — no N2 row, no FN1 row material
+assert "19. N1" in _by_id["visa-category-ngo"]["content"]
+assert "21. N2" not in _by_id["visa-category-ngo"]["content"]
+assert "FN1 Purpose:" not in _by_id["visa-category-ngo"]["content"]
+# item 1: N2 record contains the N2 row, not the next category
+assert "21. N2" in _by_id["visa-category-humanitarian-n2"]["content"]
+assert "22. P" not in _by_id["visa-category-humanitarian-n2"]["content"]
+# item 2: FBN record is FBN-ONLY
+assert "30. FBN" in _by_id["visa-category-family-fbn"]["content"]
+assert "31. TR" not in _by_id["visa-category-family-fbn"]["content"]
+# item 2: FA2 record contains the FA2 row, not the next category
+assert "4. FA2" in _by_id["visa-category-dependent-fa2"]["content"]
+assert "5. B" not in _by_id["visa-category-dependent-fa2"]["content"]
+
+# item 2: append the policy's general dependent-family definition to the FA2
+# record, clearly labeled, to support real dependent-of-A2 queries
+_fa2_dep = between(POLICY, "29. Dependent family members", "30. Development Partners")
+_fa2 = _by_id["visa-category-dependent-fa2"]
+_fa2["content"] += ("\n\n--- Verbatim extract, Visa Policy 2026, mandatory visa conditions: "
+                    "general dependent-family definition ---\n" + _fa2_dep)
+_fa2["text"] = _fa2["content"]
+_fa2["char_len"] = len(_fa2["content"])
 
 # ---------------------------------------------------------------- NVR (condition 28)
 seg = between(POLICY, "28. NVR can be issued", "29. Dependent family members")
@@ -209,13 +236,18 @@ new_records.append(rec(
     "Visa category change / conversion (Visa Policy 2026, mandatory visa conditions)\n\n--- Verbatim extract ---\n" + seg,
     ["category change", "conversion", "voa conversion", "usd 200", "bida", "bepza", "beza", "bhtpa"]))
 
-seg = between(POLICY, "9.(a) The illegal stay", "12. Particular Nationals")
+# Phase 3.6b item 3: end BEFORE condition 11 (category conversion) — that rule
+# has its own dedicated record and must not duplicate into overstay
+seg = between(POLICY, "9.(a) The illegal stay", "11. A visa category cannot be changed")
+overstay_content = (
+    "Overstay and illegal-stay penalties and waivers (Visa Policy 2026, mandatory visa conditions)\n\n"
+    "--- Verbatim extract ---\n" + seg)
+assert "A visa category cannot be changed after entering Bangladesh" not in overstay_content
+assert "US$200" not in overstay_content
 new_records.append(rec(
     "visa-overstay-penalties", "instructions", "process", "overstay",
     "Overstay / illegal stay: daily penalty tiers (Tk 1,000 / 2,000 / 3,000), waivers and the 7-day exit procedure",
-    POLICY_URL, POLICY_LAST_UPDATED,
-    "Overstay and illegal-stay penalties and waivers (Visa Policy 2026, mandatory visa conditions)\n\n"
-    "--- Verbatim extract ---\n" + seg,
+    POLICY_URL, POLICY_LAST_UPDATED, overstay_content,
     ["overstay", "illegal stay", "penalty", "fine", "waiver", "regularization", "exit"]))
 
 seg = between(POLICY, "b) At the time of issuing E1", "6. A person arriving from India")
@@ -277,7 +309,8 @@ removed_stale = [r["id"] for r in existing if r not in base]
 assert len(base) == 17, f"expected the 17 base records, found {len(base)}"
 unexpected = [i for i in removed_stale
               if i not in {r["id"] for r in new_records}
-              and i not in {"visa-voa-circular-2016-bn", "visa-categories-index"}]
+              and i not in {"visa-voa-circular-2016-bn", "visa-categories-index",
+                            "visa-category-family-dependent"}]
 assert not unexpected, f"unrecognized records in corpus: {unexpected}"
 
 new_ids = [r["id"] for r in new_records]
@@ -333,7 +366,8 @@ exp_manifest = {
         {"topic": "VOA circular vs Visa Policy 2026",
          "sources": {"2016 VOA circular": "still published on voa.specialbranch.gov.bd",
                      "Visa Policy 2026 condition 33": "repeals previously issued visa circulars"},
-         "resolution": "circular record carries a precedence note; Policy 2026 prevails where they differ"},
+         "resolution": "The 2016 circular is retained as historical/source evidence only and is "
+                       "not embedded; Visa Policy 2026 governs current corpus rules."},
         {"topic": "Transit duration",
          "sources": {"2016 circular (VoA context)": "72 hours, USD 20, airline-requested at port",
                      "Visa Policy 2026 TR category": "up to 96 hours (pre-issued transit visa)",
