@@ -1,0 +1,23 @@
+{
+  "url": "https://immi.specialbranch.gov.bd/docs/visa_policy.pdf",
+  "normalized_url": "https://immi.specialbranch.gov.bd/docs/visa_policy.pdf",
+  "acquisition_method": "direct_pdf_verified",
+  "http_status": 200,
+  "tls_verified": true,
+  "tls_error": null,
+  "rendered": false,
+  "verification_status": "verified",
+  "requires_secondary_verification": false,
+  "content_sha256": "80630a28464151bcfcc9df23100c888e662d9731ee92d6218648b4eadae40528",
+  "disposition": "captured",
+  "captured_at": "2026-09-03T00:09:23Z",
+  "artifacts": {
+    "text": null,
+    "html": null,
+    "screenshot_png": null,
+    "pdf": "data/evidence/immi_specialbranch_reacquire\\immi_specialbranch_gov_bd_docs_visa_policy_pdf.pdf"
+  },
+  "notes": [],
+  "content_sha256_sha256_of_file_bytes": "80630a28464151bcfcc9df23100c888e662d9731ee92d6218648b4eadae40528",
+  "byte_count": 1994930
+}

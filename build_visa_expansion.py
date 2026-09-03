@@ -36,8 +36,11 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 
-REPO_ROOT = r"C:\Users\Monirul\Documents\Structured Data\NID\gov-service-navigator\gov-service-navigator"
+# repo-relative resolution: the build works wherever the repo is cloned/moved
+# (Phase 3.6a item 8)
+REPO_ROOT = str(Path(__file__).resolve().parent)
 POLICY_TXT = os.path.join(REPO_ROOT, "data", "evidence", "immi_specialbranch", "visa_policy_2026_fulltext.txt")
 VOA_EN = os.path.join(REPO_ROOT, "data", "evidence", "voa_specialbranch", "voa_specialbranch_gov_bd_public_voa_info_html.txt")
 VOA_BN = os.path.join(REPO_ROOT, "data", "evidence", "voa_specialbranch", "voa_specialbranch_gov_bd_public_voa_info_bn_html.txt")
@@ -155,27 +158,21 @@ new_records.append(rec(
     POLICY_URL, POLICY_LAST_UPDATED, content,
     ["visa on arrival", "voa", "30 days", "single entry", "designated port", "landing permit"]))
 
-# ---------------------------------------------------------------- VOA circular (BN authoritative + official EN)
-bn = between(VOA_BN_TXT, "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার", None)
-en = between(VOA_EN_TXT, "Visa on Arrival (VOA) in Bangladesh", None)
-content = (
-    "আগমনী ভিসা (Visa on Arrival) — সরকারি পরিপত্র, ১৫ সেপ্টেম্বর ২০১৬\n\n"
-    "--- মূল বাংলা (সরকারি পরিপত্র — অথরিটেটিভ) ---\n" + bn +
-    "\n\n--- English (official English page of the Special Branch VOA site, labeled translation source) ---\n" + en +
-    "\n\nNOTE (conflict/precedence): Visa Policy 2026 condition 33 repeals previously issued visa "
-    "circulars; this 2016 circular is still published on the operational VOA site "
-    "(voa.specialbranch.gov.bd) as its public guidance. Where the two differ, Visa Policy 2026 prevails. "
-    "TODO(Monirul): confirm no newer VOA circular supersedes this one."
-)
-new_records.append(rec(
-    "visa-voa-circular-2016-bn", "notice", "process", "voa-circular",
-    "আগমনী ভিসা (Visa on Arrival) প্রদান সংক্রান্ত সরকারি পরিপত্র (২০১৬) — Bangla circular with official English page",
-    VOA_BN_URL, CIRCULAR_DATE, content,
-    ["visa on arrival", "voa", "পরিপত্র", "আগমনী ভিসা", "circular", "eligibility", "requirements"],
-    lang="bn+en"))
+# ---------------------------------------------------------------- VOA circular: REMOVED from corpus (Phase 3.6a item 3)
+# Visa Policy 2026 condition 33 repeals previously issued visa circulars, so
+# the 2016 circular must NOT be an active retrieval record (an embedding could
+# surface obsolete rules independently of any precedence note). Its evidence
+# remains captured (data/evidence/voa_specialbranch/) and the removal is
+# recorded in expansion_manifest.json as STALE_OR_SUPERSEDED / evidence
+# retained, not embedded. No invented Bangla replacement of Policy 2026.
 
 # ---------------------------------------------------------------- VOA application steps
-seg = between(VOA_STEPS_TXT, "Visa on Arrival (VOA) Application Steps", None)
+# Phase 3.6a fix (item 1): end the slice at the start of the general VOA
+# article so the record contains ONLY the official application steps — the
+# page continues into stale prose (old fee figures, old Tk 200/500 overstay
+# values) which must not enter the corpus.
+seg = between(VOA_STEPS_TXT, "Visa on Arrival (VOA) Application Steps",
+              "What is a Visa on Arrival?")
 content = (
     "Visa on Arrival (VOA) online application steps (public instructions)\n\n"
     "--- Verbatim extract, official Special Branch VOA site public instructions ---\n" + seg +
@@ -187,6 +184,13 @@ new_records.append(rec(
     "How to apply for Visa on Arrival online: signup, email activation, application and print steps",
     VOA_STEPS_URL, None, content,
     ["voa application", "signup", "apply online", "voa steps", "print", "traveller information"]))
+
+# fail-loud gate (Phase 3.6a item 1): no stale fee/overstay/article prose may
+# leak into the steps record
+_BANNED_IN_STEPS = ["$50", "200 BDT", "500 BDT", "$160", "£105", "$150 AU",
+                    "big hassle", "not very strict"]
+for _b in _BANNED_IN_STEPS:
+    assert _b not in content, f"stale material leaked into visa-voa-application-steps: {_b!r}"
 
 # ---------------------------------------------------------------- extension / conversion / overstay / work-permit / authority / registration / general conditions
 seg = between(POLICY, "8. Application for an extension", "9.(a) The illegal stay")
@@ -249,29 +253,11 @@ new_records.append(rec(
     "General visa conditions (Visa Policy 2026, mandatory visa conditions)\n\n--- Verbatim extract ---\n" + gen_seg,
     ["passport validity", "6 months", "visa transfer", "visa fee", "gratis", "reciprocity", "no refund"]))
 
-# ---------------------------------------------------------------- categories index
-codes = []
-for line in POLICY.split("\n"):
-    import re
-    m = re.match(r"^(\d{1,2})\. ([A-Z]{1,3})$", line.strip())
-    if m:
-        codes.append(f"{m.group(1)}. {m.group(2)}")
-# fall back: derive from row anchors used above plus remaining known codes
-if len(codes) < 20:
-    codes = ["1. A", "2. A1", "3. A2", "4. FA2", "5. B", "6. C", "9. E1", "10. E2", "11. E3",
-             "12. FE1", "13. FE2", "14. FE3", "15. J", "16. FJ", "17. M", "18. FM", "19. N1",
-             "21. N2", "22. P", "23. FP", "24. PI", "25. FPI", "26. R", "27. S", "28. FSR",
-             "29. T", "30. FBN", "31. TR", "32. MT", "33. MA", "34. RT"]
-content = (
-    "Bangladesh visa category codes (Visa Policy 2026 category table, Sl. 1-34)\n\n"
-    "Each category has its own purpose, eligibility, duration and required documents — see the "
-    "per-category records for the major ones. Category codes from the official table:\n" + "\n".join(codes)
-)
-new_records.append(rec(
-    "visa-categories-index", "instructions", "documents-eligibility", "categories-index",
-    "All Bangladesh visa category codes in the official table (A, A1, A2 … TR, MT, MA, RT)",
-    POLICY_URL, POLICY_LAST_UPDATED, content,
-    ["visa categories", "category codes", "visa types", "index"]))
+# ---------------------------------------------------------------- categories index: REMOVED from corpus (Phase 3.6a item 2)
+# The original builder fell back to a hardcoded code list when regex
+# extraction found too few rows — a fail-loud violation that produced an
+# INCOMPLETE index claiming completeness. The major categories have dedicated
+# records, so the partial synthetic index is dropped rather than repaired.
 
 # ---------------------------------------------------------------- write gate
 existing = []
@@ -280,12 +266,19 @@ with open(VISA_JSONL, encoding="utf-8") as f:
         if line.strip():
             existing.append(json.loads(line))
 
-# idempotency: a previous run may have crashed after writing but before the
-# manifest. Strip any already-appended expansion records so the base corpus
-# can be re-verified before appending.
-new_ids_preview = {r["id"] for r in new_records}
-base = [r for r in existing if r["id"] not in new_ids_preview]
+# idempotency: a previous run may have appended expansion records (or earlier
+# expansion versions that are no longer built). The BASE corpus is exactly the
+# records sourced from the application portal (visa.gov.bd) — everything else
+# is expansion output and is regenerated from evidence on every run.
+from urllib.parse import urlparse as _urlparse
+base = [r for r in existing
+        if _urlparse(r.get("source_url", "")).netloc == "visa.gov.bd"]
+removed_stale = [r["id"] for r in existing if r not in base]
 assert len(base) == 17, f"expected the 17 base records, found {len(base)}"
+unexpected = [i for i in removed_stale
+              if i not in {r["id"] for r in new_records}
+              and i not in {"visa-voa-circular-2016-bn", "visa-categories-index"}]
+assert not unexpected, f"unrecognized records in corpus: {unexpected}"
 
 new_ids = [r["id"] for r in new_records]
 assert len(new_ids) == len(set(new_ids)), "duplicate ids within expansion"
@@ -317,8 +310,11 @@ exp_manifest = {
         "document": "VISA POLICY 2026, Ministry of Home Affairs, Immigration Wing, Bangladesh",
         "publication_date_stated": "August/2026",
         "url": POLICY_URL,
-        "acquisition": "direct_pdf_verified (sha256 recorded in evidence manifest)",
+        "acquisition": "direct_pdf_verified",
         "authority_label": "immigration_operational / central_policy",
+        "provenance_file": "data/evidence/immi_specialbranch_reacquire/visa_policy_pdf_provenance.json",
+        "sha256": "80630a28464151bcfcc9df23100c888e662d9731ee92d6218648b4eadae40528",
+        "sha256_note": "verified by reacquisition through the strict acquisition layer (Phase 3.6a item 4)",
     },
     "other_sources": [
         {"url": VOA_INFO_URL, "authority_label": "voa_operational"},
@@ -347,11 +343,12 @@ exp_manifest = {
     ],
     "excluded_candidates": [
         {"source": "bida.gov.bd/faq + /commercial-wings",
-         "disposition": "UNVERIFIED_CAPTURE_ONLY / not fetchable",
+         "disposition": "failed_fetch_tls_protocol_mismatch",
          "reason": "ERR_SSL_VERSION_OR_CIPHER_MISMATCH in both strict and evidence contexts "
-                   "(TLS protocol mismatch, not a certificate-validation issue; no evasion). "
-                   "PI/E visa requirements are covered by Visa Policy 2026 category rows; "
-                   "BIDA-side recommendation process remains a gap."},
+                   "(TLS protocol negotiation fails before any certificate validation; no capture "
+                   "was obtained, and cipher downgrading would be evasion). PI/E visa requirements "
+                   "are covered by Visa Policy 2026 category rows; BIDA-side recommendation "
+                   "process remains a gap."},
         {"source": "ssd.gov.bd circular archive (individual circular PDFs)",
          "disposition": "PII_EXCLUDED (not crawled)",
          "reason": "Phase 3.6 §5 forbids recursive crawling of the notice/order archive; "
@@ -363,6 +360,15 @@ exp_manifest = {
         {"source": "immi.specialbranch.gov.bd COVID/procurement/e-SAM suspension PDFs",
          "disposition": "STALE_OR_SUPERSEDED / out of scope",
          "reason": "temporary operational notices, not durable visa policy"},
+        {"source": "visa-voa-circular-2016-bn",
+         "disposition": "STALE_OR_SUPERSEDED / evidence retained, not embedded",
+         "reason": "Visa Policy 2026 condition 33 repeals previously issued visa circulars.",
+         "evidence_retained": [VOA_BN_URL, VOA_INFO_URL]},
+        {"source": "visa-categories-index",
+         "disposition": "removed_incomplete",
+         "reason": "builder's hardcoded fallback produced an incomplete code list while claiming "
+                   "completeness — fail-loud violation (Phase 3.6a item 2); major categories have "
+                   "dedicated records"},
     ],
 }
 

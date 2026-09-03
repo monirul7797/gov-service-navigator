@@ -27,7 +27,10 @@
     {
       "domain": "dip.gov.bd",
       "reason": "ssl_cert_invalid (www.dip.gov.bd: ERR_CERT_AUTHORITY_INVALID; apex SSL error)",
-      "disposition": "needs_manual_screenshot"
+      "disposition": "needs_manual_screenshot",
+      "superseded": true,
+      "superseded_by": "Phase 3.5/3.6 four-host probe — see data/evidence/probes/dip_and_www_probe.json and data/evidence/dip_gov_bd/",
+      "superseded_reason": "later strict-Chromium acquisition SUCCEEDED on the apex (incomplete TLS chain accepted by Chromium but rejected by OpenSSL/requests), so the blanket needs_manual_screenshot classification below was too coarse. Historical observation retained."
     }
   ],
   "fetch_failures": [],
@@ -73,5 +76,23 @@
     "http_status": 200,
     "content_type": "application/pdf",
     "bytes": 124451
+  },
+  "host_status_current": {
+    "visa.gov.bd": {
+      "status": "verified",
+      "detail": "apex: verified acquisitions (Phase 3 staging + Phase 3.5 crawl)"
+    },
+    "www.visa.gov.bd": {
+      "status": "needs_manual_screenshot",
+      "detail": "connection reset for both Python client and Chromium (unresolved)"
+    },
+    "dip.gov.bd": {
+      "status": "verified_browser",
+      "detail": "apex renders via strict Chromium context, certificate validated; 43,531 chars captured"
+    },
+    "www.dip.gov.bd": {
+      "status": "capture_only_tls_invalid",
+      "detail": "ERR_CERT_AUTHORITY_INVALID; evidence-context capture only, never promoted"
+    }
   }
 }
