@@ -1,6 +1,7 @@
 setenv.bat
 data/vectordb/
 __pycache__/
-*.pycfreshness/last_known_text/
+*.pyc
+freshness/last_known_text/
 freshness/pending_review.json
 freshness/approved_for_reembed.json
