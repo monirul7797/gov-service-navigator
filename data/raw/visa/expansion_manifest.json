@@ -36,8 +36,10 @@
     "visa-category-investor-pi",
     "visa-category-journalist",
     "visa-category-ngo",
+    "visa-category-humanitarian-n2",
     "visa-category-transit",
-    "visa-category-family-dependent",
+    "visa-category-family-fbn",
+    "visa-category-dependent-fa2",
     "visa-nvr-eligibility-documents-fee",
     "visa-voa-policy-conditions",
     "visa-voa-application-steps",
@@ -66,7 +68,7 @@
         "2016 VOA circular": "still published on voa.specialbranch.gov.bd",
         "Visa Policy 2026 condition 33": "repeals previously issued visa circulars"
       },
-      "resolution": "circular record carries a precedence note; Policy 2026 prevails where they differ"
+      "resolution": "The 2016 circular is retained as historical/source evidence only and is not embedded; Visa Policy 2026 governs current corpus rules."
     },
     {
       "topic": "Transit duration",
