@@ -16,6 +16,8 @@ from unittest.mock import patch
 
 from acquisition.robots import RobotsCache
 from urllib.robotparser import RobotFileParser
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 
 def robots_for_hosts(hosts) -> RobotsCache:
@@ -115,3 +117,52 @@ def make_pdf(identifier: str) -> bytes:
     out += (f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
             f"startxref\n{xref_pos}\n%%EOF").encode()
     return bytes(out)
+
+
+def scripted_http_session(routes: dict) -> Mock:
+    """P02A: scripted fake Requests session for navigation-policy tests.
+
+    routes maps request URL -> response spec dict with keys:
+      status (int), headers (dict, case as served), body (bytes),
+      final_url (str, the response's own URL), history (list of URLs).
+
+    The session records every requested URL (.urls), every call's kwargs
+    (.call_kwargs) and per-URL close counts (.close_counts: the number of
+    responses for that URL whose close() ran). Each request returns a FRESH
+    response object with its own close() so closure counts are exact. Any
+    unscripted request raises AssertionError loudly.
+    """
+    from unittest.mock import Mock
+
+    session = Mock()
+    session.headers = {}          # real dict: production assigns User-Agent
+    session.urls = []
+    session.call_kwargs = []
+    session.close_counts = {}
+
+    def _get(url, **kwargs):
+        session.urls.append(url)
+        session.call_kwargs.append(kwargs)
+        if url not in routes:
+            raise AssertionError(f"unscripted request: {url}")
+        spec = routes[url]
+        if spec.get("exception") is not None:
+            raise spec["exception"]
+        response = SimpleNamespace(
+            status_code=spec.get("status", 200),
+            headers=spec.get("headers", {}),
+            content=spec.get("body", b""),
+            url=spec.get("final_url", url),
+            history=[SimpleNamespace(url=h) for h in spec.get("history", [])],
+        )
+        closes = {"count": 0}
+
+        def close():
+            closes["count"] += 1
+            session.close_counts[url] = closes["count"]
+
+        response.close = close
+        return response
+
+    session.get.side_effect = _get
+    return session

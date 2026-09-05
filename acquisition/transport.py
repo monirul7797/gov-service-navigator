@@ -44,17 +44,41 @@ class StrictResult:
     error_kind: str | None = None      # None | 'tls' | 'connection' | 'http_status'
     error_detail: str = ""
     final_url: str = ""                # post-redirect URL (B12 allowlist revalidation)
+    redirect_chain: list = field(default_factory=list)  # P02A: URLs actually submitted
     # 'tls' means the certificate failed verification — the original error is
     # preserved in error_detail and must surface in the manifest (§2).
 
 
 class RequestsTransport:
-    def __init__(self, user_agent: str = DEFAULT_UA, timeout: float = 20.0):
-        self.session = requests.Session()
+    """Strict HTTP transport.
+
+    navigation_policy=None retains the LEGACY behavior (a single
+    `session.get(..., allow_redirects=True, verify=True)` call with the
+    existing result/error semantics). Legacy callers therefore do NOT gain
+    pre-request redirect protection by construction — that is the
+    policy-enforced branch below, used only when a NavigationPolicy is
+    supplied (tracker paths from P02B onward).
+    """
+
+    def __init__(self, user_agent: str = DEFAULT_UA, timeout: float = 20.0,
+                 navigation_policy=None, session=None):
+        # an injected session replaces requests.Session entirely; no second
+        # session is created behind it
+        self.session = session if session is not None else requests.Session()
         self.session.headers["User-Agent"] = user_agent
         self.timeout = timeout
+        self.navigation_policy = navigation_policy
 
     def fetch(self, url: str) -> StrictResult:
+        if self.navigation_policy is not None:
+            return self._fetch_with_policy(url)
+        return self._fetch_legacy(url)
+
+    def _fetch_legacy(self, url: str) -> StrictResult:
+        """Legacy branch (navigation_policy is None): automatic redirects,
+        existing result and error semantics. redirect_chain is populated from
+        the response history when the injected response object provides one;
+        simple fakes without a history attribute yield an empty chain."""
         try:
             resp = self.session.get(url, timeout=self.timeout, verify=True, allow_redirects=True)
         except requests.exceptions.SSLError as exc:
@@ -70,10 +94,122 @@ class RequestsTransport:
                                 error_kind="http_status",
                                 error_detail=f"http_{resp.status_code}",
                                 final_url=str(resp.url))
+        chain: list = []
+        try:
+            history = list(resp.history or []) if getattr(resp, "history", None) else []
+            chain = [str(h.url) for h in history] + [str(resp.url)]
+        except Exception:      # simple injected fakes may lack usable history
+            chain = []
         return StrictResult(ok=True, status=resp.status_code,
                             content_type=resp.headers.get("content-type", ""),
-                            body=resp.content, final_url=str(resp.url))
+                            body=resp.content, final_url=str(resp.url),
+                            redirect_chain=chain)
 
+
+    def _fetch_with_policy(self, url: str) -> StrictResult:
+        """Policy-enforced branch: bounded manual redirects. Every request uses
+        allow_redirects=False and verify=True; destinations are validated BEFORE
+        contact; evaluation order per redirect is Location presence -> resolved
+        destination policy -> loop detection -> hop limit -> next request. Every
+        received response is closed exactly once; the injected session is never
+        closed here."""
+        policy = self.navigation_policy
+        chain: list = []
+        tried: dict = {}
+        last_response_url = ""
+        hops = 0
+
+        # initial destination must pass policy before the first get
+        if not policy.allows(url):
+            return StrictResult(
+                ok=False, error_kind="destination_disallowed",
+                error_detail=f"initial destination denied by navigation policy: {url}",
+                redirect_chain=chain, final_url="")
+
+        request_url = _strip_fragment(url)
+        while True:
+            chain.append(request_url)
+            tried[_redirect_identity(request_url)] = request_url
+            try:
+                resp = self.session.get(request_url, timeout=self.timeout,
+                                        verify=True, allow_redirects=False)
+            except Exception as exc:
+                kind, detail = _requests_transport_error(exc)
+                return StrictResult(
+                    ok=False, status=None, error_kind=kind, error_detail=detail,
+                    redirect_chain=chain, final_url=last_response_url)
+
+            hops += 1
+            last_response_url = str(resp.url)
+            status = resp.status_code
+
+            if status not in _REDIRECT_STATUSES:
+                body = resp.content            # read terminal bytes before closing
+                content_type = _header_value(resp.headers, "content-type")
+                _close_quietly(resp)
+                if 300 <= status < 400:
+                    return StrictResult(
+                        ok=False, status=status,
+                        error_kind="http_status",
+                        error_detail=f"unsupported redirect status {status}",
+                        final_url=last_response_url, redirect_chain=chain)
+                if status >= 400:
+                    return StrictResult(
+                        ok=False, status=status, content_type=content_type,
+                        error_kind="http_status",
+                        error_detail=f"http_{status}",
+                        final_url=last_response_url, redirect_chain=chain)
+                return StrictResult(
+                    ok=True, status=status, content_type=content_type,
+                    body=body, final_url=last_response_url, redirect_chain=chain)
+
+            # redirect response: Location presence -> destination policy ->
+            # loop detection -> hop limit -> next request
+            location = _header_value(resp.headers, "location").strip()
+            if not location:
+                _close_quietly(resp)
+                return StrictResult(
+                    ok=False, status=status, error_kind="redirect_missing_location",
+                    error_detail=f"redirect response without Location at {last_response_url}",
+                    final_url=last_response_url, redirect_chain=chain)
+
+            from urllib.parse import urljoin
+            try:
+                destination = _strip_fragment(urljoin(last_response_url, location))
+            except Exception as exc:
+                _close_quietly(resp)
+                return StrictResult(
+                    ok=False, status=status, error_kind="destination_disallowed",
+                    error_detail=f"malformed Location destination {location!r}: {exc}",
+                    final_url=last_response_url, redirect_chain=chain)
+
+            if not policy.allows(destination):
+                _close_quietly(resp)
+                return StrictResult(
+                    ok=False, status=status, error_kind="destination_disallowed",
+                    error_detail=f"redirect destination denied by navigation policy: {destination}",
+                    final_url=last_response_url, redirect_chain=chain)
+
+            destination_identity = _redirect_identity(destination)
+            if destination_identity in tried:
+                _close_quietly(resp)
+                return StrictResult(
+                    ok=False, status=status, error_kind="redirect_loop",
+                    error_detail=(f"redirect loop: {destination} repeats a previously "
+                                  f"requested URL"),
+                    final_url=last_response_url, redirect_chain=chain)
+
+            if hops > policy.max_redirects:
+                _close_quietly(resp)
+                return StrictResult(
+                    ok=False, status=status, error_kind="redirect_limit",
+                    error_detail=(f"redirect limit reached: {hops} requests made, "
+                                  f"following another redirect would exceed "
+                                  f"max_redirects={policy.max_redirects}"),
+                    final_url=last_response_url, redirect_chain=chain)
+
+            _close_quietly(resp)
+            request_url = destination
 
 # --- browser rendering port ---------------------------------------------------
 
@@ -278,3 +414,67 @@ class PlaywrightRenderer:
             "html": html,
             "png": shot,
         }
+
+
+# ---------------------------------------------------------------------------
+# P02A policy-enforced branch (visibly separate from the legacy path above)
+# ---------------------------------------------------------------------------
+
+_REDIRECT_STATUSES = {301, 302, 303, 307, 308}
+_DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
+def _strip_fragment(url: str) -> str:
+    """Remove the fragment for the actual HTTP request and loop identity;
+    path case and query parameter order are preserved."""
+    from urllib.parse import urlsplit, urlunsplit
+    parts = urlsplit(url)
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, ""))
+
+
+def _redirect_identity(url: str) -> tuple:
+    """Loop identity: equates scheme/host case, default ports and an empty
+    path with '/'. Query is preserved (different query = different request)."""
+    from urllib.parse import urlsplit
+    parts = urlsplit(url)
+    scheme = (parts.scheme or "").lower()
+    host = (parts.hostname or "").lower()
+    port = parts.port
+    if port is None:
+        port = _DEFAULT_PORTS.get(scheme)
+    path = parts.path or "/"
+    return (scheme, host, port, path, parts.query)
+
+
+def _header_value(headers, name: str) -> str:
+    """Case-insensitive header lookup over a mapping-like object."""
+    try:
+        items = headers.items()
+    except Exception:
+        return ""
+    wanted = name.lower()
+    for key, value in items:
+        if str(key).lower() == wanted:
+            return str(value)
+    return ""
+
+
+def _close_quietly(response) -> None:
+    try:
+        response.close()
+    except Exception:
+        pass
+
+
+def _requests_transport_error(exc: Exception) -> tuple[str, str]:
+    """Existing transport error classification, shared with the legacy path."""
+    import requests.exceptions as req_exc
+    if isinstance(exc, req_exc.SSLError):
+        return "tls", str(exc)[:200]
+    if isinstance(exc, req_exc.ConnectionError):
+        detail = str(exc)
+        kind = "tls" if "SSL" in detail or "certificate" in detail.lower() else "connection"
+        return kind, detail[:200]
+    if isinstance(exc, req_exc.RequestException):
+        return "connection", str(exc)[:200]
+    return "connection", f"{type(exc).__name__}: {exc}"[:200]
