@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 from acquisition.acquire import extract_text_from_html
 from acquisition.robots import RobotsCache, robots_check
 from acquisition.transport import RequestsTransport  # noqa: F401 (default factory)
+from acquisition.document_validation import validate_pdf
 from acquisition.urls import normalize_url, same_domain
 
 def _domain_of(url: str) -> str:
@@ -224,23 +225,32 @@ class KnownSourceMonitor:
             if method == S.METHOD_PDF:
                 new_hash = sha256_bytes(payload)
                 new_len = len(payload)
-                quality_code, q_reason = ("ok", "")
+                declared_type = reason[4:] if reason.startswith("pdf:") else (reason or "")
+                pdf_ok, pdf_reason = validate_pdf(payload, declared_type)
+                quality_code, q_reason = (("ok", "") if pdf_ok
+                                          else ("pdf_rejected", pdf_reason))
                 baseline_text = None
             else:
                 new_hash = sha256_text(payload)
                 new_len = len(payload)
                 baseline_text = None
-                if entry.get("trusted_snapshot") and not self.dry_run:
+                # R6: dry and real comparison use the SAME baseline snapshot —
+                # dry_run controls persistence only, never comparison inputs
+                if entry.get("trusted_snapshot"):
                     from .paths import atomic_read_text
                     baseline_text = atomic_read_text(entry["trusted_snapshot"])
                 quality_code, q_reason = classify_capture(payload, baseline_text=baseline_text)
 
-            # B12-companion: a known source that silently redirected to an
-            # unrelated domain must not poison the baseline either
-            if method in (S.METHOD_BROWSER, S.METHOD_STATIC) and final_url and norm_url:
-                if not same_domain(final_url, _domain_of(norm_url)):
+            # R8/P01: the final-destination rule applies to EVERY successful
+            # verified content method, including PDF, before anything is
+            # trusted or stored as a candidate. Empty final_url (old injected
+            # fakes) falls back to the requested URL; real transport records
+            # the observed destination.
+            effective_final = final_url or norm_url
+            if method in (S.METHOD_BROWSER, S.METHOD_STATIC, S.METHOD_PDF):
+                if not same_domain(effective_final, _domain_of(norm_url)):
                     S.mark_failure(entry, "redirected_off_domain",
-                                   f"redirected off-domain to {final_url} — baseline preserved")
+                                   f"redirected off-domain to {effective_final} — baseline preserved")
                     summary["suspect_captures"] += 1
                     self._save_store(self._store_or_memory(store))
                     continue

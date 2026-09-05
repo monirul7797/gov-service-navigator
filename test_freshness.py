@@ -21,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from acquisition.transport import RenderResult, StrictResult  # noqa: E402
+from tests.maintenance.fixtures import make_pdf  # noqa: E402
 
 CHECKS = {"pass": 0, "fail": 0}
 
@@ -316,19 +317,34 @@ def test_known_source_monitoring():
     make_monitor(tmp8, FakeTransport(), renderer9, {"nid": corpus8}, dry_run=True).run()
     check("12b dry run is byte-for-byte non-mutating", state_bytes(tmp8) == before_bytes)
 
-    # PDFs: known-source drift on same-URL bytes
+    # PDFs: known-source drift on same-URL bytes. P01: the fixtures are now
+    # genuinely parseable PDF documents (the monitor validates PDF content),
+    # with the same meaning: changed bytes at the same URL -> content_change
+    pdf_old, pdf_new = make_pdf("PDF-OLD-DOCUMENT"), make_pdf("PDF-NEW-DOCUMENT")
+    expected_old_hash = hashlib.sha256(pdf_old).hexdigest()
     tmp9 = Path(tempfile.mkdtemp())
     corpus9 = fixture_corpus(tmp9, [rec("r1", PAGE_PDF)])
     transport9 = FakeTransport({PAGE_PDF: StrictResult(ok=True, status=200,
-                                                       content_type="application/pdf", body=b"%PDF-old")})
+                                                       content_type="application/pdf", body=pdf_old,
+                                                       final_url=PAGE_PDF)})
     mon10 = make_monitor(tmp9, transport9, FakeRenderer(), {"nid": corpus9})
     mon10.run()
     transport9.script[PAGE_PDF] = StrictResult(ok=True, status=200,
-                                               content_type="application/pdf", body=b"%PDF-new")
+                                               content_type="application/pdf", body=pdf_new,
+                                               final_url=PAGE_PDF)
     s = mon10.run()
     events = json.loads((tmp9 / "pending_source_events.json").read_text(encoding="utf-8"))
-    check("13c same-URL PDF with changed bytes -> content_change event",
-          any(e["normalized_url"] == PAGE_PDF and e["type"] == "content_change" for e in events))
+    store9 = json.loads((tmp9 / "source_store.json").read_text(encoding="utf-8"))
+    entry9 = store9[PAGE_PDF]
+    # P01: the fixtures are real documents; state-preservation assertions cover
+    # the actual trusted/candidate snapshot paths (original check count kept)
+    check("13c same-URL PDF with changed bytes -> content_change event; "
+          "trusted bytes stay original; candidate bytes equal new document",
+          any(e["normalized_url"] == PAGE_PDF and e["type"] == "content_change" for e in events)
+          and entry9["trusted_hash"] == expected_old_hash
+          and Path(entry9["trusted_snapshot"]).read_bytes() == pdf_old
+          and entry9["candidate_hash"] == hashlib.sha256(pdf_new).hexdigest()
+          and Path(entry9["candidate_snapshot"]).read_bytes() == pdf_new)
 
 
 # ---------------------------------------------------------------------------
