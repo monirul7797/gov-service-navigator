@@ -69,6 +69,9 @@ class Capture:
     html_path: str = ""
     png_path: str = ""
     pdf_path: str = ""
+    requested_url: str = ""
+    final_url: str = ""
+    redirect_occurred: bool = False
     notes: list = field(default_factory=list)
 
     def to_provenance(self) -> dict:
@@ -84,6 +87,9 @@ class Capture:
             "requires_secondary_verification": self.requires_secondary_verification,
             "content_sha256": self.content_sha256,
             "disposition": self.disposition,
+            "requested_url": self.requested_url,
+            "final_url": self.final_url,
+            "redirect_occurred": self.redirect_occurred,
             "captured_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "artifacts": {
                 "text": self.text_path or None,
@@ -129,9 +135,27 @@ def extract_text_from_html(html: str) -> str:
     return normalize_text(body.get_text("\n"))
 
 
+DISPOSITION_REDIRECTED_OUT = "redirected_out_of_allowlist"
+
+
+def _final_url_allowed(final_url: str, requested: str,
+                       allowed_domains: set | None) -> tuple[bool, str]:
+    """B12: revalidate the post-redirect destination against the allowlist.
+    Same-domain/subdomain redirects are legitimate; an unrelated destination is
+    never trusted. Returns (allowed, final_normalized)."""
+    from .urls import allowed_domain
+    final_norm = normalize_url(final_url or requested) or requested
+    if not allowed_domains:
+        return True, final_norm
+    if allowed_domain(final_norm, allowed_domains):
+        return True, final_norm
+    return False, final_norm
+
+
 def acquire_url(url: str, *, transport: RequestsTransport, renderer,
                 robots: RobotsCache, out_dir: str, user_agent: str,
-                save_screenshot: bool = True, also_screenshot: bool = False) -> Capture:
+                save_screenshot: bool = True, also_screenshot: bool = False,
+                allowed_domains: set | None = None) -> Capture:
     """Capture one URL through the fallback hierarchy. Writes evidence
     artifacts under out_dir and returns a provenance-complete Capture.
 
@@ -142,7 +166,7 @@ def acquire_url(url: str, *, transport: RequestsTransport, renderer,
     normalized = normalize_url(url)
     cap = Capture(url=url, normalized_url=normalized, method="",
                   disposition=DISPOSITION_FAILED, verification_status="unreachable",
-                  tls_verified=False)
+                  tls_verified=False, requested_url=normalized)
 
     disposition, reason = classify_url(normalized)
     if disposition in {"invalid", "wizard"}:
@@ -165,6 +189,16 @@ def acquire_url(url: str, *, transport: RequestsTransport, renderer,
         cap.tls_verified = True
         ctype = strict.content_type.lower()
         if "pdf" in ctype or disposition == "pdf":
+            allowed, final_norm = _final_url_allowed(strict.final_url, normalized, allowed_domains)
+            cap.final_url = strict.final_url
+            cap.redirect_occurred = normalize_url(strict.final_url) != normalized
+            if not allowed:
+                cap.method = DIRECT_PDF_UNVERIFIED
+                cap.disposition = DISPOSITION_REDIRECTED_OUT
+                cap.verification_status = "unreachable"
+                cap.notes.append(f"redirected outside allowlist: {strict.final_url} "
+                                 f"(requested {normalized}) — not trusted, not preserved")
+                return cap
             digest = _sha256(strict.body)
             cap.method = DIRECT_PDF_VERIFIED
             cap.disposition = "captured"
@@ -174,6 +208,15 @@ def acquire_url(url: str, *, transport: RequestsTransport, renderer,
             return cap
         if "html" in ctype or ctype == "":
             text = extract_text_from_html(strict.body.decode("utf-8", errors="replace"))
+            allowed, final_norm = _final_url_allowed(strict.final_url, normalized, allowed_domains)
+            cap.final_url = strict.final_url
+            cap.redirect_occurred = normalize_url(strict.final_url) != normalized
+            if len(text) >= MIN_STATIC_TEXT_CHARS and not allowed:
+                cap.disposition = DISPOSITION_REDIRECTED_OUT
+                cap.verification_status = "unreachable"
+                cap.notes.append(f"redirected outside allowlist: {strict.final_url} "
+                                 f"(requested {normalized}) — not trusted, not preserved")
+                return cap
             if len(text) >= MIN_STATIC_TEXT_CHARS:
                 cap.method = VERIFIED_NORMAL
                 cap.disposition = "captured"
@@ -200,6 +243,15 @@ def acquire_url(url: str, *, transport: RequestsTransport, renderer,
     # ---- 2) headless Chromium, strict context (cert validation ON) -------
     render: RenderResult = renderer.goto(normalized, ignore_tls=False)
     if render.ok:
+        allowed, final_norm = _final_url_allowed(render.final_url, normalized, allowed_domains)
+        cap.final_url = render.final_url
+        cap.redirect_occurred = normalize_url(render.final_url) != normalized
+        if not allowed:
+            cap.disposition = DISPOSITION_REDIRECTED_OUT
+            cap.verification_status = "unreachable"
+            cap.notes.append(f"navigation redirected outside allowlist: {render.final_url} "
+                             f"(requested {normalized}) — not trusted, no children discovered")
+            return cap
         cap.http_status = render.status
         cap.tls_verified = True               # Chromium validated the certificate
         cap.method = VERIFIED_BROWSER

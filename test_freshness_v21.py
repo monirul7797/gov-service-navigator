@@ -101,12 +101,14 @@ def test_b1_update_production_layout():
         f.write(json.dumps(rec("r1", PAGE_A)) + "\n")
     renderer = FakeRenderer({PAGE_A: html("BASE " * 30)})
     tmp_freshness = repo / "freshness"
+    from tests.maintenance.fixtures import robots_for_hosts
     mon = KnownSourceMonitor(
         corpus_paths={"nid": corpus}, transport=FakeTransport(), renderer=renderer,
         store_path=tmp_freshness / "source_store.json",
         snapshot_dir=tmp_freshness / "snapshots",
         events_path=tmp_freshness / "pending_source_events.json",
-        rate_limit_seconds=0, now_fn=fixed_now)
+        rate_limit_seconds=0, now_fn=fixed_now,
+        robots=robots_for_hosts({"gov.example"}))
     mon.run()
     renderer.script[PAGE_A] = html("CHANGED " * 30)
     mon.run()
@@ -284,10 +286,12 @@ def test_b12_redirect_allowlist():
         ok=True, status=200, text="HUB " * 30, html="<html></html>",
         screenshot_png=b"", final_url="https://unrelated.example.net/")
     from acquisition.crawler import CrawlConfig, Crawler
-    crawler = Crawler(CrawlConfig(seeds=[A], allowlist={"gov.example"}, max_depth=2,
-                                  interval_seconds=0),
-                      transport=FakeTransport(), renderer=renderer,
-                      out_dir=tempfile.mkdtemp())
+    from tests.maintenance.fixtures import patch_crawler_robots
+    with patch_crawler_robots({"gov.example"}):
+        crawler = Crawler(CrawlConfig(seeds=[A], allowlist={"gov.example"}, max_depth=2,
+                                      interval_seconds=0),
+                          transport=FakeTransport(), renderer=renderer,
+                          out_dir=tempfile.mkdtemp())
     manifest = crawler.run()
     check("B12e crawler does not trust/discover from out-of-allowlist destination",
           not any(n.get("disposition", "").startswith("captured")
@@ -330,9 +334,11 @@ def test_b5_capture_only_trust_boundary():
     seed_cfg = {"url": "https://gov.example/hub", "allowed_domains": ["gov.example"],
                 "max_depth": 1, "max_pages": 5}
     from freshness.discovery import crawl_seed_inventory
-    reduced = crawl_seed_inventory(seed_cfg, transport=FakeTransport(),
-                                   renderer=FakeRenderer({SEED: html("HUB " * 30)}),
-                                   evidence_dir=Path(tempfile.mkdtemp()))
+    from tests.maintenance.fixtures import patch_crawler_robots
+    with patch_crawler_robots({"gov.example"}):
+        reduced = crawl_seed_inventory(seed_cfg, transport=FakeTransport(),
+                                       renderer=FakeRenderer({SEED: html("HUB " * 30)}),
+                                       evidence_dir=Path(tempfile.mkdtemp()))
     check("B5d reduction path separates unverified nodes from verified resources",
           all(r.get("verification_status") == "verified"
               for r in reduced["resources"].values()))
@@ -404,9 +410,11 @@ def test_b6_b7_dry_run_current_state():
                              f"{SEED_L}/c": html("C " * 30)})
     renderer.links = {SEED_L: [f"{SEED_L}/a", f"{SEED_L}/b", f"{SEED_L}/c"]}
     from freshness.run_freshness_check import run_discovery
-    summary = run_discovery(["nid"], dry_run=True, transport=FakeTransport(),
-                            renderer=renderer, registry_path=reg_path,
-                            inventory_path=inv_path, review_queue_path=queue_path)
+    from tests.maintenance.fixtures import patch_crawler_robots
+    with patch_crawler_robots({"gov.example"}):
+        summary = run_discovery(["nid"], dry_run=True, transport=FakeTransport(),
+                                renderer=renderer, registry_path=reg_path,
+                                inventory_path=inv_path, review_queue_path=queue_path)
     check("B6a dry run predicts only new_source C (not A/B/C as all-new)",
           summary["new_sources"] == 1, str(summary))
     check("B6b monitoring files byte-identical after dry run",

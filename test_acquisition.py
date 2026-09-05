@@ -111,12 +111,16 @@ class FakeRenderer:
                 "png": b"PNG" if self._active else b""}
 
 
-def allow_all_robots() -> RobotsCache:
+def robots_for_hosts(hosts) -> RobotsCache:
+    """P00 §4: pre-seeded allow parsers for the fixture's ACTUAL hosts —
+    the historical '*' sentinel was never consulted by real lookups, which
+    made tests using it attempt real robots.txt fetches."""
     import urllib.robotparser
     cache = RobotsCache()
-    p = urllib.robotparser.RobotFileParser()
-    p.allow_all = True
-    cache.parsers["*"] = p  # sentinel; domain lookups below pre-seed per test
+    for host in hosts:
+        p = urllib.robotparser.RobotFileParser()
+        p.allow_all = True
+        cache.parsers[host] = p
     return cache
 
 
@@ -246,8 +250,11 @@ def test_crawler():
     renderer = FakeRenderer(PAGES, LINKS, INTERACT, state_delta="FEE TABLE ROWS " * 20)
     cfg = CrawlConfig(seeds=[A], allowlist={"visa.gov.bd"}, max_depth=2,
                       max_pages=40, interval_seconds=0)
-    crawler = Crawler(cfg, transport=transport, renderer=renderer,
-                      out_dir=tempfile.mkdtemp())
+    from unittest.mock import patch
+    crawler_robots = robots_for_hosts({"visa.gov.bd"})
+    with patch("acquisition.crawler.RobotsCache", return_value=crawler_robots):
+        crawler = Crawler(cfg, transport=transport, renderer=renderer,
+                          out_dir=tempfile.mkdtemp())
     manifest = crawler.run()
 
     fetched = [u for u, _ in renderer.rendered]
@@ -287,10 +294,13 @@ def test_dynamic_state_dedup():
     # both interactions reveal IDENTICAL state content (no state_delta growth
     # between resets) — second must be recorded as duplicate
     renderer = FakeRenderer(PAGES, LINKS, INTERACT, state_delta="SAME ROWS " * 20)
-    crawler = Crawler(CrawlConfig(seeds=[A], allowlist={"visa.gov.bd"}, max_depth=2,
-                                  max_pages=40, interval_seconds=0),
-                      transport=FakeTransport({}), renderer=renderer,
-                      out_dir=tempfile.mkdtemp())
+    from unittest.mock import patch
+    crawler_robots = robots_for_hosts({"visa.gov.bd"})
+    with patch("acquisition.crawler.RobotsCache", return_value=crawler_robots):
+        crawler = Crawler(CrawlConfig(seeds=[A], allowlist={"visa.gov.bd"}, max_depth=2,
+                                      max_pages=40, interval_seconds=0),
+                          transport=FakeTransport({}), renderer=renderer,
+                          out_dir=tempfile.mkdtemp())
     manifest = crawler.run()
     states = [n for n in manifest["nodes"] if n["disposition"] == "js_dynamic_state"]
     dupes = [n for n in manifest["nodes"] if n["disposition"] == "duplicate"]

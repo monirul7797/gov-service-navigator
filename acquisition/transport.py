@@ -43,6 +43,7 @@ class StrictResult:
     body: bytes = b""
     error_kind: str | None = None      # None | 'tls' | 'connection' | 'http_status'
     error_detail: str = ""
+    final_url: str = ""                # post-redirect URL (B12 allowlist revalidation)
     # 'tls' means the certificate failed verification — the original error is
     # preserved in error_detail and must surface in the manifest (§2).
 
@@ -67,10 +68,11 @@ class RequestsTransport:
         if resp.status_code >= 400:
             return StrictResult(ok=False, status=resp.status_code,
                                 error_kind="http_status",
-                                error_detail=f"http_{resp.status_code}")
+                                error_detail=f"http_{resp.status_code}",
+                                final_url=str(resp.url))
         return StrictResult(ok=True, status=resp.status_code,
                             content_type=resp.headers.get("content-type", ""),
-                            body=resp.content)
+                            body=resp.content, final_url=str(resp.url))
 
 
 # --- browser rendering port ---------------------------------------------------
@@ -84,6 +86,7 @@ class RenderResult:
     screenshot_png: bytes = b""     # full-page screenshot
     error_kind: str | None = None   # None | 'tls' | 'blocked' | 'navigation'
     error_detail: str = ""
+    final_url: str = ""             # post-navigation URL (B12 allowlist revalidation)
 
 
 @dataclass
@@ -155,6 +158,7 @@ class PlaywrightRenderer:
             screenshot_png=shot,
             error_kind=None if ok else "http_status",
             error_detail="" if ok else f"http_{status}",
+            final_url=page.url,
         )
 
     def _page_for(self, ignore_tls: bool):

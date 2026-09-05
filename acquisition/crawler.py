@@ -137,13 +137,15 @@ class Crawler:
             capture = acquire_url(node.url, transport=self.transport, renderer=self.renderer,
                                   robots=self.robots, out_dir=self.out_dir,
                                   user_agent=self.cfg.user_agent,
-                                  also_screenshot=self.cfg.also_screenshot)
+                                  also_screenshot=self.cfg.also_screenshot,
+                                  allowed_domains=set(self.cfg.allowlist))
             method_to_disposition = {
                 VERIFIED_NORMAL: "captured_verified_normal",
                 VERIFIED_BROWSER: "captured_verified_browser",
                 CAPTURE_ONLY_TLS: "capture_only_tls_invalid",
                 DIRECT_PDF_VERIFIED: "direct_pdf_verified",
                 DIRECT_PDF_UNVERIFIED: "direct_pdf_unverified",
+                "redirected_out_of_allowlist": "redirected_out_of_allowlist",
                 DISPOSITION_NEEDS_MANUAL: "needs_manual_screenshot",
                 DISPOSITION_FAILED: "failed_fetch",
             }

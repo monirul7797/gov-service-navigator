@@ -118,6 +118,15 @@ def fixed_now():
 
 def make_monitor(tmp: Path, transport, renderer, corpus_paths, dry_run=False,
                  robots=None, record_ids=None):
+    """Fixture-isolated monitor builder.
+
+    P00 §4: when no explicit robots cache is supplied, pre-seed allow parsers
+    for the fixture corpus hosts ONLY, so tests are genuinely hermetic —
+    production robots semantics are untouched. Explicit disallow/unreachable
+    fixtures pass their own dedicated caches."""
+    if robots is None:
+        from tests.maintenance.fixtures import hosts_from_corpora, robots_for_hosts
+        robots = robots_for_hosts(hosts_from_corpora(corpus_paths.values()))
     from freshness.known_monitor import KnownSourceMonitor
     return KnownSourceMonitor(
         corpus_paths=corpus_paths, transport=transport, renderer=renderer,
