@@ -1,138 +1,184 @@
 """
-freshness/review.py — the human approval gate (Part A §A6).
+freshness/review.py — human review gates for Freshness V2.
 
-Interactive CLI over the pending-review queue written by run_freshness_check.py:
+Two queues, one CLI:
 
-  1. Lists all pending diffs (record id, service, source_url, short preview).
-  2. For each, prompts accept / reject / skip.
-  3. On accept: writes the record id to freshness/approved_for_reembed.json
-     AND prints the new fetched text, so the human can manually update the
-     corresponding field(s) in the service's data/chunks/<svc>.jsonl.
-     THAT .jsonl EDIT IS NOT AUTOMATED — content correctness requires the
-     same VAT/fee/dedup judgment as original corpus building (§A1).
-  4. This script NEVER writes to data/vectordb/ or any corpus .jsonl file.
+1. Source-change events (pending_source_events.json) — actions per §9:
+     update       the change is legitimate AND corpus records need editing:
+                  select which impacted record ids get edit/reembed tasks
+                  (the manual .jsonl edit itself is NOT automated, §A1);
+                  promotes the candidate source state to trusted
+     acknowledge  source changed legitimately, corpus needs no edit:
+                  candidate promoted to trusted, no record tasks
+     invalid      the capture is not a valid representation (maintenance page,
+                  bot wall, bad render): trusted baseline kept; the same
+                  candidate will not re-alert
+     skip         no decision; event stays pending
+
+2. Discovery candidates (pending_source_review.json, --discovery) — actions
+   per §23:
+     relevant            worth future corpus extraction (does NOT create rows)
+     not_relevant        official but irrelevant; suppressed from alerts
+     duplicate           already represented; suppressed from alerts
+     unsafe_or_excluded  PII / login / case-specific material; reason kept
+     skip                leave unresolved
+
+This CLI NEVER writes to data/vectordb/ or corpus .jsonl. Record reembedding
+happens only via `python freshness/reembed.py --execute` after the manual
+corpus edit, and only for tasks created by an 'update' action.
 
 Usage:
-    python freshness/review.py            # interactive gate
-    python freshness/review.py --list     # just list pending diffs
+    python freshness/review.py                  # source-change events
+    python freshness/review.py --list           # list only
+    python freshness/review.py --discovery      # discovery candidates
 """
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
-from datetime import datetime, timezone
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import diff          # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-REPO_ROOT = diff.REPO_ROOT
-FRESHNESS_DIR = os.path.join(REPO_ROOT, "freshness")
-QUEUE_PATH = diff.QUEUE_PATH
-APPROVED_PATH = os.path.join(FRESHNESS_DIR, "approved_for_reembed.json")
+from freshness.paths import FRESHNESS_DIR                        # noqa: E402
+from freshness.review_actions import (apply_source_action,        # noqa: E402
+                                      load_events)
+from freshness.discovery import INVENTORY_PATH, REVIEW_QUEUE_PATH  # noqa: E402
+from freshness.paths import atomic_read_json                      # noqa: E402
 
-DIFF_PREVIEW_LINES = 15
-
-
-def load_approved() -> list[dict]:
-    if not os.path.exists(APPROVED_PATH):
-        return []
-    with open(APPROVED_PATH, encoding="utf-8") as f:
-        return json.load(f)
+EVENTS_PATH = FRESHNESS_DIR / "pending_source_events.json"
+DIFF_PREVIEW_LINES = 14
 
 
-def save_approved(approved: list[dict]) -> None:
-    with open(APPROVED_PATH, "w", encoding="utf-8") as f:
-        json.dump(approved, f, ensure_ascii=False, indent=2)
-
-
-def show_entry(entry: dict, full: bool = False) -> None:
+def _show_event(e: dict) -> None:
     print("=" * 78)
-    print(f"record_id : {entry['record_id']}")
-    print(f"service   : {entry['service']}")
-    print(f"source_url: {entry['source_url']}")
-    print(f"detected  : {entry.get('detected_at', '?')}")
+    print(f"event_id : {e['event_id']}")
+    print(f"type     : {e.get('type')}  status: {e.get('status')}")
+    print(f"source   : {e.get('normalized_url')}")
+    print(f"method   : {e.get('acquisition_method')}  detected: {e.get('detected_at')}")
+    print(f"trusted  : {(e.get('trusted_hash') or '')[:16]}  "
+          f"candidate: {(e.get('candidate_hash') or '')[:16]}")
+    impacted = e.get("impacted_records") or []
+    print(f"impacted : {len(impacted)} record(s)")
+    for im in impacted[:8]:
+        print(f"   - [{im['service']}] {im['record_id']}  {im.get('heading', '')[:60]}")
+    if len(impacted) > 8:
+        print(f"   … and {len(impacted) - 8} more")
+    snap = e.get("candidate_snapshot")
+    if snap and Path(snap).exists() and Path(e.get("trusted_snapshot", "")).exists():
+        from difflib import unified_diff
+        old = Path(e["trusted_snapshot"]).read_text(encoding="utf-8").splitlines()
+        new = Path(snap).read_text(encoding="utf-8").splitlines()
+        diff = list(unified_diff(old, new, "trusted", "candidate", lineterm="", n=2))
+        print("-" * 78)
+        print("\n".join(diff[:DIFF_PREVIEW_LINES]))
+        if len(diff) > DIFF_PREVIEW_LINES:
+            print(f"… ({len(diff) - DIFF_PREVIEW_LINES} more diff lines)")
     print("-" * 78)
-    unified = entry.get("diff", "")
-    diff_lines = unified.splitlines()
-    if not diff_lines:
-        print("(no textual diff — hash changed with identical normalized text?)")
-    elif full or len(diff_lines) <= DIFF_PREVIEW_LINES:
-        print("\n".join(diff_lines))
-    else:
-        print("\n".join(diff_lines[:DIFF_PREVIEW_LINES]))
-        print(f"… ({len(diff_lines) - DIFF_PREVIEW_LINES} more diff lines — [d] to show all)")
-    print("-" * 78)
 
 
-def print_new_text_for_manual_edit(entry: dict) -> None:
-    """§A6 step 3: the accepted record's new fetched text goes to stdout for the
-    human to apply to the .jsonl by hand. This is the whole point of the gate."""
-    print("\n" + "#" * 78)
-    print(f"ACCEPTED {entry['record_id']} — NEW FETCHED TEXT FOLLOWS.")
-    print("Manually update data/chunks/%s.jsonl (field: text / content) using this."
-          % entry["service"])
-    print("Then run: python freshness/reembed.py --execute")
-    print("#" * 78)
-    print(entry.get("new_text", "(new text missing from queue entry)"))
-    print("#" * 78 + "\n")
+def _prompt_action(e: dict) -> str | None:
+    raw = input(
+        f"[{e['normalized_url'][:50]}…] update/acknowledge/invalid/skip/quit? [u/a/i/s/q] "
+    ).strip().lower()
+    return {"u": "update", "a": "acknowledge", "i": "invalid",
+            "s": "skip", "q": "quit"}.get(raw, raw)
 
 
-def prompt_action(entry: dict) -> str:
-    while True:
-        choice = input(
-            f"[{entry['record_id'][:24]}…] accept/reject/skip/diff/quit? [a/r/s/d/q] "
-        ).strip().lower()
-        if choice in {"a", "r", "s", "d", "q"}:
-            return choice
-        print("  please answer a (accept), r (reject), s (skip), d (full diff), q (quit)")
+def review_events() -> None:
+    events = load_events(EVENTS_PATH)
+    pending = [e for e in events if e.get("status") == "pending"]
+    if not pending:
+        print("No pending source-change events.")
+        return
+    print(f"{len(pending)} pending source-change event(s)\n")
+    for e in pending:
+        _show_event(e)
+        action = _prompt_action(e)
+        if action == "quit":
+            print("quitting; remaining events stay pending.")
+            return
+        if action == "update":
+            ids = [im["record_id"] for im in e.get("impacted_records", [])]
+            sel = input(f"select record ids to create edit/reembed tasks for "
+                        f"(comma-separated, empty=ALL of {len(ids)}): ").strip()
+            selected = [s.strip() for s in sel.split(",") if s.strip()] or ids
+            out = apply_source_action(FRESHNESS_DIR, e["event_id"], "update",
+                                      selected_record_ids=selected)
+            print(f"  → {out['effect']}")
+            print("  Manually edit the selected records in data/chunks/<svc>.jsonl, "
+                  "then run: python freshness/reembed.py --execute")
+        elif action in ("acknowledge", "invalid", "skip"):
+            out = apply_source_action(FRESHNESS_DIR, e["event_id"], action)
+            print(f"  → {out['effect']}")
+        else:
+            print("  unrecognized answer; skipping (event stays pending)")
+
+
+def review_discovery() -> None:
+    queue = atomic_read_json(REVIEW_QUEUE_PATH, default=[]) or []
+    pending = [q for q in queue if q.get("status") == "pending"]
+    if not pending:
+        print("No pending discovery candidates.")
+        return
+    print(f"{len(pending)} pending discovery candidate(s)\n")
+    inventory = atomic_read_json(INVENTORY_PATH, default={}) or {}
+    save_inventory = lambda inv: __import__("freshness.paths", fromlist=["atomic_write_json"]) \
+        .atomic_write_json(INVENTORY_PATH, inv)
+    for q in pending:
+        print("=" * 78)
+        print(f"event_id : {q.get('event_id')}")
+        print(f"type     : {q.get('type')}  service: {q.get('service')}")
+        print(f"url      : {q.get('url')}")
+        print(f"seed     : {q.get('seed')}")
+        print(f"title    : {q.get('title', '')}")
+        print(f"hash     : {(q.get('content_hash') or '')[:20]}")
+        print("-" * 78)
+        raw = input("relevant/not_relevant/duplicate/unsafe_or_excluded/skip/quit? "
+                    "[r/n/d/x/s/q] ").strip().lower()
+        action = {"r": "relevant", "n": "not_relevant", "d": "duplicate",
+                  "x": "unsafe_or_excluded", "s": "skip", "q": "quit"}.get(raw, raw)
+        if action == "quit":
+            print("quitting; remaining candidates stay pending.")
+            return
+        if action == "skip":
+            continue
+        try:
+            from freshness.discovery import apply_review_action
+            apply_review_action(queue, inventory, q["event_id"], action,
+                                inventory_path=INVENTORY_PATH, save=save_inventory)
+            atomic_write_json(REVIEW_QUEUE_PATH, queue)
+            print(f"  → marked {action}")
+        except SystemExit as exc:
+            print(f"  {exc}")
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Human approval gate for freshness diffs")
-    ap.add_argument("--list", action="store_true", help="list pending diffs and exit")
+    ap = argparse.ArgumentParser(description="Freshness V2 human review gates")
+    ap.add_argument("--list", action="store_true", help="list pending items and exit")
+    ap.add_argument("--discovery", action="store_true",
+                    help="review discovery candidates instead of source-change events")
     args = ap.parse_args()
 
-    queue = diff.load_queue(QUEUE_PATH)
-    if not queue:
-        print("No pending diffs. Nothing to review.")
+    if args.discovery:
+        if args.list:
+            queue = [q for q in atomic_read_json(REVIEW_QUEUE_PATH, default=[])
+                     if q.get("status") == "pending"]
+            print(json.dumps(queue, indent=2, ensure_ascii=False))
+            return
+        review_discovery()
         return
 
-    print(f"{len(queue)} pending diff(s) in {os.path.basename(QUEUE_PATH)}\n")
     if args.list:
-        for e in queue:
-            show_entry(e)
+        pending = [e for e in load_events(EVENTS_PATH) if e.get("status") == "pending"]
+        for e in pending:
+            _show_event(e)
+        if not pending:
+            print("No pending source-change events.")
         return
-
-    approved = load_approved()
-    remaining = list(queue)
-    for entry in queue:
-        show_entry(entry)
-        action = prompt_action(entry)
-        if action == "a":
-            approved.append({
-                "record_id": entry["record_id"],
-                "service": entry["service"],
-                "source_url": entry["source_url"],
-                "approved_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            })
-            save_approved(approved)
-            remaining = [e for e in remaining if e["record_id"] != entry["record_id"]]
-            print_new_text_for_manual_edit(entry)
-        elif action == "r":
-            # Rejected: corpus stays as-is; the store already holds the latest
-            # hash, so this drift won't re-appear next run. Drop from queue.
-            remaining = [e for e in remaining if e["record_id"] != entry["record_id"]]
-            print(f"  rejected {entry['record_id']} — corpus untouched.\n")
-        elif action == "q":
-            print("  quitting; remaining entries stay pending.\n")
-            break
-        else:  # skip
-            print("  skipped — stays in the queue.\n")
-
-    diff.save_queue(remaining, QUEUE_PATH)
-    print(f"Done. {len(remaining)} pending, {len(approved)} approved-for-reembed total.")
+    review_events()
 
 
 if __name__ == "__main__":

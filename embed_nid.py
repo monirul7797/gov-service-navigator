@@ -51,6 +51,18 @@ def as_passage(text: str) -> str:
     return f"passage: {text}" if IS_E5 else text
 
 
+def to_metadata_nid(r: dict) -> dict:
+    """Canonical NID embedding metadata (Freshness V2 §11: reembed must match
+    the full embed path exactly, so both import THIS function)."""
+    return {
+        "category": r["category"],
+        "heading": r["heading"],
+        "lang": r["lang"],
+        "source_url": r["source_url"],
+        "official": r["official"],
+    }
+
+
 def load_chunks(path: str) -> list[dict]:
     with open(path, encoding="utf-8") as f:
         return [json.loads(line) for line in f if line.strip()]
@@ -88,13 +100,7 @@ def main() -> None:
         ids=[r["id"] for r in rows],
         documents=[r["text"] for r in rows],          # store the ORIGINAL text
         embeddings=[v.tolist() for v in embeddings],
-        metadatas=[{
-            "category": r["category"],
-            "heading": r["heading"],
-            "lang": r["lang"],
-            "source_url": r["source_url"],
-            "official": r["official"],
-        } for r in rows],
+        metadatas=[to_metadata_nid(r) for r in rows],
     )
     print(f"\n✓ stored {coll.count()} chunks in ChromaDB at ./{DB_DIR}")
     print("  next: python query_nid.py")

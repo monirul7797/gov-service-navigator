@@ -18,9 +18,11 @@ import json
 import os
 import re
 
-REPO_ROOT = r"C:\Users\Monirul\Documents\Structured Data\NID\gov-service-navigator\gov-service-navigator"
-LAST_KNOWN_DIR = os.path.join(REPO_ROOT, "freshness", "last_known_text")
-QUEUE_PATH = os.path.join(REPO_ROOT, "freshness", "pending_review.json")
+from pathlib import Path
+
+REPO_ROOT = str(Path(__file__).resolve().parents[1])
+LAST_KNOWN_DIR = str(Path(__file__).resolve().parent / "last_known_text")
+QUEUE_PATH = str(Path(__file__).resolve().parent / "pending_review.json")
 
 
 def sha256_text(text: str) -> str:

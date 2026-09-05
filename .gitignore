@@ -5,3 +5,4 @@ __pycache__/
 freshness/last_known_text/
 freshness/pending_review.json
 freshness/approved_for_reembed.json
+freshness/backup_v1/

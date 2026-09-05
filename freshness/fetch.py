@@ -45,13 +45,16 @@ _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)
 from acquisition.extract import STRIP_AND_EXTRACT_JS, normalize_text, sha256_text  # noqa: E402,F401
 from acquisition.robots import RobotsCache as _RobotsCacheImpl, robots_check as _robots_check_impl  # noqa: E402,F401
 
-REPO_ROOT = r"C:\Users\Monirul\Documents\Structured Data\NID\gov-service-navigator\gov-service-navigator"
+from pathlib import Path
+
+# repo-relative resolution (Freshness V2 section 15): works wherever the repo lives
+REPO_ROOT = str(Path(__file__).resolve().parents[1])
 
 CORPUS_PATHS = {
-    "nid": f"{REPO_ROOT}\\data\\chunks\\nid.jsonl",
-    "epassport": f"{REPO_ROOT}\\data\\chunks\\epassport.jsonl",
-    "ereturn": f"{REPO_ROOT}\\data\\chunks\\ereturn.jsonl",
-    "bdris": f"{REPO_ROOT}\\data\\chunks\\bdris.jsonl",
+    "nid": f"{REPO_ROOT}/data/chunks/nid.jsonl",
+    "epassport": f"{REPO_ROOT}/data/chunks/epassport.jsonl",
+    "ereturn": f"{REPO_ROOT}/data/chunks/ereturn.jsonl",
+    "bdris": f"{REPO_ROOT}/data/chunks/bdris.jsonl",
 }
 
 # Spec §0 note 6: known blockers. Never fetched, never evaded.

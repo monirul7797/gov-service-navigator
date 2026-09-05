@@ -1,0 +1,53 @@
+{
+  "_readme": "Curated official-source discovery hubs per service (Freshness V2 §19). Seeds are chosen from evidence gathered in earlier phases: each is a policy/FAQ/rules/forms hub that has actually served corpus content or policy documents. Deliberately NOT included: entire ministry homepages (noisy), case/order archives (PII), login/application dashboards, search pages with uncontrolled pagination. epassport and bdris have no seeds because every known official host for them blocks automated acquisition (Akamai 403 on epassport.gov.bd; 403 headless-blocking on bdris.gov.bd and robots/TLS failures on orgbdr.gov.bd) — a discovery seed there would fail every run (V2 §22 keeps that safe, but it is pure noise).",
+
+  "services": {
+    "nid": {
+      "discovery_seeds": [
+        {
+          "url": "https://services.nidw.gov.bd/nid-pub/faq",
+          "max_depth": 1,
+          "max_pages": 10,
+          "allowed_domains": ["services.nidw.gov.bd"],
+          "purpose": "NID portal FAQ index — the source of 54 corpus records; detects newly published citizen questions/answers",
+          "include_patterns": ["faq", "fee", "fees", "form", "download", "apply", "correction", "reissue", "registration"],
+          "exclude_patterns": ["procurement", "tender", "recruitment", "news"]
+        }
+      ]
+    },
+    "ereturn": {
+      "discovery_seeds": [
+        {
+          "url": "https://nbr.gov.bd/all-faq/ban",
+          "max_depth": 1,
+          "max_pages": 10,
+          "allowed_domains": ["nbr.gov.bd"],
+          "purpose": "NBR official FAQ hub — the source of 81 ereturn corpus records; detects newly published tax FAQs and policy pages",
+          "include_patterns": ["faq", "tax", "return", "vat", "etin", "e-tin", "surtax", "automation"],
+          "exclude_patterns": ["tender", "recruitment", "procurement", "career"]
+        }
+      ]
+    },
+    "visa": {
+      "discovery_seeds": [
+        {
+          "url": "https://immi.specialbranch.gov.bd/Immi_rules",
+          "max_depth": 1,
+          "max_pages": 15,
+          "allowed_domains": ["immi.specialbranch.gov.bd"],
+          "purpose": "Special Branch immigration rules hub — hosts Visa Policy 2026, visa forms and immigration rules; detects new policy circulars and forms",
+          "include_patterns": ["visa", "immigration", "foreigner", "rules", "form", "circular", "policy", "transit", "nvr", "arrival", "passport", "landing"],
+          "exclude_patterns": ["procurement", "tender", "corona", "covid", "news", "recruitment", "annual"]
+        }
+      ]
+    },
+    "epassport": {
+      "discovery_seeds": [],
+      "_note": "no usable hub: www.epassport.gov.bd serves an Akamai bot wall to automated clients; manual screenshots remain the fallback for that service"
+    },
+    "bdris": {
+      "discovery_seeds": [],
+      "_note": "no usable hub: bdris.gov.bd 403s headless browsers, orgbdr.gov.bd is robots-disallowed/TLS-broken; manual screenshots remain the fallback"
+    }
+  }
+}
