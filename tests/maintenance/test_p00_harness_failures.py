@@ -152,33 +152,154 @@ class TestC2DirectResolverGuard(unittest.TestCase):
         self.assertIn("SENTINEL_CALLS=0", result.stdout)
         self.assertIn("NETWORK_ATTEMPT", result.stderr)
 
-    def test_caught_violation_still_fails_parent_aggregation(self):
-        """Real parent aggregation path: a legacy child catches the violation
-        and exits 0 — the parent must still fail via its guard log."""
-        repo = Path(tempfile.mkdtemp(prefix="p00c1_agg_")) / "repo"
+    # P00-C2 fixture: a COMPLETE temporary repository — all four legacy-named
+    # scripts, a genuine passing unittest under tests/maintenance selected by
+    # a fixture-only pattern, and the copied production runner. With this
+    # fixture the parent's exit status can only come from network-attempt
+    # enforcement, never from missing scripts or empty discovery.
+    _AGG_PATTERN = "test_aggregation_fixture.py"
+
+    def _build_aggregation_repo(self, base: Path, *, runner_source: str,
+                                attempt_env_name: str = "P00C2_ATTEMPT") -> Path:
+        repo = base / "repo"
         (repo / "tools").mkdir(parents=True)
         (repo / "tests" / "maintenance").mkdir(parents=True)
         (repo / "tests" / "__init__.py").write_text("", encoding="utf-8")
         (repo / "tests" / "maintenance" / "__init__.py").write_text("", encoding="utf-8")
-        shutil_copy = (REPO_ROOT / "tools" / "run_offline_checks.py").read_text(encoding="utf-8")
-        (repo / "tools" / "run_offline_checks.py").write_text(shutil_copy, encoding="utf-8")
-        # a legacy-named child that catches ANY exception and exits 0
-        (repo / "test_freshness.py").write_text(
-            "import socket, sys\n"
-            "try:\n"
-            "    socket.create_connection(('gov.example', 443), timeout=3)\n"
-            "except Exception:\n"
-            "    pass\n"
-            "print('child swallowed the violation and exits 0')\n"
-            "sys.exit(0)\n", encoding="utf-8")
-        result = subprocess.run(
-            [sys.executable, "-B", str(repo / "tools" / "run_offline_checks.py"), "--legacy"],
-            capture_output=True, text=True, cwd=str(repo),
-            env=_isolated_env("c2_aggregation.jsonl"), timeout=600)
+        (repo / "tools" / "run_offline_checks.py").write_text(runner_source, encoding="utf-8")
+        (repo / "tests" / "maintenance" / self._AGG_PATTERN).write_text(
+            "import unittest\n"
+            "class TestAggregationFixture(unittest.TestCase):\n"
+            "    def test_passes(self):\n"
+            "        self.assertTrue(True)\n", encoding="utf-8")
+        # three simple successful legacy fixtures; test_freshness.py is the
+        # one that conditionally attempts a guarded connection and catches it
+        simple = (
+            "import sys\n"
+            "print('fixture legacy suite: pass')\n"
+            "sys.exit(0)\n"
+        )
+        bodies = {
+            "test_freshness.py": (
+                "import os, socket, sys\n"
+                f"if os.environ.get({attempt_env_name!r}) == '1':\n"
+                "    try:\n"
+                "        socket.create_connection(('gov.example', 443), timeout=3)\n"
+                "    except Exception:\n"
+                "        pass  # the guard violation is deliberately caught\n"
+                "    print('fixture: attempted and caught')\n"
+                "print('fixture legacy suite: pass')\n"
+                "sys.exit(0)\n"),
+            "test_freshness_v21.py": simple,
+            "test_acquisition.py": simple,
+            "test_multiturn.py": simple,
+        }
+        for name, body in bodies.items():
+            (repo / name).write_text(body, encoding="utf-8")
+        return repo
+
+    def _run_aggregation(self, repo: Path, *, attempt: bool, log_name: str):
+        env = _isolated_env(log_name)
+        if attempt:
+            env["P00C2_ATTEMPT"] = "1"
+        return subprocess.run(
+            [sys.executable, "-B", str(repo / "tools" / "run_offline_checks.py"),
+             "--legacy", "--pattern", self._AGG_PATTERN],
+            capture_output=True, text=True, cwd=str(repo), env=env, timeout=900)
+
+    @staticmethod
+    def _rows(output: str) -> dict:
+        rows = {}
+        for line in output.splitlines():
+            line = line.strip()
+            if line.startswith('{"suite":'):
+                row = json.loads(line)
+                rows[row["suite"]] = row
+        return rows
+
+    def test_positive_control_all_children_pass(self):
+        """Positive control over the complete fixture: everything green, zero
+        attempts, no missing-script or NO_TESTS_DISCOVERED diagnostics."""
+        repo = self._build_aggregation_repo(
+            Path(tempfile.mkdtemp(prefix="p00c2_pos_")),
+            runner_source=(REPO_ROOT / "tools" / "run_offline_checks.py").read_text(encoding="utf-8"))
+        result = self._run_aggregation(repo, attempt=False, log_name="c2_pos.jsonl")
+        self.assertEqual(result.returncode, 0, result.stdout[-2000:])
+        rows = self._rows(result.stdout)
+        legacy = [n for n in ("test_freshness.py", "test_freshness_v21.py",
+                              "test_acquisition.py", "test_multiturn.py") if n in rows]
+        self.assertEqual(len(legacy), 4, f"missing legacy rows: {sorted(rows)}")
+        for name in legacy:
+            self.assertEqual(rows[name]["exit"], 0, name)
+            self.assertEqual(rows[name]["network_attempts"], 0, name)
+            self.assertTrue(rows[name]["ok"], name)
+        disc = rows.get(f"tests/maintenance:{self._AGG_PATTERN}")
+        self.assertIsNotNone(disc)
+        self.assertEqual((disc["exit"], disc["ran"], disc["failures"],
+                          disc["errors"], disc["skips"]), (0, 1, 0, 0, 0))
+        self.assertIn("attempted_network=0", result.stdout)
+        self.assertNotIn("missing script", result.stdout)
+        self.assertNotIn("NO_TESTS_DISCOVERED", result.stdout)
+
+    def test_caught_violation_still_fails_parent_aggregation(self):
+        """Real parent aggregation path, complete fixture: the offending child
+        catches the guard violation and exits 0, every other child and the
+        discovered test succeed — and the parent STILL fails, with exactly one
+        recorded attempt attributed to the offending child."""
+        repo = self._build_aggregation_repo(
+            Path(tempfile.mkdtemp(prefix="p00c2_vio_")),
+            runner_source=(REPO_ROOT / "tools" / "run_offline_checks.py").read_text(encoding="utf-8"))
+        result = self._run_aggregation(repo, attempt=True, log_name="c2_vio.jsonl")
         self.assertNotEqual(result.returncode, 0,
                             "parent accepted a child that caught a guard violation")
+        rows = self._rows(result.stdout)
+        offender = rows["test_freshness.py"]
+        # causal condition: the offending child SUCCEEDED (it caught and
+        # exited 0) yet is the sole source of the recorded attempt
+        self.assertEqual(offender["exit"], 0)
+        self.assertEqual(offender["network_attempts"], 1)
+        self.assertFalse(offender["ok"])
+        for name in ("test_freshness_v21.py", "test_acquisition.py", "test_multiturn.py"):
+            self.assertEqual(rows[name]["exit"], 0, name)
+            self.assertEqual(rows[name]["network_attempts"], 0, name)
+            self.assertTrue(rows[name]["ok"], name)
+        disc = rows[f"tests/maintenance:{self._AGG_PATTERN}"]
+        self.assertEqual((disc["exit"], disc["ran"], disc["failures"],
+                          disc["errors"], disc["skips"]), (0, 1, 0, 0, 0))
+        self.assertEqual(disc["network_attempts"], 0)
         self.assertIn("attempted_network=1", result.stdout)
-        self.assertNotIn("attempted_network=0", result.stdout)
+
+    def test_mutation_detection_enforcement_removal(self):
+        """Demonstrate the regression detects enforcement removal: with the
+        two attempt-decisions mutated out of a TEMP COPY of the runner, the
+        same caught-violation fixture produces the false success (exit 0 with
+        attempted_network=1) that the real regression asserts against. The
+        real tools/run_offline_checks.py is never edited."""
+        real_source = (REPO_ROOT / "tools" / "run_offline_checks.py").read_text(encoding="utf-8")
+        sub1_old = "ok = (code == 0) and not attempts"
+        sub2_old = "return 0 if exit_ok and not total_attempts else 1"
+        # fail loudly if source drift makes the mutation invalid
+        self.assertEqual(real_source.count(sub1_old), 1, "legacy decision anchor moved")
+        self.assertEqual(real_source.count(sub2_old), 1, "final decision anchor moved")
+        mutated = real_source.replace(sub1_old, "ok = (code == 0)") \
+                             .replace(sub2_old, "return 0 if exit_ok else 1")
+        self.assertIn("install_guard(", mutated)   # guard installation left intact
+        self.assertIn("_record(", mutated)          # attempt recording left intact
+
+        repo = self._build_aggregation_repo(
+            Path(tempfile.mkdtemp(prefix="p00c2_mut_")), runner_source=mutated)
+        result = self._run_aggregation(repo, attempt=True, log_name="c2_mut.jsonl")
+        # with enforcement removed: the false success appears — this is exactly
+        # the behavior the committed caught-violation regression asserts against
+        self.assertEqual(result.returncode, 0,
+                         "mutated runner unexpectedly failed; the demonstration "
+                         "no longer isolates enforcement removal")
+        self.assertIn("attempted_network=1", result.stdout)
+
+        # the real tool is untouched by the demonstration
+        self.assertEqual(
+            (REPO_ROOT / "tools" / "run_offline_checks.py").read_text(encoding="utf-8"),
+            real_source)
 
 
 class TestC3WindowsArchiveContainment(unittest.TestCase):
