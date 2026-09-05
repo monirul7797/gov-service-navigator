@@ -3,7 +3,7 @@
 ## Known Source Monitoring
 
 - services: nid
-- records mapped: 8
+- records mapped: 99
 - unique known sources: 6
 - sources actually fetched: 6
 - new baselines: 0

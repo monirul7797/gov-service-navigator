@@ -1,6 +1,6 @@
 """
 freshness/migrate_v1.py — one-time migration of record-level V1 freshness
-state into source-keyed V2 state (Freshness V2 §3).
+state into source-keyed V2 state (Freshness V2 §3; V2.1 B9/B10).
 
 Safety rules:
   * back up ALL V1 operational state locally first (gitignored);
@@ -8,8 +8,13 @@ Safety rules:
   * collapse a URL into ONE source baseline ONLY if every successful record
     hash agrees AND the corresponding last_known_text snapshots hash to the
     same value;
-  * any disagreement → STOP for that URL, report it, never guess;
-  * V1 files are KEPT as migration evidence/back-up — never deleted;
+  * B10: TWO-PHASE — Phase A validates and builds the entire plan in memory;
+    ANY conflict means ZERO V2 writes. Phase B commits (backup → snapshots →
+    store → report) only after global validation succeeds;
+  * B9: stored-count metrics reconcile with the resulting store
+    (baseline_sources_stored + status_only_sources_stored; records without a
+    usable URL are counted separately and never migrated);
+  * V1 files are KEPT as migration evidence — never deleted;
   * V1 baselines were rendered-DOM text hashes → trusted method is
     'verified_browser' (§5 canonical method), preserving hash continuity.
 
@@ -45,9 +50,9 @@ def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def backup_v1_state() -> Path:
+def backup_v1_state(backup_root: Path = BACKUP_DIR) -> Path:
     """Local backup of generated operational state (§3) — gitignored."""
-    dest = BACKUP_DIR / datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    dest = Path(backup_root) / datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     dest.mkdir(parents=True, exist_ok=True)
     for f in (V1_STORE, V1_QUEUE, V1_APPROVED):
         if f.exists():
@@ -57,23 +62,43 @@ def backup_v1_state() -> Path:
     return dest
 
 
-def migrate(*, report_only: bool = False) -> dict:
-    if not V1_STORE.exists():
-        raise SystemExit(f"no V1 store at {V1_STORE} — nothing to migrate")
+def migrate(*, report_only: bool = False,
+            v1_store: Path = V1_STORE, v1_snapshots: Path = V1_SNAPSHOTS,
+            v2_store: Path = V2_STORE,
+            snapshots_dir: Path = FRESHNESS_DIR / "source_snapshots",
+            backup_root: Path = BACKUP_DIR) -> dict:
+    """B10: two-phase migration.
 
-    v1 = json.loads(V1_STORE.read_text(encoding="utf-8"))
+    Phase A — validate and build the ENTIRE migration plan in memory (grouped
+    hashes, snapshot agreement, normalized URLs, status-only entries,
+    conflicts). No V2 writes happen in this phase.
+    Phase B — only after global validation succeeds: backup, write V2
+    snapshots, atomically write the source store, write the report.
+
+    B9: metrics reconcile with what is ACTUALLY stored —
+    baseline_sources_stored + status_only_sources_stored; records without a
+    usable URL are counted separately (records_without_usable_url).
+    """
+    if not Path(v1_store).exists():
+        raise SystemExit(f"no V1 store at {v1_store} — nothing to migrate")
+
+    v1 = json.loads(Path(v1_store).read_text(encoding="utf-8"))
     report = {"checked_record_entries": len(v1), "urls": {}, "conflicts": [],
-              "baseline_sources": 0, "status_only_sources": 0}
+              "baseline_sources_stored": 0, "status_only_sources_stored": 0,
+              "records_without_usable_url": 0}
 
-    # group successful record entries by normalized URL
+    # ---- Phase A: validate + plan entirely in memory -----------------------
     groups: dict[str, list] = {}
+    no_url_records = 0
     for record_id, rec in v1.items():
         url = rec.get("source_url") or ""
         norm = normalize_url(url) if url.startswith("http") else ""
+        if not norm:
+            no_url_records += 1
         groups.setdefault(norm, []).append((record_id, rec))
+    report["records_without_usable_url"] = no_url_records
 
-    new_store = json.loads(V2_STORE.read_text(encoding="utf-8")) if V2_STORE.exists() else {}
-
+    plan: dict[str, dict] = {}       # norm -> {"entry":..., "snapshot_text":...}
     for norm, entries in sorted(groups.items()):
         url_report = {"record_ids": [e[0] for e in entries], "status": None}
         successful = [(rid, rec) for rid, rec in entries if rec.get("content_hash")]
@@ -94,15 +119,14 @@ def migrate(*, report_only: bool = False) -> dict:
                 "content_type": None, "content_length": None,
             }
             url_report["status"] = f"status-only ({entry['status']})"
-            report["status_only_sources"] += 1
-            if not report_only and norm:
-                new_store.setdefault(norm, entry)
-            report["urls"][norm or "(no url)"] = url_report
+            if norm:
+                plan[norm] = {"entry": entry, "snapshot_text": None}
+            report["urls"][norm or "(no usable url)"] = url_report
             continue
 
         hashes = {rec["content_hash"] for _, rec in successful}
         if len(hashes) != 1:
-            # §3: disagreement → STOP for this URL, report, never guess
+            # §3: disagreement → conflict, never guess
             detail = {rid: rec["content_hash"][:12] for rid, rec in successful}
             report["conflicts"].append({"url": norm, "hashes": detail})
             url_report["status"] = "CONFLICT — migration stopped for this URL"
@@ -111,24 +135,22 @@ def migrate(*, report_only: bool = False) -> dict:
         trusted_hash = successful[0][1]["content_hash"]
 
         # snapshot agreement: every record snapshot must hash to the same value
-        snapshot_ok = True
         snapshot_text = None
         for rid, _rec in successful:
-            snap = V1_SNAPSHOTS / f"{rid}.txt"
+            snap = Path(v1_snapshots) / f"{rid}.txt"
             if not snap.exists():
-                snapshot_ok = False
                 report["conflicts"].append({"url": norm, "issue": f"missing snapshot {snap.name}"})
-                snapshot_ok = "missing"
+                snapshot_text = None
                 break
             text = snap.read_text(encoding="utf-8")
             if sha256_text(text) != trusted_hash:
-                snapshot_ok = False
                 report["conflicts"].append(
                     {"url": norm, "issue": f"snapshot hash mismatch for {snap.name}"})
+                snapshot_text = None
                 break
             snapshot_text = text
-        if snapshot_ok is not True:
-            url_report["status"] = f"CONFLICT — snapshot issue ({snapshot_ok})"
+        if snapshot_text is None:
+            url_report["status"] = "CONFLICT — snapshot issue"
             report["urls"][norm] = url_report
             continue
 
@@ -136,7 +158,7 @@ def migrate(*, report_only: bool = False) -> dict:
         entry = {
             "normalized_url": norm, "canonical_url": any_rec.get("source_url"),
             "trusted_hash": trusted_hash,
-            "trusted_snapshot": None,   # written below (hash-verified copy)
+            "trusted_snapshot": None,
             "trusted_acquisition_method": "verified_browser",  # V1 = rendered DOM
             "candidate_hash": None, "candidate_snapshot": None,
             "candidate_acquisition_method": None, "candidate_invalid": False,
@@ -149,28 +171,50 @@ def migrate(*, report_only: bool = False) -> dict:
             "content_type": "text/html",
             "content_length": len(snapshot_text or ""),
         }
-        if not report_only and norm:
-            from freshness.paths import atomic_write_text
-            snap_path = FRESHNESS_DIR / "source_snapshots" / f"{slug_for_url(norm)}.trusted.txt"
-            atomic_write_text(snap_path, snapshot_text)
-            entry["trusted_snapshot"] = str(snap_path)
-            new_store[norm] = entry
-        report["baseline_sources"] += 1
+        plan[norm] = {"entry": entry, "snapshot_text": snapshot_text}
         url_report["status"] = f"baselined ({len(successful)} records collapsed)"
         report["urls"][norm] = url_report
 
+    # ---- Phase B: commit only after global validation succeeds --------------
     if not report_only:
         if report["conflicts"]:
-            print("MIGRATION HALTED — hash/snapshot conflicts detected; nothing written.")
+            # B10: a conflict anywhere means NOTHING is written to V2 state
+            print("MIGRATION HALTED — hash/snapshot conflicts detected; "
+                  "zero V2 writes performed.")
             print(json.dumps(report["conflicts"], indent=2))
             sys.exit(1)
-        backup = backup_v1_state()
-        atomic_write_json(V2_STORE, new_store)
+        backup = backup_v1_state(backup_root)
+        from freshness.paths import atomic_write_text
+        for norm, item in plan.items():
+            if item["snapshot_text"] is not None:
+                snap_path = Path(snapshots_dir) / f"{slug_for_url(norm)}.trusted.txt"
+                atomic_write_text(snap_path, item["snapshot_text"])
+                item["entry"]["trusted_snapshot"] = str(snap_path)
+        new_store = json.loads(Path(v2_store).read_text(encoding="utf-8")) \
+            if Path(v2_store).exists() else {}
+        new_store.update({norm: item["entry"] for norm, item in plan.items()})
+        atomic_write_json(Path(v2_store), new_store)
         report["backup_dir"] = str(backup)
-        print(f"migrated: {report['baseline_sources']} baselined sources, "
-              f"{report['status_only_sources']} status-only sources")
+
+        # B9: reconcile stored-count metrics against the resulting store
+        stored = json.loads(Path(v2_store).read_text(encoding="utf-8"))
+        report["baseline_sources_stored"] = len([e for e in stored.values()
+                                                 if e.get("trusted_hash")])
+        report["status_only_sources_stored"] = len([e for e in stored.values()
+                                                    if not e.get("trusted_hash")])
+        planned_baseline = len([i for i in plan.values() if i["snapshot_text"] is not None])
+        planned_status = len(plan) - planned_baseline
+        assert report["baseline_sources_stored"] == planned_baseline, "baseline metric mismatch"
+        assert report["status_only_sources_stored"] == planned_status, "status-only metric mismatch"
+        print(f"migrated: {report['baseline_sources_stored']} baselined sources, "
+              f"{report['status_only_sources_stored']} status-only sources, "
+              f"{report['records_without_usable_url']} records without usable url "
+              f"(counted separately, not migrated)")
         print(f"v1 state preserved (backup: {backup})")
     else:
+        report["baseline_sources_stored"] = len([i for i in plan.values()
+                                                 if i["snapshot_text"] is not None])
+        report["status_only_sources_stored"] = len(plan) - report["baseline_sources_stored"]
         print(json.dumps(report, indent=2, ensure_ascii=False))
     return report
 

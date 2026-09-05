@@ -29,8 +29,13 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from acquisition.acquire import extract_text_from_html
+from acquisition.robots import RobotsCache, robots_check
 from acquisition.transport import RequestsTransport  # noqa: F401 (default factory)
-from acquisition.urls import normalize_url
+from acquisition.urls import normalize_url, same_domain
+
+def _domain_of(url: str) -> str:
+    from urllib.parse import urlparse
+    return (urlparse(url).hostname or "").lower()
 
 from . import source_store as S
 from .mapping import build_source_mapping
@@ -49,7 +54,8 @@ class KnownSourceMonitor:
                  store_path, snapshot_dir, events_path,
                  rate_limit_seconds: float = 1.0, dry_run: bool = False,
                  user_agent: str = DEFAULT_UA, now_fn=None,
-                 record_ids: set[str] | None = None):
+                 record_ids: set[str] | None = None,
+                 robots: RobotsCache | None = None):
         self.corpus_paths = corpus_paths
         self.transport = transport
         self.renderer = renderer
@@ -61,6 +67,7 @@ class KnownSourceMonitor:
         self.user_agent = user_agent
         self._now = now_fn or _now
         self.record_ids = record_ids
+        self.robots = robots or RobotsCache()
         self._first_fetch = True
 
     # -- persistence helpers (dry-run aware) ---------------------------------
@@ -91,7 +98,7 @@ class KnownSourceMonitor:
 
     def _acquire(self, url: str, is_pdf: bool, entry):
         """Acquire one source through the shared hierarchy.
-        Returns (quality, method, verification, text_or_bytes, reason)."""
+        Returns (quality, method, verification, text_or_bytes, reason, final_url)."""
         import time
         if not self._first_fetch:
             time.sleep(self.rate_limit_seconds)
@@ -101,24 +108,25 @@ class KnownSourceMonitor:
             strict = self.transport.fetch(url)
             if strict.ok:
                 return ("ok", S.METHOD_PDF, "verified", strict.body,
-                        f"pdf:{strict.content_type}")
+                        f"pdf:{strict.content_type}", strict.final_url)
             if strict.error_kind == "tls":
                 return ("failed", None, "unreachable", None,
-                        f"tls: {strict.error_detail[:120]}")
+                        f"tls: {strict.error_detail[:120]}", "")
             status = S.STATUS_BLOCKED if (strict.status in (401, 403, 429, 503)) else S.STATUS_FAILED
             return ("failed", None, "unreachable", None,
-                    f"{status}: {strict.error_detail[:120]}")
+                    f"{status}: {strict.error_detail[:120]}", strict.final_url)
 
         render = self.renderer.goto(url, ignore_tls=False)
         if render.ok:
-            return ("ok", S.METHOD_BROWSER, "verified", render.text, "")
+            return ("ok", S.METHOD_BROWSER, "verified", render.text, "", render.final_url)
         if render.error_kind == "tls":
             # evidence-context render: diagnostics only, NEVER trusted (§5/§7)
             ev = self.renderer.goto(url, ignore_tls=True)
             reason = f"tls: {render.error_detail[:120]}"
             if ev.ok:
-                return ("capture_only", None, "capture_only", ev.text, reason)
-            return ("failed", None, "unreachable", None, reason + " (evidence render also failed)")
+                return ("capture_only", None, "capture_only", ev.text, reason, ev.final_url)
+            return ("failed", None, "unreachable", None,
+                    reason + " (evidence render also failed)", "")
         # browser could not render (blocked / http error / navigation) —
         # try the strict static fallback before declaring failure (§5 item 2)
         strict = self.transport.fetch(url)
@@ -127,23 +135,36 @@ class KnownSourceMonitor:
             if "html" in ctype or ctype == "":
                 text = extract_text_from_html(strict.body.decode("utf-8", errors="replace"))
                 return ("ok", S.METHOD_STATIC, "verified", text,
-                        f"browser failed ({render.error_kind}), static fallback used")
+                        f"browser failed ({render.error_kind}), static fallback used",
+                        strict.final_url)
         blocked = render.status in (401, 403, 429, 503) or render.error_kind == "blocked"
         status = S.STATUS_BLOCKED if blocked else S.STATUS_FAILED
         return ("failed", None, "unreachable", None,
-                f"{status}: {render.error_kind} {render.error_detail[:100]}")
+                f"{status}: {render.error_kind} {render.error_detail[:100]}", render.final_url)
 
     # -- main run ---------------------------------------------------------------
 
     def run(self) -> dict:
         import time
 
-        mapping = build_source_mapping(self.corpus_paths, record_ids=self.record_ids)
+        # 13A: the FULL mapping (all records of the selected services) drives
+        # impacted-record lists; the fetch set is restricted to the sources of
+        # the selected records only, so a shared source's event never omits
+        # the other records that depend on it.
+        full_mapping = build_source_mapping(self.corpus_paths)
+        if self.record_ids:
+            selected = {u for u, info in full_mapping.items()
+                        if any(r["record_id"] in self.record_ids for r in info["records"])}
+        else:
+            selected = set(full_mapping)
+        mapping = {u: info for u, info in full_mapping.items() if u in selected}
         store = S.load_store(self.store_path)
         events = atomic_read_json(self.events_path, default=[]) or []
 
         summary = {
             "records_mapped": sum(len(v["records"]) for v in mapping.values()),
+            "records_selected": (len(self.record_ids) if self.record_ids
+                                 else sum(len(v["records"]) for v in mapping.values())),
             "unique_sources": len([u for u in mapping if u]),
             "sources_fetched": 0,
             "new_baselines": 0, "unchanged": 0, "changed_pending": 0,
@@ -165,8 +186,22 @@ class KnownSourceMonitor:
             # per run by the acquisition layer inside the real implementation.
             # (The injected renderer/transport stand in for it in tests.)
 
-            quality, method, verification, payload, reason = self._acquire(
+            # B2: the known-source path honors the SAME shared robots policy as
+            # the crawler (acquisition.robots — no duplicated logic). Explicit
+            # disallow => no fetch; unreachable/5xx follows the shared policy
+            # (proceed with a note).
+            allowed, robots_note = robots_check(self.robots, norm_url, self.user_agent)
+            if not allowed:
+                S.mark_failure(entry, S.STATUS_ROBOTS,
+                               "robots_disallowed (explicit directive honored, never evaded)")
+                summary["blocked_or_robots"] += 1
+                self._save_store(self._store_or_memory(store))
+                continue
+
+            quality, method, verification, payload, reason, final_url = self._acquire(
                 norm_url, entry_info["is_pdf"], entry)
+            if robots_note:
+                entry["status_reason"] = robots_note  # informational note only
             summary["sources_fetched"] += 1
 
             if quality == "capture_only":
@@ -199,6 +234,23 @@ class KnownSourceMonitor:
                     from .paths import atomic_read_text
                     baseline_text = atomic_read_text(entry["trusted_snapshot"])
                 quality_code, q_reason = classify_capture(payload, baseline_text=baseline_text)
+
+            # B12-companion: a known source that silently redirected to an
+            # unrelated domain must not poison the baseline either
+            if method in (S.METHOD_BROWSER, S.METHOD_STATIC) and final_url and norm_url:
+                if not same_domain(final_url, _domain_of(norm_url)):
+                    S.mark_failure(entry, "redirected_off_domain",
+                                   f"redirected off-domain to {final_url} — baseline preserved")
+                    summary["suspect_captures"] += 1
+                    self._save_store(self._store_or_memory(store))
+                    continue
+
+            # a successful acquisition clears any stale failure status (§13),
+            # whatever the comparison outcome turns out to be
+            if entry.get("status") in (S.STATUS_FAILED, S.STATUS_BLOCKED,
+                                       S.STATUS_ROBOTS, S.STATUS_SUSPECT):
+                entry["status"] = None
+                entry["status_reason"] = None
 
             if quality_code != "ok":
                 # §7: quarantine — preserve trusted baseline, keep diagnostics

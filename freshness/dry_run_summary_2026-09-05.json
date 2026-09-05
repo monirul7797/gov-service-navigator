@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-09-05T06:38:10Z",
+  "dry_run": true,
+  "services": [
+    "visa"
+  ],
+  "known_sources": null,
+  "discovery": {
+    "seeds_checked": 1,
+    "verified_inventories": 1,
+    "seed_failures": 0,
+    "new_sources": 7,
+    "new_pdfs": 3,
+    "missing": 0,
+    "removed": 0,
+    "reappeared": 0,
+    "link_changes": 0,
+    "known_changed": 0,
+    "pending_reviews": 7
+  }
+}

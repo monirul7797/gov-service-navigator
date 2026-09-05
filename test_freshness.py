@@ -63,6 +63,29 @@ class FakeRenderer:
             return RenderResult(ok=False, error_kind="blocked", error_detail="net::ERR_UNSCRIPTED")
         return r
 
+    # crawler-interface defaults (acquisition.crawler may drive this fake);
+    # tests needing richer crawler behavior use test_acquisition.FakeRenderer
+    def discover_links(self, url):
+        return []
+
+    def ensure_on(self, url):
+        self.goto(url)
+
+    def list_interactables(self):
+        return []
+
+    def activate(self, item):
+        return False
+
+    def settle(self, ms=0):
+        pass
+
+    def body_text(self):
+        return ""
+
+    def snapshot_state(self):
+        return {"text": "", "html": "", "png": b""}
+
 
 def html(text, status=200):
     return RenderResult(ok=status < 400, status=status, text=text,
@@ -93,14 +116,16 @@ def fixed_now():
     return "2026-09-04T00:00:00Z"
 
 
-def make_monitor(tmp: Path, transport, renderer, corpus_paths, dry_run=False):
+def make_monitor(tmp: Path, transport, renderer, corpus_paths, dry_run=False,
+                 robots=None, record_ids=None):
     from freshness.known_monitor import KnownSourceMonitor
     return KnownSourceMonitor(
         corpus_paths=corpus_paths, transport=transport, renderer=renderer,
         store_path=tmp / "source_store.json",
         snapshot_dir=tmp / "snapshots",
         events_path=tmp / "pending_source_events.json",
-        rate_limit_seconds=0, dry_run=dry_run, now_fn=fixed_now)
+        rate_limit_seconds=0, dry_run=dry_run, now_fn=fixed_now,
+        robots=robots, record_ids=record_ids)
 
 
 def state_bytes(tmp: Path):
@@ -528,14 +553,16 @@ def test_discovery():
 
     # 28. normalized duplicates already deduped by inventory keys (dict keys)
 
-    # 24/§23. review actions: not_relevant stops repeat alerts
+    # 24/§23. review actions: not_relevant persists on the EXACT nested resource
     queue = [{"event_id": "e1", "type": "new_source", "url": "https://gov.example/hub/news-item",
-              "service": "nid", "status": "pending"}]
-    inv_state = {}
+              "service": "nid", "seed": SEED, "status": "pending"}]
+    inv_state = {"nid": {SEED: {"resources": {
+        "https://gov.example/hub/news-item": {"type": "html", "verification_status": "verified"}}}}}
     apply_review_action(queue, inv_state, "e1", "not_relevant",
                         inventory_path=None, save=lambda *a, **k: None)
     check("24a not_relevant marks the candidate ignored",
-          queue[0]["status"] == "not_relevant")
+          queue[0]["status"] == "not_relevant"
+          and inv_state["nid"][SEED]["resources"]["https://gov.example/hub/news-item"]["reviewed"] == "not_relevant")
     # ignored candidates do not re-alert: compare_inventories takes reviewed set
     ev = compare_inventories(prev, curr, seed_url=SEED, missing_threshold=3,
                              reviewed={"https://gov.example/hub/a"})

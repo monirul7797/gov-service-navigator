@@ -25,9 +25,19 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
+import hashlib
+
 from acquisition.urls import classify_url, normalize_url
 
 from .paths import atomic_read_json, atomic_write_json
+
+
+def make_event_id(service: str, seed: str, event_type: str, url: str,
+                  state: str = "") -> str:
+    """B3: deterministic, collision-resistant discovery event id
+    (service|seed|type|url|state-distinction — never Python hash())."""
+    raw = "|".join([service or "", seed or "", event_type or "", url or "", state or ""])
+    return "disc_" + hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 REGISTRY_PATH = Path(__file__).resolve().parent / "source_registry.json"
 INVENTORY_PATH = Path(__file__).resolve().parent / "discovery_inventory.json"
@@ -247,7 +257,13 @@ def reconcile_seed_inventory(previous_seed_state: dict | None, *, crawl_failed: 
         return {"preserved": True, "resources": prev_resources, "events": [],
                 "seed_failed": True}
 
-    current = current_resources or {}
+    current_all = current_resources or {}
+    # B5 trust boundary: ONLY verified resources may enter the trusted
+    # inventory, participate in missing/reappeared calculations, or produce
+    # new_source candidates. Capture-only/unverified observations are kept
+    # separately as diagnostics — never silently discarded, never merged.
+    current = {u: r for u, r in current_all.items() if inventory_entry_allowed(r)}
+    diagnostics = {u: r for u, r in current_all.items() if not inventory_entry_allowed(r)}
     now = _now()
     reviewed = {u for u, r in prev_resources.items() if r.get("reviewed")}
 
@@ -283,14 +299,18 @@ def reconcile_seed_inventory(previous_seed_state: dict | None, *, crawl_failed: 
         merged[url] = kept
 
     return {"preserved": False, "resources": merged, "events": events,
-            "seed_failed": False}
+            "seed_failed": False, "unverified_diagnostics": diagnostics}
 
 
 def apply_review_action(queue: list, inventory_state: dict, event_id: str, action: str,
                         *, inventory_path: Path | None = None,
                         save=None) -> list:
     """New-source review actions (§23):
-       relevant / not_relevant / duplicate / unsafe_or_excluded / skip."""
+       relevant / not_relevant / duplicate / unsafe_or_excluded / skip.
+
+    B4: the persisted inventory is nested service → seed → resources →
+    normalized URL; the action updates EXACTLY the resource identified by the
+    event's service + seed + normalized URL (no cross-service scanning)."""
     event = next((e for e in queue if e.get("event_id") == event_id), None)
     if event is None:
         raise SystemExit(f"review event {event_id} not found")
@@ -301,11 +321,28 @@ def apply_review_action(queue: list, inventory_state: dict, event_id: str, actio
     event["status"] = action
     event["resolved_at"] = _now()
     url = _entry_key(event.get("url", ""))
-    for seed_state in (inventory_state or {}).values():
+    service = event.get("service") or ""
+    seed = event.get("seed") or ""
+    updated = False
+    service_states = (inventory_state or {}).get(service) or {}
+    if seed:
+        seed_state = service_states.get(seed) or {}
         res = (seed_state.get("resources") or {}).get(url)
         if res is not None:
             res["reviewed"] = action
             res["reason"] = event.get("reason") or action
+            updated = True
+    else:
+        # events lacking a seed (legacy): fall back to the service's seeds only
+        for seed_state in (service_states or {}).values():
+            res = (seed_state.get("resources") or {}).get(url)
+            if res is not None:
+                res["reviewed"] = action
+                res["reason"] = event.get("reason") or action
+                updated = True
+    if not updated:
+        raise SystemExit(f"inventory resource not found for {service}/{seed}/{url} "
+                         f"— cannot persist disposition {action!r}")
     if save:
         save(inventory_state)
     return queue
