@@ -64,16 +64,26 @@ def run_known_sources(services: list[str], record_ids: set[str] | None,
     return summary
 
 
-def run_discovery(services: list[str], dry_run: bool, transport, renderer) -> dict:
+def run_discovery(services: list[str], dry_run: bool, transport, renderer,
+                  registry_path: Path | None = None,
+                  inventory_path: Path | None = None,
+                  review_queue_path: Path | None = None) -> dict:
+    """B6: a dry run READS the current persisted inventory/queue (its
+    prediction reflects today's state) but writes NOTHING. B8: every event
+    class is persisted to the review queue with a stable deterministic id (B3).
+    """
     from freshness.discovery import (INVENTORY_PATH, REVIEW_QUEUE_PATH,
                                      crawl_seed_inventory, load_registry,
-                                     reconcile_seed_inventory)
-    registry = load_registry()
+                                     make_event_id, reconcile_seed_inventory)
+    registry = load_registry(registry_path) if registry_path else load_registry()
     import json
-    inventory = json.loads(INVENTORY_PATH.read_text(encoding="utf-8")) \
-        if (not dry_run and INVENTORY_PATH.exists()) else {}
-    queue = json.loads(REVIEW_QUEUE_PATH.read_text(encoding="utf-8")) \
-        if (not dry_run and REVIEW_QUEUE_PATH.exists()) else []
+    inventory_path = Path(inventory_path) if inventory_path else INVENTORY_PATH
+    review_queue_path = Path(review_queue_path) if review_queue_path else REVIEW_QUEUE_PATH
+    inventory = json.loads(inventory_path.read_text(encoding="utf-8")) \
+        if inventory_path.exists() else {}
+    queue = json.loads(review_queue_path.read_text(encoding="utf-8")) \
+        if review_queue_path.exists() else []
+    pending_ids = {q["event_id"] for q in queue if q.get("status") == "pending"}
 
     summary = {"seeds_checked": 0, "verified_inventories": 0, "seed_failures": 0,
                "new_sources": 0, "new_pdfs": 0, "missing": 0, "removed": 0,
@@ -88,14 +98,18 @@ def run_discovery(services: list[str], dry_run: bool, transport, renderer) -> di
             prev = inventory.get(service, {}).get(seed["url"])
             missing_counts = (prev or {}).get("missing_counts", {})
             try:
-                evidence_dir = Path(__file__).resolve().parents[1] / "data" / "evidence" / f"discovery_{service}"
                 if dry_run:
-                    # section 14: a dry run persists nothing - throwaway evidence dir
+                    # B7: scoped temp dir, disposed on success/failure/exception
                     import tempfile
-                    evidence_dir = Path(tempfile.mkdtemp(prefix="discovery_dry_"))
-                crawled = crawl_seed_inventory(
-                    seed, transport=transport, renderer=renderer,
-                    evidence_dir=evidence_dir)
+                    with tempfile.TemporaryDirectory(prefix="discovery_dry_") as td:
+                        crawled = crawl_seed_inventory(
+                            seed, transport=transport, renderer=renderer,
+                            evidence_dir=Path(td))
+                else:
+                    evidence_dir = Path(__file__).resolve().parents[1] / "data" / "evidence" / f"discovery_{service}"
+                    crawled = crawl_seed_inventory(
+                        seed, transport=transport, renderer=renderer,
+                        evidence_dir=evidence_dir)
             except Exception as exc:  # noqa: BLE001 — a dead hub must not crash the run
                 crawled = {"ok": False, "resources": {},
                            "failures": [{"reason": str(exc)[:150]}]}
@@ -131,18 +145,24 @@ def run_discovery(services: list[str], dry_run: bool, transport, renderer) -> di
                     summary["link_changes"] += 1
                 elif ev["type"] == "known_source_changed":
                     summary["known_changed"] += 1
-                if ev.get("status") == "pending" and ev["type"] in (
-                        "new_source", "known_source_changed"):
-                    ev.setdefault("service", service)
-                    queue = [q for q in queue
-                             if not (q.get("url") == ev["url"] and q.get("status") == "pending")]
+                # B8: persist EVERY event class — missing/removed/reappeared/
+                # link_changed are durable operational evidence, not just report
+                # counts. B3: stable deterministic ids; duplicate unresolved
+                # entries are deduplicated across runs.
+                ev.setdefault("service", service)
+                ev["event_id"] = make_event_id(
+                    service, ev.get("seed") or seed["url"], ev["type"], ev.get("url", ""),
+                    str(ev.get("consecutive_missing") or ev.get("content_hash")
+                        or ev.get("new_hash") or ev.get("new_url") or ""))
+                if ev.get("status") == "pending" and ev["event_id"] not in pending_ids:
+                    pending_ids.add(ev["event_id"])
+                    queue = [q for q in queue if q.get("event_id") != ev["event_id"]]
                     queue.append(ev)
 
     if not dry_run:
-        import json
         import freshness.paths as P
-        P.atomic_write_json(INVENTORY_PATH, inventory)
-        P.atomic_write_json(REVIEW_QUEUE_PATH, queue)
+        P.atomic_write_json(inventory_path, inventory)
+        P.atomic_write_json(review_queue_path, queue)
     summary["pending_reviews"] = len([q for q in queue if q.get("status") == "pending"])
     return summary
 
@@ -212,7 +232,13 @@ def main() -> None:
                     help="also run source-discovery monitoring over curated hubs")
     ap.add_argument("--no-known-sources", action="store_true",
                     help="skip known-source drift check (discovery only)")
+    ap.add_argument("--dry-run-summary", default=None,
+                    help="explicit output path for a concise dry-run summary JSON "
+                         "(the ONLY file a dry run may write)")
     args = ap.parse_args()
+    # section 14 note: --discovery with the default service list INCLUDES visa
+    # (discovery is evidence collection only and never mutates corpus/vectors,
+    # so pre-Phase-4 visa discovery is safe). Use --services to select explicitly.
 
     record_ids = set(args.record_ids.split(",")) if args.record_ids else None
     known = discovery = None
@@ -237,6 +263,19 @@ def main() -> None:
 
     if args.dry_run:
         print("DRY RUN: no state was persisted.")
+        if args.dry_run_summary:
+            # section 16: concise machine-readable summary written ONLY to the
+            # explicitly requested path (never a monitoring state file)
+            summary_payload = {
+                "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "dry_run": True,
+                "services": args.services,
+                "known_sources": known,
+                "discovery": discovery,
+            }
+            from freshness.paths import atomic_write_json
+            atomic_write_json(Path(args.dry_run_summary), summary_payload)
+            print(f"dry-run summary artifact: {args.dry_run_summary}")
     else:
         report = write_report(known, discovery, args.dry_run)
         print(f"report: {report}")

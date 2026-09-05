@@ -117,6 +117,9 @@ def apply_source_action(freshness_dir: Path, event_id: str, action: str,
                 "event_id": event_id,
                 "approved_at": _now(),
                 "pre_edit_text_sha256": pre_edit_hash,
+                # 13B: durable provenance — the exact official-source version
+                # that triggered this record task
+                "accepted_source_sha256": event.get("candidate_hash"),
             })
         tasks.extend(created)
         atomic_write_json(tasks_path, tasks)
@@ -141,6 +144,11 @@ def _corpus_text_hash(freshness_dir: Path, service: str, record_id: str) -> str 
     (fixture/test layouts) first, then the standard repo data/chunks/ layout.
     """
     candidates = [
+        # production layout (B1): <repo>/data/chunks/<service>.jsonl
+        Path(__file__).resolve().parents[1] / "data" / "chunks" / f"{service}.jsonl",
+        # repo-like temporary layouts (integration tests): <tmp>/data/chunks/<svc>.jsonl
+        Path(freshness_dir).parent / "data" / "chunks" / f"{service}.jsonl",
+        # fixture layouts
         Path(freshness_dir) / f"{service}.jsonl",
         Path(freshness_dir) / "data" / "chunks" / f"{service}.jsonl",
     ]

@@ -128,14 +128,17 @@ def save_candidate(entry: dict, content, method: str,
     (sha256 of bytes)."""
     is_bytes = isinstance(content, bytes)
     base = Path(snapshot_dir) if snapshot_dir else SNAPSHOT_DIR
-    ext = "pdf" if is_bytes else "candidate.txt"
-    path = base / f"{slug_for_url(entry['normalized_url'])}.{ext}"
+    # 13C: hash-specific name — a later candidate can never overwrite the
+    # evidence file a resolved event still references
+    digest = sha256_bytes(content) if is_bytes else sha256_text(content)
+    ext = "pdf" if is_bytes else "txt"
+    path = base / f"{slug_for_url(entry['normalized_url'])}.candidate.{digest[:12]}.{ext}"
     if is_bytes:
         from .paths import atomic_write_bytes
         atomic_write_bytes(path, content)
     else:
         atomic_write_text(path, content)
-    entry["candidate_hash"] = sha256_bytes(content) if is_bytes else sha256_text(content)
+    entry["candidate_hash"] = digest
     entry["candidate_snapshot"] = str(path)
     entry["candidate_acquisition_method"] = method
     entry["candidate_invalid"] = False

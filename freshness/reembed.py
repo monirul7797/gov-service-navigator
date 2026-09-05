@@ -49,9 +49,13 @@ class ReembedService:
 
     def __init__(self, *, corpus_paths: dict[str, Path] | None = None,
                  tasks_path: Path = TASKS_PATH, db_dir: Path = DB_DIR,
-                 embedder=None, collection_factory=None):
+                 embedder=None, collection_factory=None,
+                 source_store_path: Path | None = None):
         self.tasks_path = Path(tasks_path)
         self.db_dir = Path(db_dir)
+        # 13B: when provided, a task whose accepted source version is no longer
+        # the trusted version fails as source_advanced_since_approval
+        self.source_store_path = source_store_path
         self.corpus_paths = corpus_paths or {
             svc: REPO_ROOT / "data" / "chunks" / f"{svc}.jsonl" for svc in SUPPORTED
         }
@@ -110,12 +114,31 @@ class ReembedService:
                                       for t in tasks]
             return result
 
-        # process incrementally; tasks list shrinks atomically per success (§12)
+        # process incrementally; tasks list shrinks atomically per success (§12).
+        # B11: EVERY per-task failure — including a malformed task dict — is
+        # contained inside this loop; a bad task can never abort later tasks.
         for task in list(tasks):
-            rid, service = task["record_id"], task["service"]
+            rid = service = None
             try:
+                rid = task.get("record_id")
+                service = task.get("service")
+                missing = [k for k in ("task_id", "record_id", "service",
+                                       "pre_edit_text_sha256") if not task.get(k)]
+                if missing:
+                    raise RuntimeError(f"malformed task, missing fields: {missing}")
                 if service not in self.corpus_paths:
                     raise RuntimeError(f"invalid collection/service mapping {service!r}")
+                # 13B: if the source has advanced to a newer trusted version
+                # since this task was approved, require fresh review
+                if self.source_store_path and task.get("accepted_source_sha256"):
+                    store = atomic_read_json(self.source_store_path, default={}) or {}
+                    entry = store.get(task.get("source_url")
+                                      or task.get("normalized_url") or "")
+                    if entry and entry.get("trusted_hash")                             and entry["trusted_hash"] != task["accepted_source_sha256"]:
+                        raise RuntimeError(
+                            f"source_advanced_since_approval: trusted source hash "
+                            f"{entry['trusted_hash'][:12]} != accepted "
+                            f"{task['accepted_source_sha256'][:12]} — fresh review required")
                 records = self._read_corpus(service)
                 rec = records.get(rid)
                 if rec is None:
