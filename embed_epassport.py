@@ -57,6 +57,19 @@ def load_chunks(path: str) -> list[dict]:
         return [json.loads(line) for line in f if line.strip()]
 
 
+def to_metadata_epassport(r: dict) -> dict:
+    """Canonical e-Passport embedding metadata (Freshness V2 §11: reembed must
+    match the full embed path exactly, so both import THIS function)."""
+    return {
+        "category": r["category"],
+        "subcategory": r.get("subcategory", r["category"]),
+        "heading": r["heading"],
+        "lang": r["lang"],
+        "source_url": r["source_url"],
+        "official": r["official"],
+    }
+
+
 def main() -> None:
     rows = load_chunks(CHUNKS_PATH)
     print(f"loaded {len(rows)} chunks from {CHUNKS_PATH}")
@@ -89,14 +102,7 @@ def main() -> None:
         ids=[r["id"] for r in rows],
         documents=[r["text"] for r in rows],          # store the ORIGINAL text
         embeddings=[v.tolist() for v in embeddings],
-        metadatas=[{
-            "category": r["category"],
-            "subcategory": r.get("subcategory", r["category"]),
-            "heading": r["heading"],
-            "lang": r["lang"],
-            "source_url": r["source_url"],
-            "official": r["official"],
-        } for r in rows],
+        metadatas=[to_metadata_epassport(r) for r in rows],
     )
     print(f"\n✓ stored {coll.count()} chunks in ChromaDB at ./{DB_DIR}")
     print("  next: python query_epassport.py")

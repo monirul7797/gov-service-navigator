@@ -1,0 +1,657 @@
+{
+  "checked_record_entries": 293,
+  "urls": {
+    "(no url)": {
+      "record_ids": [
+        "bdris_rules2018_009_domestic_birth",
+        "bdris_rules2018_010_expat_birth",
+        "bdris_rules2018_011_domestic_death",
+        "bdris_rules2018_012_expat_death",
+        "bdris_rules2018_013_duplicate_certificate",
+        "bdris_rules2018_015_correction_cancellation",
+        "bdris_rules2018_018_supervision",
+        "bdris_rules2018_021_fees",
+        "bdris_rules2018_022_certificate_uses",
+        "ereturn-faq-frontdoor-landing-pages"
+      ],
+      "status": "status-only (skipped)"
+    },
+    "https://achallan.gov.bd/acs/v2/general/challan-payment?id=1": {
+      "record_ids": [
+        "epassport-payref-fee-taxonomy"
+      ],
+      "status": "baselined (1 records collapsed)"
+    },
+    "https://bdris.gov.bd/br-correction": {
+      "record_ids": [
+        "bdris_correction_001",
+        "bdris_correction_002",
+        "bdris_correction_003",
+        "bdris_correction_004",
+        "bdris_correction_005",
+        "bdris_correction_006"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://bdris.gov.bd/login": {
+      "record_ids": [
+        "bdris_login_instructions_001"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://challanverification.finance.gov.bd/echalan/": {
+      "record_ids": [
+        "epassport-payref-chalan-verification"
+      ],
+      "status": "baselined (1 records collapsed)"
+    },
+    "https://eservices.bdris.gov.bd/": {
+      "record_ids": [
+        "bdris_payment_001"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://everify.bdris.gov.bd/": {
+      "record_ids": [
+        "bdris_faq_017"
+      ],
+      "status": "baselined (1 records collapsed)"
+    },
+    "https://nbr.gov.bd/all-faq/ban": {
+      "record_ids": [
+        "ereturn-faq-gen-area-wise-minimum-tax",
+        "ereturn-faq-gen-cancel-registration-below-threshold",
+        "ereturn-faq-gen-cancel-tin-after-fathers-death",
+        "ereturn-faq-gen-change-address",
+        "ereturn-faq-gen-company-tax-rate-structure",
+        "ereturn-faq-gen-consequence-of-late-return",
+        "ereturn-faq-gen-etin-required-documents",
+        "ereturn-faq-gen-find-tax-jurisdiction",
+        "ereturn-faq-gen-firm-aop-income-in-total",
+        "ereturn-faq-gen-heads-of-income",
+        "ereturn-faq-gen-how-to-apply-etin",
+        "ereturn-faq-gen-how-to-pay-income-tax",
+        "ereturn-faq-gen-individual-tax-rate-structure",
+        "ereturn-faq-gen-mandatory-return-filing",
+        "ereturn-faq-gen-penalty-for-not-filing",
+        "ereturn-faq-gen-rebate-eligible-investments-donations",
+        "ereturn-faq-gen-return-filing-deadline",
+        "ereturn-faq-gen-return-filing-method",
+        "ereturn-faq-gen-spouse-minor-child-income",
+        "ereturn-faq-gen-tax-free-income-heads",
+        "ereturn-faq-gen-taxable-threshold",
+        "ereturn-faq-gen-taxpayer-location-determination",
+        "ereturn-faq-gen-time-extension-request",
+        "ereturn-faq-gen-what-is-assessment",
+        "ereturn-faq-gen-what-is-etin",
+        "ereturn-faq-gen-what-is-income",
+        "ereturn-faq-gen-what-is-income-tax",
+        "ereturn-faq-gen-what-is-income-tax-registration",
+        "ereturn-faq-gen-what-is-return",
+        "ereturn-faq-gen-what-is-tax-rebate",
+        "ereturn-faq-gen-what-is-tax-year",
+        "ereturn-faq-gen-what-is-total-income",
+        "ereturn-faq-gen-where-to-file-return",
+        "ereturn-faq-gen-where-to-get-return-form",
+        "ereturn-faq-gen-who-files-return",
+        "ereturn-faq-gen-who-must-pay-tax",
+        "ereturn-faq-online-2025-2026-mandatory",
+        "ereturn-faq-online-asset-autofill",
+        "ereturn-faq-online-bank-sanchaypatra-dividend-credit",
+        "ereturn-faq-online-benefits",
+        "ereturn-faq-online-car-advance-tax-credit",
+        "ereturn-faq-online-car-tax-not-adjusting",
+        "ereturn-faq-online-certified-copy",
+        "ereturn-faq-online-claim-withholding-advance-tax",
+        "ereturn-faq-online-correct-filed-return",
+        "ereturn-faq-online-data-security",
+        "ereturn-faq-online-declared-bank-tds-mismatch",
+        "ereturn-faq-online-doctor-lawyer-income",
+        "ereturn-faq-online-file-after-deadline",
+        "ereturn-faq-online-file-with-source-advance-tax",
+        "ereturn-faq-online-gender-wrongly-male",
+        "ereturn-faq-online-gold-market-value",
+        "ereturn-faq-online-how-to-sign-in",
+        "ereturn-faq-online-how-to-start",
+        "ereturn-faq-online-how-to-start-filling",
+        "ereturn-faq-online-joint-sanchaypatra",
+        "ereturn-faq-online-meeting-fee-honorarium-income",
+        "ereturn-faq-online-mobile-phone-filing",
+        "ereturn-faq-online-mpo-teachers-salary",
+        "ereturn-faq-online-multiple-work-locations",
+        "ereturn-faq-online-nid-name-dob-corrected",
+        "ereturn-faq-online-no-need-to-resubmit-at-circle",
+        "ereturn-faq-online-paid-but-still-unpaid",
+        "ereturn-faq-online-password-set-reset",
+        "ereturn-faq-online-pay-tax-via-system",
+        "ereturn-faq-online-pre-2019-sanchaypatra-credit",
+        "ereturn-faq-online-previous-year-excess-tax",
+        "ereturn-faq-online-prior-print-return-not-showing",
+        "ereturn-faq-online-register-without-old-mobile",
+        "ereturn-faq-online-registration-method",
+        "ereturn-faq-online-registration-requirements",
+        "ereturn-faq-online-salary-source-tax-credit",
+        "ereturn-faq-online-sanchaypatra-data-not-found",
+        "ereturn-faq-online-show-all-previous-assets",
+        "ereturn-faq-online-submission-process",
+        "ereturn-faq-online-support-contact",
+        "ereturn-faq-online-supporting-documents",
+        "ereturn-faq-online-surcharge-applicability",
+        "ereturn-faq-online-tax-service-month-support",
+        "ereturn-faq-online-two-employers-income",
+        "ereturn-faq-online-verify-mobile-in-own-name"
+      ],
+      "status": "baselined (81 records collapsed)"
+    },
+    "https://orgbdr.gov.bd/pages/static-pages/6922db5f933eb65569e09bfd": {
+      "record_ids": [
+        "bdris_manual_stage_0_prerequisites",
+        "bdris_manual_stage_1_entry",
+        "bdris_manual_stage_2_address_basis",
+        "bdris_manual_stage_3_personal_parent_info",
+        "bdris_manual_stage_4_addresses",
+        "bdris_manual_stage_5_applicant_declaration_documents",
+        "bdris_manual_stage_6_review_otp",
+        "bdris_manual_stage_7_confirmation_next_steps"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://orgbdr.gov.bd/pages/static-pages/6922e065933eb65569e26d6e": {
+      "record_ids": [
+        "bdris_faq_001",
+        "bdris_faq_002",
+        "bdris_faq_003",
+        "bdris_faq_004",
+        "bdris_faq_009",
+        "bdris_faq_012",
+        "bdris_faq_013",
+        "bdris_faq_014",
+        "bdris_faq_015",
+        "bdris_faq_016",
+        "bdris_faq_registration_basics_1",
+        "bdris_faq_registration_basics_2",
+        "bdris_faq_registration_basics_3",
+        "bdris_faq_registration_basics_4",
+        "bdris_faq_special_populations_1",
+        "bdris_faq_special_populations_2"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://receipt.dgepay.net/search/details": {
+      "record_ids": [
+        "epassport-payref-receipt-download"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://services.nidw.gov.bd/": {
+      "record_ids": [
+        "0e3653dd7a978f1b",
+        "15770bd6890cd97e",
+        "1aef331cb17dafc9",
+        "a35fead08f8be3b8",
+        "ae463ace914d6134",
+        "ca8059601d85f53f",
+        "f1ebe6f9f6405672",
+        "f8561a84ae9d881d"
+      ],
+      "status": "baselined (8 records collapsed)"
+    },
+    "https://services.nidw.gov.bd/nid-pub/": {
+      "record_ids": [
+        "24be518039161868",
+        "29afb5d36d58023c",
+        "39b85598b9f99b88",
+        "49269d28f061649a",
+        "4f0c9e099d49e4d7",
+        "56890c8106a66d5c",
+        "6741335370d40b58",
+        "8ec4e1c12ae8f73c",
+        "9a2f9664e30f7c39",
+        "a741e791de7cf463",
+        "b5e53545a4949574",
+        "c7639f975f9a0d08",
+        "cd46a82c47074e76",
+        "dd1e1f795f9cdc9a",
+        "dde1d582a1671384",
+        "ee75b6a7467a3e86",
+        "f23e07114e19a33d",
+        "f41e6c4730be9554"
+      ],
+      "status": "baselined (18 records collapsed)"
+    },
+    "https://services.nidw.gov.bd/nid-pub/claim-account": {
+      "record_ids": [
+        "0982bcd5b1fce095",
+        "37228d4f0b4585ec",
+        "a8d90e207418dc05",
+        "be3ab1811a39c740"
+      ],
+      "status": "baselined (4 records collapsed)"
+    },
+    "https://services.nidw.gov.bd/nid-pub/faq": {
+      "record_ids": [
+        "06fa70af6e4ba764",
+        "126a707e5e5bf33a",
+        "13ee24118e681b64",
+        "17fc0562d6cca694",
+        "1aab056669f4156b",
+        "1d13e74b7e974eca",
+        "20c845cc504ff402",
+        "221cccb1be6d3cb6",
+        "23bb4cd47935a6f9",
+        "2528d0bcd58e35f9",
+        "2633f4a05ccee5c5",
+        "271f4ff1bdf79dbc",
+        "3496f8355387e10d",
+        "3723e1c830b7b1e2",
+        "3dd48a8da4cacd3b",
+        "42873deced9a71b8",
+        "4527137ca60f5a10",
+        "4806fc0db369e558",
+        "4f196f8c3773bc37",
+        "50d66a66a22cd5a0",
+        "52d7026dba9a7d99",
+        "5b7f3970557399bb",
+        "5ef211149a9564b3",
+        "600baa514f80ce80",
+        "6b5fbaea8722995a",
+        "6eb6f34f519abe79",
+        "6fbc804202616b57",
+        "704d206a57a6eff5",
+        "7363c9ad2eae758e",
+        "7957b0a2fe57d6ef",
+        "79abb3857edf8e76",
+        "7a2d56f2794d65ee",
+        "7d450ebcae4b8759",
+        "876129ea97b1b512",
+        "8fe710702047a4eb",
+        "90b6c4cb92da34b4",
+        "99b73f516742b5e6",
+        "a2d14592450e6d63",
+        "ac0292cfe8eae19d",
+        "b0d14c7e3137baa9",
+        "b70b0fc7bbd59bb4",
+        "bea536f88fe35b59",
+        "c0c61255b9705ad6",
+        "c50dad1b7601c214",
+        "c857a6590a5f4a16",
+        "ca4118c508a7a344",
+        "cd082d08716df83d",
+        "d4178a0bfaa9d7ca",
+        "d8586d01c0df532c",
+        "d8950d64f8c97dea",
+        "dd89289d0f55d8ca",
+        "dede10f1e7568ccd",
+        "f6e4d33f4de08afc",
+        "fd42e67fa25c51a3"
+      ],
+      "status": "baselined (54 records collapsed)"
+    },
+    "https://services.nidw.gov.bd/nid-pub/fees": {
+      "record_ids": [
+        "02a1d96a8c5d587d",
+        "1586ea397b933bbb",
+        "3cc4f4e29fa01a34",
+        "5378832e7420a386",
+        "67f8843f0918c127",
+        "71b5305eca794b21",
+        "736ea9a77fe77a71",
+        "7ccf9bcc62d6162d",
+        "9185446981238a65",
+        "9260a976f7fcb9e9",
+        "f48c970cb050a6ae",
+        "fa3c5c2cffc84ebc",
+        "fd6068bcdc8f3237"
+      ],
+      "status": "baselined (13 records collapsed)"
+    },
+    "https://services.nidw.gov.bd/nid-pub/form-download": {
+      "record_ids": [
+        "69036e44760278d0",
+        "b7d46b701dece60f"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.ecs.gov.bd/": {
+      "record_ids": [
+        "0328798228089b51",
+        "6367ec9f93d88546",
+        "d9e46d089fa7e9a2"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/instructions/five-step-to-your-epassport": {
+      "record_ids": [
+        "epassport-instructions-five-step-overview"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/instructions/instructions": {
+      "record_ids": [
+        "epassport-instructions-adoption-guardianship",
+        "epassport-instructions-diplomatic-passport",
+        "epassport-instructions-documents-eligibility",
+        "epassport-instructions-foreign-mission-contact-address",
+        "epassport-instructions-minor-validity",
+        "epassport-instructions-submission-jurisdiction",
+        "epassport-instructions-urgent-timelines",
+        "epassport-instructions-vat-fees-domestic-foreign"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/instructions/passport-fees": {
+      "record_ids": [
+        "epassport-fees-inside-bd-all",
+        "epassport-fees-mission-general",
+        "epassport-fees-mission-labor-student",
+        "epassport-fees-payment-methods"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/instructions/urgent-applications": {
+      "record_ids": [
+        "epassport-urgent-super-express"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs": {
+      "record_ids": [
+        "epassport-faq-taxonomy-index"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/10": {
+      "record_ids": [
+        "epassport-faq-10-i-dont-have-an-email-address-can-i-also-apply-online"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/11": {
+      "record_ids": [
+        "epassport-faq-11-i-did-not-receive-the-account-activation-email-what-should-i-do"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/12": {
+      "record_ids": [
+        "epassport-faq-12-can-i-cancel-or-re-schedule-an-online-appointment-at-passport-office"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/13": {
+      "record_ids": [
+        "epassport-faq-13-can-i-change-the-email-address-for-my-online-application-account"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/14": {
+      "record_ids": [
+        "epassport-faq-14-can-i-change-the-mobile-number-registered-in-my-online-account"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/149": {
+      "record_ids": [
+        "epassport-faq-149-having-trouble-viewing-online-status-application-id-online-registration-id-is-re"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/15": {
+      "record_ids": [
+        "epassport-faq-15-how-can-i-schedule-an-appointment-at-passport-office"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/150": {
+      "record_ids": [
+        "epassport-faq-150-how-do-i-apply-for-super-express"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/19": {
+      "record_ids": [
+        "epassport-faq-19-can-i-schedule-online-appointments-even-if-i-dont-use-online-application-but-pdf"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/20": {
+      "record_ids": [
+        "epassport-faq-20-i-made-mistakes-in-my-application-data-and-my-application-is-already-submitted-w"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/21": {
+      "record_ids": [
+        "epassport-faq-21-some-of-my-data-changed-compared-to-my-previous-passport-how-can-i-apply"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/22": {
+      "record_ids": [
+        "epassport-faq-22-my-present-address-changed-compared-to-my-previous-passport-where-do-i-need-to-a"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/24": {
+      "record_ids": [
+        "epassport-faq-24-i-experienced-issues-with-online-payment-what-can-i-do"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/25": {
+      "record_ids": [
+        "epassport-faq-25-i-cant-get-an-appointment-at-my-passport-office-in-the-near-future-what-can-i-do"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/26": {
+      "record_ids": [
+        "epassport-faq-26-i-have-an-mrp-how-is-the-process-to-get-the-epassport"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/270": {
+      "record_ids": [
+        "epassport-faq-270-i-have-retired-from-government-service-now-what-documents-are-required-to-comple"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/271": {
+      "record_ids": [
+        "epassport-faq-271-i-have-lost-my-delivery-slip-now-how-i-will-collect-my-passport"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/272": {
+      "record_ids": [
+        "epassport-faq-272-what-types-of-documents-are-required-to-show-at-passport-office-to-collect-a-new"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/273": {
+      "record_ids": [
+        "epassport-faq-273-after-receiving-a-new-passport-if-i-find-any-printing-error-in-my-passport-then-"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/274": {
+      "record_ids": [
+        "epassport-faq-274-how-much-is-it-important-to-provide-previous-passport-number"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/275": {
+      "record_ids": [
+        "epassport-faq-275-how-can-i-check-my-e-passport-status"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/276": {
+      "record_ids": [
+        "epassport-faq-276-during-lprprl-can-i-use-official-passport"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/277": {
+      "record_ids": [
+        "epassport-faq-277-i-have-received-an-e-mail-for-collection-of-a-new-passport-from-passport-office-"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/278": {
+      "record_ids": [
+        "epassport-faq-278-i-have-lost-my-e-passport-i-dont-have-my-previous-e-passport-number-how-can-i-ge"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/279": {
+      "record_ids": [
+        "epassport-faq-279-while-checking-my-passport-status-i-see-pending-for-backend-verification-now-wha"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/280": {
+      "record_ids": [
+        "epassport-faq-280-what-are-the-reasons-for-getting-passport-delayed"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/281": {
+      "record_ids": [
+        "epassport-faq-281-do-i-need-attest-my-photograph-for-e-passport"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/282": {
+      "record_ids": [
+        "epassport-faq-282-if-someone-applies-for-new-e-passport-but-he-is-having-a-machine-readable-passpo"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/283": {
+      "record_ids": [
+        "epassport-faq-283-how-can-i-change-my-information-in-the-passport-after-i-changing-information-of-"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/284": {
+      "record_ids": [
+        "epassport-faq-284-can-anyone-below-18-years-get-a-passport-for-10-years"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/285": {
+      "record_ids": [
+        "epassport-faq-285-after-how-many-years-e-passport-must-be-re-issued"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/286": {
+      "record_ids": [
+        "epassport-faq-286-when-the-passport-validity-date-expires-is-there-any-fee-to-be-paid-for-the-expi"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/287": {
+      "record_ids": [
+        "epassport-faq-287-i-want-to-get-a-passport-i-am-21-years-old-but-i-dont-have-an-id-card-i-have-bir"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/288": {
+      "record_ids": [
+        "epassport-faq-288-i-have-applied-for-my-passport-in-chittagong-can-i-collect-it-from-dhaka"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/289": {
+      "record_ids": [
+        "epassport-faq-289-in-case-of-minors-who-can-collect-the-passport"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/3": {
+      "record_ids": [
+        "epassport-faq-3-what-documents-do-i-need-to-bring-for-epassport-enrolment"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/4": {
+      "record_ids": [
+        "epassport-faq-4-do-i-have-to-bring-photos-for-applying-for-the-epassport"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/7": {
+      "record_ids": [
+        "epassport-faq-7-how-can-i-check-the-status-of-my-passport-application"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/72": {
+      "record_ids": [
+        "epassport-faq-72-how-do-i-fill-in-the-given-name-and-surname-part-of-the-name"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/8": {
+      "record_ids": [
+        "epassport-faq-8-is-it-possible-to-upgrade-to-express-delivery-after-the-enrolment-for-epassport-"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/faqs/9": {
+      "record_ids": [
+        "epassport-faq-9-i-forgot-the-password-of-my-online-application-account-what-should-i-do"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/notices/158": {
+      "record_ids": [
+        "epassport-notice-dhaka-cantonment-jurisdiction",
+        "epassport-notice-narayanganj-rpo-resumption"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/notices/160": {
+      "record_ids": [
+        "epassport-notice-documents-checklist-enrollment"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/notices/194": {
+      "record_ids": [
+        "epassport-notice-special-attention-fraud"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/notices/33": {
+      "record_ids": [
+        "epassport-notice-functional-epassport-offices"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/landing/notices/34": {
+      "record_ids": [
+        "epassport-notice-documents-carried-enrolment"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.epassport.gov.bd/onboarding": {
+      "record_ids": [
+        "epassport-onboarding-region-check"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    },
+    "https://www.incometax.gov.bd/Help/FaqAnswer": {
+      "record_ids": [
+        "ereturn-faq-online-security-certificate-warning"
+      ],
+      "status": "status-only (needs_manual_screenshot)"
+    }
+  },
+  "conflicts": [],
+  "baseline_sources": 9,
+  "status_only_sources": 62,
+  "backup_dir": "C:\\Users\\Monirul\\Documents\\Structured Data\\NID\\gov-service-navigator\\gov-service-navigator\\freshness\\backup_v1\\20260905_044933"
+}

@@ -1,0 +1,13 @@
+OFFICE OF THE REGISTRAR GENERAL, BIRTH AND DEATH REGISTRATION
+
+LOCAL GOVERNMENT DIVISION
+
+Click here to verify death record
+
+Enter "17 digits Birth Registration Number" and "Date of Birth" of a person to verify the Birth Record.
+জন্ম নিবন্ধন তথ্য যাচাই এর জন্য ১৭ অংকের জন্ম নিবন্ধন নম্বর ও জন্ম তারিখ প্রবেশ করান
+
+Birth Registration Number:
+Date of Birth (YYYY-MM-dd):
+
+The answer is
