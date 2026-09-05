@@ -143,6 +143,32 @@ class KnownSourceMonitor:
         return ("failed", None, "unreachable", None,
                 f"{status}: {render.error_kind} {render.error_detail[:100]}", render.final_url)
 
+    @staticmethod
+    def _final_url_rejection(final_url: str, requested: str) -> str | None:
+        """C1: validate a nonempty final URL's syntax, scheme, hostname and
+        port BEFORE any domain comparison or content acceptance. Returns a
+        rejection reason, or None when acceptable. An empty final URL falls
+        back to the already-validated requested URL (old injected fakes);
+        a nonempty malformed value is never silently normalized into that
+        fallback."""
+        if not final_url:
+            return None
+        from urllib.parse import urlparse
+        try:
+            parsed = urlparse(final_url)
+            scheme = (parsed.scheme or "").lower()
+            host = parsed.hostname
+            port = parsed.port
+        except ValueError as exc:
+            return f"invalid_final_url: unparseable ({exc})"
+        if scheme not in ("http", "https"):
+            return f"invalid_final_url: unsupported scheme {scheme!r}"
+        if not host:
+            return "invalid_final_url: missing hostname"
+        if port is not None and not (0 < port <= 65535):
+            return f"invalid_final_url: invalid port {port}"
+        return None
+
     # -- main run ---------------------------------------------------------------
 
     def run(self) -> dict:
@@ -221,25 +247,17 @@ class KnownSourceMonitor:
                 self._save_store(self._store_or_memory(store))
                 continue
 
-            # PDF bytes vs HTML text
-            if method == S.METHOD_PDF:
-                new_hash = sha256_bytes(payload)
-                new_len = len(payload)
-                declared_type = reason[4:] if reason.startswith("pdf:") else (reason or "")
-                pdf_ok, pdf_reason = validate_pdf(payload, declared_type)
-                quality_code, q_reason = (("ok", "") if pdf_ok
-                                          else ("pdf_rejected", pdf_reason))
-                baseline_text = None
-            else:
-                new_hash = sha256_text(payload)
-                new_len = len(payload)
-                baseline_text = None
-                # R6: dry and real comparison use the SAME baseline snapshot —
-                # dry_run controls persistence only, never comparison inputs
-                if entry.get("trusted_snapshot"):
-                    from .paths import atomic_read_text
-                    baseline_text = atomic_read_text(entry["trusted_snapshot"])
-                quality_code, q_reason = classify_capture(payload, baseline_text=baseline_text)
+            # C1: validate the final URL's syntax/scheme/hostname/port before
+            # any domain comparison, parsing or acceptance. A malformed value
+            # is a rejected source outcome — never a run-aborting exception,
+            # never silently normalized into the requested-URL fallback.
+            reject = self._final_url_rejection(final_url, norm_url)
+            if reject:
+                S.mark_failure(entry, "invalid_final_url",
+                               f"{reject} — baseline preserved")
+                summary["suspect_captures"] += 1
+                self._save_store(self._store_or_memory(store))
+                continue
 
             # R8/P01: the final-destination rule applies to EVERY successful
             # verified content method, including PDF, before anything is
@@ -261,6 +279,27 @@ class KnownSourceMonitor:
                                        S.STATUS_ROBOTS, S.STATUS_SUSPECT):
                 entry["status"] = None
                 entry["status_reason"] = None
+
+            # PDF bytes vs HTML text
+            if method == S.METHOD_PDF:
+                new_hash = sha256_bytes(payload)
+                new_len = len(payload)
+                declared_type = reason[4:] if reason.startswith("pdf:") else (reason or "")
+                pdf_ok, pdf_reason = validate_pdf(payload, declared_type)
+                quality_code, q_reason = (("ok", "") if pdf_ok
+                                          else ("pdf_rejected", pdf_reason))
+                baseline_text = None
+            else:
+                new_hash = sha256_text(payload)
+                new_len = len(payload)
+                baseline_text = None
+                # R6: dry and real comparison use the SAME baseline snapshot —
+                # dry_run controls persistence only, never comparison inputs
+                if entry.get("trusted_snapshot"):
+                    from .paths import atomic_read_text
+                    baseline_text = atomic_read_text(entry["trusted_snapshot"])
+                quality_code, q_reason = classify_capture(payload, baseline_text=baseline_text)
+
 
             if quality_code != "ok":
                 # §7: quarantine — preserve trusted baseline, keep diagnostics

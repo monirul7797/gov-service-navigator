@@ -55,6 +55,14 @@ def validate_pdf(body: bytes, content_type: str) -> tuple[bool, str]:
 
     try:
         with pdfplumber.open(io.BytesIO(body)) as pdf:
+            # P01-C2: successful opening does not mean unencrypted — a
+            # genuinely encrypted PDF with an empty user password opens and
+            # parses fine, so encryption metadata is inspected explicitly
+            # before acceptance.
+            encryption = getattr(getattr(pdf, "doc", None), "encryption", None)
+            if encryption is not None:
+                return False, (f"encrypted_pdf: document reports encryption "
+                               f"metadata ({type(encryption).__name__})")
             page_count = len(pdf.pages)
     except Exception as exc:
         # malformed/truncated content, encrypted or otherwise inaccessible
