@@ -20,6 +20,7 @@ Algorithm contract:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import tarfile
@@ -35,24 +36,72 @@ def git(*args: str, cwd: Path | None = None) -> str:
     return out.stdout.strip()
 
 
-def _validate_members(tar_path: Path, extract_to: Path) -> list[str]:
-    """Reject path escapes, links and nonregular/non-directory members."""
-    bad = []
-    members = []
+def _member_errors(member: tarfile.TarInfo, extract_root: Path) -> list[str]:
+    """C3: per-member safety checks with explicit Windows path semantics.
+
+    Rejects, before any extraction: drive-absolute and drive-relative names,
+    UNC paths, rooted names, backslash forms (normalized to slashes first),
+    alternate-data-stream / colon-bearing names, parent traversal that
+    resolves outside the extraction root, symlinks/hardlinks and nonregular
+    members. Containment is decided on RESOLVED destinations, never by
+    string-prefix comparison.
+    """
+    errors: list[str] = []
+    raw = member.name
+    name = raw.replace("\\", "/")          # normalize Windows separators first
+
+    if ":" in name:
+        # a colon can select a drive ("C:/x", "C:x") or an NTFS alternate
+        # data stream ("file.txt:stream") on Windows — always rejected
+        errors.append(f"colon-bearing name (drive/ADS risk): {raw!r}")
+        return errors
+
+    if name.startswith("//") or "\\" in raw:
+        errors.append(f"UNC/rooted path: {raw!r}")
+        return errors
+    if name.startswith("/"):
+        errors.append(f"rooted path: {raw!r}")
+        return errors
+
+    parts = [p for p in name.split("/") if p not in ("", ".")]
+    if not parts:
+        errors.append(f"empty member name: {raw!r}")
+        return errors
+
+    if member.issym() or member.islnk():
+        errors.append(f"link member: {raw!r}")
+    if not (member.isfile() or member.isdir()):
+        errors.append(f"nonregular member ({member.type!r}): {raw!r}")
+
+    # resolved-destination containment (authoritative for '..' and any other
+    # normalization surprise) — computed from the normalized join
+    dest = extract_root
+    for part in parts:
+        dest = dest / part
+    root_resolved = extract_root.resolve()
+    try:
+        dest_resolved = dest.resolve()
+    except OSError as exc:
+        errors.append(f"cannot resolve destination for {raw!r}: {exc}")
+        return errors
+    if os.path.commonpath([str(dest_resolved), str(root_resolved)]) != str(root_resolved):
+        errors.append(f"resolves outside the extraction root: {raw!r} -> {dest_resolved}")
+    return errors
+
+
+def _plan_extraction(tar_path: Path, extract_root: Path) -> list[str]:
+    """Validate ALL members before any extraction; raise SystemExit listing
+    every defect if any member is unsafe. Returns the member names on success
+    (the caller then performs the single extraction)."""
+    errors: list[str] = []
+    names: list[str] = []
     with tarfile.open(tar_path) as tf:
         for m in tf.getmembers():
-            name = m.name.replace("\\", "/")
-            if name.startswith("/") or ".." in Path(name).parts:
-                bad.append(f"path escape: {name}")
-            if m.issym() or m.islnk():
-                bad.append(f"link member: {name}")
-            if not (m.isfile() or m.isdir()):
-                bad.append(f"nonregular member: {name}")
-            members.append(m)
-        if bad:
-            raise SystemExit("candidate archive rejected:\n  " + "\n  ".join(bad))
-        tf.extractall(path=extract_to)
-    return [m.name for m in members]
+            names.append(m.name)
+            errors.extend(_member_errors(m, extract_root))
+    if errors:
+        raise SystemExit("candidate archive rejected:\n  " + "\n  ".join(errors))
+    return names
 
 
 def main() -> int:
@@ -78,7 +127,9 @@ def main() -> int:
     print(f"scratch     : {scratch}")
 
     git("archive", "--format=tar", f"--output={tar_path}", "HEAD")
-    names = _validate_members(tar_path, extract_to)
+    names = _plan_extraction(tar_path, extract_to)
+    with tarfile.open(tar_path) as tf:
+        tf.extractall(path=extract_to)
     print(f"archive     : {len(names)} tracked files extracted (untracked excluded)")
 
     candidate_runner = extract_to / "tools" / "run_offline_checks.py"

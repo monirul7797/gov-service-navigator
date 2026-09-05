@@ -118,6 +118,29 @@ def install_guard(log_path: str | None = None) -> None:
 
     socket.create_connection = guarded_create_connection
     socket.getaddrinfo = guarded_getaddrinfo
+
+    # C2: direct resolver entry points — guarded so the underlying resolver
+    # (real or sentinel) is never reached
+    real_gethostbyname = socket.gethostbyname
+    real_gethostbyname_ex = socket.gethostbyname_ex
+    real_gethostbyaddr = socket.gethostbyaddr
+
+    def guarded_gethostbyname(host):
+        _record("socket.gethostbyname", repr(host))
+        raise OfflineGuardViolation(f"network attempt blocked: socket.gethostbyname({host!r})")
+
+    def guarded_gethostbyname_ex(name):
+        _record("socket.gethostbyname_ex", repr(name))
+        raise OfflineGuardViolation(f"network attempt blocked: socket.gethostbyname_ex({name!r})")
+
+    def guarded_gethostbyaddr(addr):
+        _record("socket.gethostbyaddr", repr(addr))
+        raise OfflineGuardViolation(f"network attempt blocked: socket.gethostbyaddr({addr!r})")
+
+    socket.gethostbyname = guarded_gethostbyname
+    socket.gethostbyname_ex = guarded_gethostbyname_ex
+    socket.gethostbyaddr = guarded_gethostbyaddr
+
     socket.socket.connect = guarded_connect
     socket.socket.connect_ex = guarded_connect_ex
     socket._offline_guard_installed = True
@@ -173,13 +196,29 @@ def probe_network() -> int:
     return 2
 
 
+def validate_pattern(pattern: str | None) -> str | None:
+    """C1: blank/whitespace patterns are rejected before any run starts.
+    Returns an error message, or None when the pattern is usable."""
+    if pattern is None or not pattern.strip():
+        return (f"INVALID_PATTERN: --pattern {pattern!r} is empty or whitespace; "
+                "a packet test pattern must name real tests")
+    return None
+
+
 def run_discovery_child(pattern: str) -> int:
-    """Internal mode: guard installed, then unittest discovery."""
+    """Internal mode: guard installed, then unittest discovery.
+    C1: a valid pattern matching zero tests fails closed with the stable
+    NO_TESTS_DISCOVERED diagnostic (exit 3)."""
     install_guard(os.environ.get(GUARD_ENV))
     import unittest
     loader = unittest.defaultTestLoader
     suite = loader.discover(start_dir=str(REPO_ROOT / "tests" / "maintenance"),
                             pattern=pattern, top_level_dir=str(REPO_ROOT))
+    discovered = suite.countTestCases()
+    if discovered == 0:
+        print(f"NO_TESTS_DISCOVERED: pattern {pattern!r} matched 0 tests under "
+              f"tests/maintenance", file=sys.stderr, flush=True)
+        return 3
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
     return 0 if result.wasSuccessful() else 1
@@ -236,6 +275,11 @@ def main() -> int:
                          "must exit nonzero before network access")
     args = ap.parse_args()
 
+    pattern_error = validate_pattern(args.pattern)
+    if pattern_error:
+        print(pattern_error, file=sys.stderr, flush=True)
+        return 2
+
     if args.probe_network:
         return probe_network()
 
@@ -281,7 +325,9 @@ def main() -> int:
         ran, fails, errs, skips = _parse_unittest_summary(output)
         attempts = _guard_log_attempts(log_path)
         total_attempts.extend(attempts)
-        ok = (code == 0) and not attempts
+        # C1: a discovery child must have discovered AND run tests — an empty
+        # run (exit 3 / NO_TESTS_DISCOVERED) or a zero-count success is failure
+        ok = (code == 0) and ran > 0 and not attempts
         exit_ok = exit_ok and ok
         results.append({
             "suite": f"tests/maintenance:{args.pattern}", "exit": code, "ran": ran,
