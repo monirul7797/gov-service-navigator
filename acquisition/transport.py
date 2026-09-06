@@ -130,86 +130,98 @@ class RequestsTransport:
         while True:
             chain.append(request_url)
             tried[_redirect_identity(request_url)] = request_url
+            # C4: only expected Requests exceptions become transport
+            # outcomes; AssertionError/RuntimeError and other programmer
+            # errors propagate (the harness guard is not swallowed)
             try:
                 resp = self.session.get(request_url, timeout=self.timeout,
                                         verify=True, allow_redirects=False)
-            except Exception as exc:
+            except requests.exceptions.RequestException as exc:
                 kind, detail = _requests_transport_error(exc)
+                # initial get failure: no received status/final URL; later
+                # get failure: retains the last received provenance
                 return StrictResult(
                     ok=False, status=None, error_kind=kind, error_detail=detail,
                     redirect_chain=chain, final_url=last_response_url)
 
             hops += 1
-            last_response_url = str(resp.url)
-            status = resp.status_code
-
-            if status not in _REDIRECT_STATUSES:
-                body = resp.content            # read terminal bytes before closing
-                content_type = _header_value(resp.headers, "content-type")
-                _close_quietly(resp)
-                if 300 <= status < 400:
-                    return StrictResult(
-                        ok=False, status=status,
-                        error_kind="http_status",
-                        error_detail=f"unsupported redirect status {status}",
-                        final_url=last_response_url, redirect_chain=chain)
-                if status >= 400:
-                    return StrictResult(
-                        ok=False, status=status, content_type=content_type,
-                        error_kind="http_status",
-                        error_detail=f"http_{status}",
-                        final_url=last_response_url, redirect_chain=chain)
-                return StrictResult(
-                    ok=True, status=status, content_type=content_type,
-                    body=body, final_url=last_response_url, redirect_chain=chain)
-
-            # redirect response: Location presence -> destination policy ->
-            # loop detection -> hop limit -> next request
-            location = _header_value(resp.headers, "location").strip()
-            if not location:
-                _close_quietly(resp)
-                return StrictResult(
-                    ok=False, status=status, error_kind="redirect_missing_location",
-                    error_detail=f"redirect response without Location at {last_response_url}",
-                    final_url=last_response_url, redirect_chain=chain)
-
-            from urllib.parse import urljoin
+            # a response was received: this block owns its cleanup — closed
+            # exactly once even if response processing raises
             try:
-                destination = _strip_fragment(urljoin(last_response_url, location))
-            except Exception as exc:
-                _close_quietly(resp)
-                return StrictResult(
-                    ok=False, status=status, error_kind="destination_disallowed",
-                    error_detail=f"malformed Location destination {location!r}: {exc}",
-                    final_url=last_response_url, redirect_chain=chain)
+                last_response_url = str(resp.url)
+                status = resp.status_code
 
-            if not policy.allows(destination):
-                _close_quietly(resp)
-                return StrictResult(
-                    ok=False, status=status, error_kind="destination_disallowed",
-                    error_detail=f"redirect destination denied by navigation policy: {destination}",
-                    final_url=last_response_url, redirect_chain=chain)
+                if status not in _REDIRECT_STATUSES:
+                    # C4: read terminal bytes inside the guarded block; a
+                    # read failure retains received provenance, no body
+                    try:
+                        body = resp.content
+                        content_type = _header_value(resp.headers, "content-type")
+                    except requests.exceptions.RequestException as exc:
+                        kind, detail = _requests_transport_error(exc)
+                        return StrictResult(
+                            ok=False, status=status, error_kind=kind,
+                            error_detail=detail, final_url=last_response_url,
+                            redirect_chain=chain)
+                    if 300 <= status < 400:
+                        return StrictResult(
+                            ok=False, status=status,
+                            error_kind="http_status",
+                            error_detail=f"unsupported redirect status {status}",
+                            final_url=last_response_url, redirect_chain=chain)
+                    if status >= 400:
+                        return StrictResult(
+                            ok=False, status=status, content_type=content_type,
+                            error_kind="http_status",
+                            error_detail=f"http_{status}",
+                            final_url=last_response_url, redirect_chain=chain)
+                    return StrictResult(
+                        ok=True, status=status, content_type=content_type,
+                        body=body, final_url=last_response_url, redirect_chain=chain)
 
-            destination_identity = _redirect_identity(destination)
-            if destination_identity in tried:
-                _close_quietly(resp)
-                return StrictResult(
-                    ok=False, status=status, error_kind="redirect_loop",
-                    error_detail=(f"redirect loop: {destination} repeats a previously "
-                                  f"requested URL"),
-                    final_url=last_response_url, redirect_chain=chain)
+                # redirect response: Location presence -> destination policy ->
+                # loop detection -> hop limit -> next request
+                location = _header_value(resp.headers, "location").strip()
+                if not location:
+                    return StrictResult(
+                        ok=False, status=status, error_kind="redirect_missing_location",
+                        error_detail=f"redirect response without Location at {last_response_url}",
+                        final_url=last_response_url, redirect_chain=chain)
 
-            if hops > policy.max_redirects:
-                _close_quietly(resp)
-                return StrictResult(
-                    ok=False, status=status, error_kind="redirect_limit",
-                    error_detail=(f"redirect limit reached: {hops} requests made, "
-                                  f"following another redirect would exceed "
-                                  f"max_redirects={policy.max_redirects}"),
-                    final_url=last_response_url, redirect_chain=chain)
+                from urllib.parse import urljoin
+                try:
+                    destination = _strip_fragment(urljoin(last_response_url, location))
+                except ValueError as exc:
+                    return StrictResult(
+                        ok=False, status=status, error_kind="destination_disallowed",
+                        error_detail=f"malformed Location destination {location!r}: {exc}",
+                        final_url=last_response_url, redirect_chain=chain)
 
-            _close_quietly(resp)
-            request_url = destination
+                if not policy.allows(destination):
+                    return StrictResult(
+                        ok=False, status=status, error_kind="destination_disallowed",
+                        error_detail=f"redirect destination denied by navigation policy: {destination}",
+                        final_url=last_response_url, redirect_chain=chain)
+
+                destination_identity = _redirect_identity(destination)
+                if destination_identity in tried:
+                    return StrictResult(
+                        ok=False, status=status, error_kind="redirect_loop",
+                        error_detail=(f"redirect loop: {destination} repeats a previously "
+                                      f"requested URL"),
+                        final_url=last_response_url, redirect_chain=chain)
+
+                if hops > policy.max_redirects:
+                    return StrictResult(
+                        ok=False, status=status, error_kind="redirect_limit",
+                        error_detail=(f"redirect limit reached: {hops} requests made, "
+                                      f"following another redirect would exceed "
+                                      f"max_redirects={policy.max_redirects}"),
+                        final_url=last_response_url, redirect_chain=chain)
+
+                request_url = destination
+            finally:
+                _close_quietly(resp)
 
 # --- browser rendering port ---------------------------------------------------
 
