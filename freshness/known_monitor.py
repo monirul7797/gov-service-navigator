@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 from acquisition.acquire import extract_text_from_html
 from acquisition.robots import RobotsCache, robots_check
 from acquisition.transport import RequestsTransport  # noqa: F401 (default factory)
+from acquisition.navigation_policy import NavigationPolicy
 from acquisition.document_validation import validate_pdf
 from acquisition.urls import normalize_url, same_domain
 
@@ -99,14 +100,35 @@ class KnownSourceMonitor:
 
     def _acquire(self, url: str, is_pdf: bool, entry):
         """Acquire one source through the shared hierarchy.
-        Returns (quality, method, verification, text_or_bytes, reason, final_url)."""
+        Returns (quality, method, verification, text_or_bytes, reason, final_url).
+
+        P02B: binds a per-source NavigationPolicy (exact requested hostname)
+        to the real HTTP adapter for PDF and static fallback paths. Terminal
+        HTTP navigation errors preserve their HTTP error kind/detail and
+        take precedence over the renderer's earlier generic failure."""
         import time
         if not self._first_fetch:
             time.sleep(self.rate_limit_seconds)
         self._first_fetch = False
 
+        # P02B: derive a per-source policy (exact hostname) and bind the
+        # HTTP adapter. Never mutates self.transport.
+        from urllib.parse import urlparse as _urlparse
+        hostname = (_urlparse(url).hostname or "").lower()
+        policy = NavigationPolicy(frozenset({hostname}))
+        if isinstance(self.transport, RequestsTransport):
+            http_transport = self.transport.with_navigation_policy(policy)
+        else:
+            http_transport = self.transport   # injected fake
+
         if is_pdf:
-            strict = self.transport.fetch(url)
+            strict = http_transport.fetch(url)
+            # P02B: terminal HTTP errors preserved with HTTP kind/detail
+            if strict.error_kind in ("destination_disallowed", "redirect_missing_location",
+                                     "redirect_loop", "redirect_limit"):
+                return ("failed", None, "unreachable", None,
+                        f"terminal HTTP navigation failure ({strict.error_kind}): "
+                        f"{strict.error_detail[:150]}", strict.final_url)
             if strict.ok:
                 return ("ok", S.METHOD_PDF, "verified", strict.body,
                         f"pdf:{strict.content_type}", strict.final_url)
@@ -129,8 +151,15 @@ class KnownSourceMonitor:
             return ("failed", None, "unreachable", None,
                     reason + " (evidence render also failed)", "")
         # browser could not render (blocked / http error / navigation) —
-        # try the strict static fallback before declaring failure (§5 item 2)
-        strict = self.transport.fetch(url)
+        # try the strict static fallback with the source-bound HTTP adapter
+        strict = http_transport.fetch(url)
+        # P02B: terminal HTTP errors from the strict fallback take precedence
+        # over the renderer's earlier generic failure
+        if strict.error_kind in ("destination_disallowed", "redirect_missing_location",
+                                 "redirect_loop", "redirect_limit"):
+            return ("failed", None, "unreachable", None,
+                    f"terminal HTTP navigation failure ({strict.error_kind}): "
+                    f"{strict.error_detail[:150]}", strict.final_url)
         if strict.ok and not url.lower().endswith(".pdf"):
             ctype = (strict.content_type or "").lower()
             if "html" in ctype or ctype == "":

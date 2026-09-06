@@ -222,6 +222,25 @@ class RequestsTransport:
                 request_url = destination
             finally:
                 _close_quietly(resp)
+    def with_navigation_policy(self, policy) -> "RequestsTransport":
+        """P02B: return a distinct transport sharing this session, bound to
+        the given policy. If this transport already has a policy, the bound
+        transport enforces the intersection (both must allow; smaller limit).
+        No session allocation, no header reconfiguration, no I/O. The
+        original transport is unchanged. Separate bound copies for different
+        sources cannot change each other's policies."""
+        from acquisition.navigation_policy import IntersectedNavigationPolicy
+        existing = self.navigation_policy
+        if existing is not None:
+            effective = IntersectedNavigationPolicy(_first=existing, _second=policy)
+        else:
+            effective = policy
+        bound = object.__new__(RequestsTransport)
+        bound.session = self.session
+        bound.timeout = self.timeout
+        bound.navigation_policy = effective
+        return bound
+
 
 # --- browser rendering port ---------------------------------------------------
 

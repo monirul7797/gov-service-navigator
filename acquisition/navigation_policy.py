@@ -248,3 +248,24 @@ def urlunsplit_parsed(parsed, decoded_path: bool = False) -> str:
     from urllib.parse import urlunsplit
     path = unquote(parsed.path) if decoded_path else parsed.path
     return urlunsplit((parsed.scheme, parsed.netloc, path, parsed.query, parsed.fragment))
+
+
+@dataclass(frozen=True)
+class IntersectedNavigationPolicy:
+    """Immutable intersection of two navigation policies (P02B).
+
+    `allows(url)` requires BOTH constituent policies to allow the URL.
+    `max_redirects` is the smaller limit. Both original policies remain
+    unchanged. This composition avoids merging host sets (which would
+    accidentally form a union) and is safe to bind to a transport copy.
+    """
+
+    _first: NavigationPolicy
+    _second: NavigationPolicy
+
+    @property
+    def max_redirects(self) -> int:
+        return min(self._first.max_redirects, self._second.max_redirects)
+
+    def allows(self, url: str) -> bool:
+        return self._first.allows(url) and self._second.allows(url)

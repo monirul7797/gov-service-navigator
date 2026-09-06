@@ -31,9 +31,11 @@ import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 
 from .extract import normalize_text
 from .robots import RobotsCache, robots_check
+from .navigation_policy import NavigationPolicy
 from .transport import RenderResult, RequestsTransport, StrictResult
 from .urls import classify_url, normalize_url
 
@@ -137,6 +139,13 @@ def extract_text_from_html(html: str) -> str:
 
 DISPOSITION_REDIRECTED_OUT = "redirected_out_of_allowlist"
 
+# P02B: terminal HTTP navigation errors — a strict fetch returning any of
+# these kinds is immediately fatal; no browser fallback, no artifacts
+TERMINAL_HTTP_NAVIGATION_ERRORS = {
+    "destination_disallowed", "redirect_missing_location",
+    "redirect_loop", "redirect_limit",
+}
+
 
 def _final_url_allowed(final_url: str, requested: str,
                        allowed_domains: set | None) -> tuple[bool, str]:
@@ -152,7 +161,19 @@ def _final_url_allowed(final_url: str, requested: str,
     return False, final_norm
 
 
-def acquire_url(url: str, *, transport: RequestsTransport, renderer,
+def _domain_of(url: str) -> str:
+    """Extract the lowercased hostname from a URL."""
+    return (urlsplit(url).hostname or "").lower()
+
+
+def _post_capture_url_ok(final_url: str, requested: str, policy) -> bool:
+    """P02B: post-capture final-URL check using the invocation policy.
+    Empty final_url falls back to the requested URL (old injected fakes)."""
+    effective = final_url or requested
+    return policy.allows(effective)
+
+
+def acquire_url(url: str, *, transport, renderer,
                 robots: RobotsCache, out_dir: str, user_agent: str,
                 save_screenshot: bool = True, also_screenshot: bool = False,
                 allowed_domains: set | None = None) -> Capture:
@@ -182,17 +203,61 @@ def acquire_url(url: str, *, transport: RequestsTransport, renderer,
     if robots_note:
         cap.notes.append(robots_note)
 
-    # ---- 1) strict normal fetch (TLS verified) ---------------------------
-    strict: StrictResult = transport.fetch(normalized)
+    # ---- P02B: derive navigation policy and bind HTTP transport ----------
+    if allowed_domains is not None:
+        try:
+            policy = NavigationPolicy(frozenset(allowed_domains))
+        except (ValueError, TypeError) as exc:
+            cap.disposition = DISPOSITION_FAILED
+            cap.notes.append(f"invalid navigation policy configuration: {exc}")
+            return cap
+    else:
+        # derive a singleton exact hostname from the original requested URL
+        hostname = _domain_of(normalized)
+        if not hostname:
+            cap.disposition = "invalid_url"
+            cap.notes.append("cannot derive hostname for policy")
+            return cap
+        policy = NavigationPolicy(frozenset({hostname}))
+
+    if isinstance(transport, RequestsTransport):
+        http_transport = transport.with_navigation_policy(policy)
+    else:
+        # injected non-Requests fake port: retains fetch(url) compatibility;
+        # subject to caller post-capture checks (not evidence of policy enforcement)
+        http_transport = transport
+
+    # P02B: validate the original URL against the derived policy BEFORE any
+    # acquisition activity; a disallowed source is a diagnostic failure
+    if not policy.allows(normalized):
+        cap.disposition = "redirected_out_of_allowlist"
+        cap.verification_status = "unreachable"
+        cap.notes.append(f"original URL denied by navigation policy: {normalized}")
+        return cap
+
+    # ---- 1) strict normal fetch (TLS verified, policy-bound) -------------
+    strict: StrictResult = http_transport.fetch(normalized)
+
+    # P02B: terminal HTTP navigation errors are immediately fatal — no
+    # browser fallback, no TLS-evidence fallback, no artifacts
+    if strict.error_kind in TERMINAL_HTTP_NAVIGATION_ERRORS:
+        cap.method = ""
+        cap.disposition = ("redirected_out_of_allowlist"
+                           if strict.error_kind == "destination_disallowed"
+                           else DISPOSITION_FAILED)
+        cap.verification_status = "unreachable"
+        cap.final_url = strict.final_url
+        cap.notes.append(f"terminal HTTP navigation failure ({strict.error_kind}): "
+                         f"{strict.error_detail} — no browser fallback, no artifacts")
+        return cap
     if strict.ok:
         cap.http_status = strict.status
         cap.tls_verified = True
         ctype = strict.content_type.lower()
         if "pdf" in ctype or disposition == "pdf":
-            allowed, final_norm = _final_url_allowed(strict.final_url, normalized, allowed_domains)
             cap.final_url = strict.final_url
             cap.redirect_occurred = normalize_url(strict.final_url) != normalized
-            if not allowed:
+            if not _post_capture_url_ok(strict.final_url, normalized, policy):
                 cap.method = DIRECT_PDF_UNVERIFIED
                 cap.disposition = DISPOSITION_REDIRECTED_OUT
                 cap.verification_status = "unreachable"
@@ -208,10 +273,9 @@ def acquire_url(url: str, *, transport: RequestsTransport, renderer,
             return cap
         if "html" in ctype or ctype == "":
             text = extract_text_from_html(strict.body.decode("utf-8", errors="replace"))
-            allowed, final_norm = _final_url_allowed(strict.final_url, normalized, allowed_domains)
             cap.final_url = strict.final_url
             cap.redirect_occurred = normalize_url(strict.final_url) != normalized
-            if len(text) >= MIN_STATIC_TEXT_CHARS and not allowed:
+            if len(text) >= MIN_STATIC_TEXT_CHARS and not _post_capture_url_ok(strict.final_url, normalized, policy):
                 cap.disposition = DISPOSITION_REDIRECTED_OUT
                 cap.verification_status = "unreachable"
                 cap.notes.append(f"redirected outside allowlist: {strict.final_url} "
