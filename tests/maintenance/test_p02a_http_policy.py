@@ -503,5 +503,342 @@ class TestLegacyCompatibility(unittest.TestCase):
         self.assertIsNot(r1.redirect_chain, r2.redirect_chain)
 
 
+# ---------------------------------------------------------------------------
+# P02A-C1 regressions (fail-closed classification, host canonicalization,
+# immutable configuration, response cleanup and exception boundaries)
+# ---------------------------------------------------------------------------
+
+import hashlib  # noqa: E402
+
+
+class TestC1InvalidClassificationFailsClosed(unittest.TestCase):
+    """C1: `invalid` classification must not bypass wizard/login exclusion.
+    Only ok/pdf/boilerplate dispositions may pass the classification stage,
+    on both the original and the percent-decoded representation."""
+
+    FORBIDDEN = [
+        "https://gov.example/login?x=1,2",       # comma -> invalid original
+        "https://gov.example/log%69n?x=1,2",     # comma + encoded login
+        "https://gov.example/x%20y/log%69n",     # decoded space invalidates
+        "https://gov.example/page?x=1;2",        # semicolon -> invalid
+    ]
+
+    def test_allows_rejects_all_forbidden_variants(self):
+        policy = policy_hosts()
+        for url in self.FORBIDDEN:
+            with self.subTest(url=url):
+                self.assertFalse(policy.allows(url),
+                                 f"invalid/encoded classification bypassed denial: {url}")
+
+    def test_normal_query_positive_control(self):
+        policy = policy_hosts()
+        self.assertTrue(policy.allows("https://gov.example/page?q=1"))
+        self.assertTrue(policy.allows("https://gov.example/page?x=1&y=2"))
+
+    def test_forbidden_initial_urls_never_contacted(self):
+        for url in self.FORBIDDEN:
+            with self.subTest(url=url):
+                transport, session = make_transport({}, policy=policy_hosts())
+                result = transport.fetch(url)
+                self.assertFalse(result.ok)
+                self.assertEqual(result.error_kind, "destination_disallowed")
+                self.assertEqual(session.urls, [], f"{url} was contacted")
+                self.assertEqual(result.redirect_chain, [])
+
+    def test_forbidden_redirect_destinations_never_contacted(self):
+        for url in self.FORBIDDEN:
+            with self.subTest(url=url):
+                transport, session = make_transport(
+                    {A: _resp(302, url=A, headers={"Location": url})},
+                    policy=policy_hosts())
+                result = transport.fetch(A)
+                self.assertFalse(result.ok)
+                self.assertEqual(result.error_kind, "destination_disallowed")
+                self.assertEqual(session.urls, [A],
+                                 f"redirect target {url} was contacted")
+                self.assertEqual(result.redirect_chain, [A])
+
+    def test_allowed_query_positive_control_through_transport(self):
+        target = "https://gov.example/page?q=1"
+        transport, session = make_transport({
+            A: _resp(302, url=A, headers={"Location": target}),
+            target: _resp(200, url=target),
+        }, policy=policy_hosts())
+        result = transport.fetch(A)
+        self.assertTrue(result.ok)
+        self.assertEqual(session.urls, [A, target])
+        self.assertEqual(result.redirect_chain, [A, target])
+
+
+class TestC2HostCanonicalization(unittest.TestCase):
+    """C2: ipaddress-based IP literals, consistent canonicalization, label
+    validation on URL hosts, scoped IPv6 rejected, wildcards are DNS-only."""
+
+    def test_invalid_ipv6_shorthand_rejected(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        with self.assertRaises(ValueError):
+            NavigationPolicy(frozenset({"[:::]"}))
+
+    def test_valid_ipv6_config_and_exact_match(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        policy = NavigationPolicy(frozenset({"[2001:db8::1]"}))
+        self.assertTrue(policy.allows("https://[2001:db8::1]/"))
+
+    def test_equivalent_expanded_ipv6_matches(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        policy = NavigationPolicy(frozenset({"[2001:db8::1]"}))
+        self.assertTrue(policy.allows(
+            "https://[2001:0db8:0000:0000:0000:0000:0000:0001]/"))
+
+    def test_bracket_free_url_hostname_matches_ipv6(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        policy = NavigationPolicy(frozenset({"2001:db8::1"}))
+        self.assertTrue(policy.allows("https://[2001:db8::1]/"))
+
+    def test_junk_after_closing_bracket_rejected(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        with self.assertRaises(ValueError):
+            NavigationPolicy(frozenset({"[::1]junk"}))
+
+    def test_unmatched_bracket_rejected(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        with self.assertRaises(ValueError):
+            NavigationPolicy(frozenset({"[::1"}))
+
+    def test_scoped_ipv6_config_rejected(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        with self.assertRaises(ValueError):
+            NavigationPolicy(frozenset({"fe80::1%eth0"}))
+
+    def test_scoped_ipv6_url_denied(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        policy = NavigationPolicy(frozenset({"gov.example"}))
+        self.assertFalse(policy.allows("https://[fe80::1%25eth0]/a"))
+
+    def test_wildcard_matches_normal_subdomain(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        policy = NavigationPolicy(frozenset({"*.gov.example"}))
+        self.assertTrue(policy.allows("https://www.gov.example/a"))
+
+    def test_wildcard_rejects_malformed_empty_label_host(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        policy = NavigationPolicy(frozenset({"*.gov.example"}))
+        self.assertFalse(policy.allows("https://bad..gov.example/a"))
+
+    def test_wildcard_over_ip_literal_rejected(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        with self.assertRaises(ValueError):
+            NavigationPolicy(frozenset({"*.192.0.2.10"}))
+
+    def test_ip_literal_exact_match(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        policy = NavigationPolicy(frozenset({"192.0.2.10"}))
+        self.assertTrue(policy.allows("https://192.0.2.10/a"))
+        wildcard_policy = NavigationPolicy(frozenset({"*.2.10"}))
+        self.assertFalse(wildcard_policy.allows("https://192.0.2.10/a"))
+
+    def test_config_whitespace_rejected_not_stripped(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        with self.assertRaises(ValueError):
+            NavigationPolicy(frozenset({" gov.example"}))
+
+    def test_explicitly_empty_port_denied(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        policy = NavigationPolicy(frozenset({"gov.example"}))
+        self.assertFalse(policy.allows("https://gov.example:/a"))
+
+    def test_trailing_dot_normalized_on_both_sides(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        policy = NavigationPolicy(frozenset({"gov.example."}))
+        self.assertTrue(policy.allows("https://gov.example./a"))
+        policy2 = NavigationPolicy(frozenset({"gov.example"}))
+        self.assertTrue(policy2.allows("https://gov.example./a"))
+
+    def test_ipv6_url_reaches_scripted_session_and_succeeds(self):
+        routes = {"https://[2001:db8::1]/a": _resp(200, url="https://[2001:db8::1]/a")}
+        transport, session = make_transport(
+            routes, policy=policy_hosts(frozenset({"2001:db8::1"})))
+        result = transport.fetch("https://[2001:db8::1]/a")
+        self.assertTrue(result.ok)
+        self.assertEqual(session.urls, ["https://[2001:db8::1]/a"])
+
+
+class TestC3PolicyImmutability(unittest.TestCase):
+    """C3: the policy configuration is immutable under ordinary assignment
+    and input-set aliasing cannot change decisions."""
+
+    def _policy(self):
+        from acquisition.navigation_policy import NavigationPolicy
+        source = {"gov.example"}
+        return NavigationPolicy(frozenset(source)), source
+
+    def test_max_redirects_assignment_rejected(self):
+        policy, _ = self._policy()
+        with self.assertRaises(AttributeError):
+            policy.max_redirects = 100
+
+    def test_hosts_assignment_rejected(self):
+        policy, _ = self._policy()
+        with self.assertRaises(AttributeError):
+            policy.allowed_hosts = frozenset({"external.example"})
+        with self.assertRaises(AttributeError):
+            policy._hosts = frozenset({"external.example"})
+
+    def test_max_redirects_deletion_rejected(self):
+        policy, _ = self._policy()
+        with self.assertRaises(AttributeError):
+            del policy.max_redirects
+
+    def test_input_set_aliasing_cannot_change_policy(self):
+        policy, source = self._policy()
+        source.add("external.example")
+        source.discard("gov.example")
+        self.assertTrue(policy.allows("https://gov.example/a"))
+        self.assertFalse(policy.allows("https://external.example/"))
+
+    def test_bound_transport_still_denies_after_attempted_mutation(self):
+        policy, _ = self._policy()
+        transport, session = make_transport({}, policy=policy)
+        with self.assertRaises(AttributeError):
+            policy._hosts = frozenset({"external.example"})
+        with self.assertRaises(AttributeError):
+            policy.max_redirects = 100
+        result = transport.fetch(EXTERNAL)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_kind, "destination_disallowed")
+        self.assertEqual(session.urls, [])
+
+
+class TestC4ResponseCleanupAndExceptionBoundaries(unittest.TestCase):
+    """C4: one finally-owned cleanup per received response; only Requests
+    exceptions become transport outcomes; AssertionError/RuntimeError
+    propagate after cleanup; read failures retain received provenance with
+    no partial body."""
+
+    class RaisingContentResponse:
+        def __init__(self, status, url, exc):
+            self.status_code = status
+            self.url = url
+            self.headers = {"content-type": "text/html"}
+            self._exc = exc
+            self.close_count = 0
+
+        @property
+        def content(self):
+            raise self._exc
+
+        def close(self):
+            self.close_count += 1
+
+    def _verbatim_transport(self, objects):
+        """Transport whose session returns the given response objects
+        verbatim (each in order), recording requested URLs."""
+        from acquisition.transport import RequestsTransport
+        from tests.maintenance.fixtures import robots_for_hosts
+        from unittest.mock import Mock
+        session = Mock()
+        session.headers = {}
+        session.urls = []
+        session.call_kwargs = []
+        objects = list(objects)
+
+        def _get(url, **kwargs):
+            session.urls.append(url)
+            session.call_kwargs.append(kwargs)
+            obj = objects.pop(0)
+            return obj
+
+        session.get.side_effect = _get
+        transport = RequestsTransport(navigation_policy=policy_hosts(), session=session)
+        return transport, session
+
+    def test_chunked_encoding_at_initial_url(self):
+        from requests.exceptions import ChunkedEncodingError
+        resp = self.RaisingContentResponse(200, A, ChunkedEncodingError("boom"))
+        transport, session = self._verbatim_transport([resp])
+        result = transport.fetch(A)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_kind, "connection")
+        self.assertEqual(result.status, 200)
+        self.assertEqual(result.final_url, A)
+        self.assertEqual(result.redirect_chain, [A])
+        self.assertFalse(result.body)
+        self.assertEqual(resp.close_count, 1)
+
+    def test_chunked_encoding_after_allowed_redirect(self):
+        from requests.exceptions import ChunkedEncodingError
+        redirect_resp = SimpleNamespace(status_code=302, url=A,
+                                        headers={"Location": B}, history=[])
+        redirect_resp.close_count = 0
+
+        def close_redirect():
+            redirect_resp.close_count += 1
+
+        redirect_resp.close = close_redirect
+        broken_resp = self.RaisingContentResponse(200, B, ChunkedEncodingError("boom"))
+        transport, session = self._verbatim_transport([redirect_resp, broken_resp])
+        result = transport.fetch(A)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_kind, "connection")
+        self.assertEqual(result.status, 200)
+        self.assertEqual(result.final_url, B)
+        self.assertEqual(result.redirect_chain, [A, B])
+        self.assertFalse(result.body)
+        self.assertEqual(redirect_resp.close_count, 1)
+        self.assertEqual(broken_resp.close_count, 1)
+
+    def test_runtime_error_propagates_after_cleanup(self):
+        resp = self.RaisingContentResponse(200, A, RuntimeError("programmer error"))
+        transport, session = self._verbatim_transport([resp])
+        with self.assertRaises(RuntimeError):
+            transport.fetch(A)
+        self.assertEqual(resp.close_count, 1)
+
+    def test_unscripted_request_assertion_error_propagates(self):
+        session = scripted_http_session({})
+        from acquisition.transport import RequestsTransport
+        transport = RequestsTransport(navigation_policy=policy_hosts(), session=session)
+        with self.assertRaises(AssertionError):
+            transport.fetch(A)
+
+    def test_genuine_transport_failures_retain_classification(self):
+        from requests.exceptions import ConnectionError as RC
+        from requests.exceptions import SSLError
+        transport, session = make_transport(
+            {A: {"exception": RC("refused")}}, policy=policy_hosts())
+        result = transport.fetch(A)
+        self.assertEqual(result.error_kind, "connection")
+        self.assertEqual(result.final_url, "")
+        transport2, session2 = make_transport({
+            A: _resp(302, url=A, headers={"Location": B}),
+            B: {"exception": SSLError("handshake")},
+        }, policy=policy_hosts())
+        result2 = transport2.fetch(A)
+        self.assertEqual(result2.error_kind, "tls")
+        self.assertEqual(session2.urls, [A, B])
+
+    def test_existing_paths_still_close_once(self):
+        cases = {
+            "success": {A: _resp(200, url=A)},
+            "http_reject": {A: _resp(404, url=A)},
+            "redirect_denied": {A: _resp(302, url=A, headers={"Location": EXTERNAL})},
+            "loop": {A: _resp(302, url=A, headers={"Location": A})},
+            "missing_location": {A: _resp(302, url=A, headers={})},
+            "hop_limit": {A: _resp(302, url=A, headers={"Location": B}),
+                          B: _resp(302, url=B, headers={"Location": C}),
+                          C: _resp(302, url=C, headers={"Location": D}),
+                          D: _resp(302, url=D, headers={"Location": E}),
+                          E: _resp(302, url=E, headers={"Location": F}),
+                          F: _resp(302, url=F, headers={"Location": "https://gov.example/g"})},
+        }
+        for label, routes in cases.items():
+            with self.subTest(label=label):
+                transport, session = make_transport(routes, policy=policy_hosts())
+                transport.fetch(A)
+                for url in session.urls:
+                    self.assertEqual(session.close_counts.get(url), 1,
+                                     f"{label}: {url} close count")
+
+
 if __name__ == "__main__":
     unittest.main()
