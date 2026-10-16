@@ -4,7 +4,7 @@ A bilingual (Bangla/English) RAG chatbot that answers questions about four Bangl
 government services — **NID** (National ID), **e-Passport**, **e-Return** (income tax),
 and **BDRIS** (birth & death registration) — grounded in official source documents.
 
-Built as a CSE299 (Junior Design Project I) capstone.
+Built as a Junior Design Project capstone.
 
 Ask in English, Bangla, or romanized Bangla ("Banglish"); the bot finds the right official
 content, answers in your language, and cites its sources.
