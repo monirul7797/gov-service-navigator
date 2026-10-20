@@ -14,7 +14,7 @@
 
 - The real answer path (`answer.py::handle_turn`, the same code the CLI and Streamlit app use),
   current ChromaDB data (NID, e-Passport, e-Return, BDRIS), bge-m3 embeddings.
-- **8 conversations, 41 turns**, in Bangla, English and Banglish. **13 turns are deliberately
+- **8 conversations, 40 turns**, in Bangla, English and Banglish. **13 turns are deliberately
   random / out-of-scope** and inserted between related questions (weather, football, gold price,
   a poem request, a prompt-injection attempt, driving licence, trade licence, bitcoin, the prime
   minister, greetings, "thanks", "who are you?"), plus one with a personal NID number.
@@ -43,7 +43,7 @@
 | Fee stated against the wrong item | 0 | 1 (NID "other info, urgent ৳460") | **0** |
 | Median answer time | 11.8 s (worst 87 s) | 6.4 s | **4.2 s** |
 | Availability during the test | **Failed for ~20 min** (429 "service overloaded") | OK | OK |
-| Cost of the whole 41-turn run | free tier | ≈ US$0.05 | ≈ US$0.04 |
+| Cost of the whole 40-turn run | free tier | ≈ US$0.05 | ≈ US$0.04 |
 
 **"Thinking on" is unsuitable for this pipeline.** DeepSeek counts its hidden thinking against the
 answer length limit. The follow-up classifier allows 8 tokens, so it got an empty answer every
@@ -121,3 +121,43 @@ questions that target attribution.
 - Speed: median 11.8 s, worst 87 s per answer; and the free tier refused all requests (HTTP 429
   "service may be temporarily overloaded") for about 20 minutes during this test.
 
+
+## 9. Routing comparison (2026-10-21)
+
+Both routes ran on `deepseek-flash` (thinking off) through `eval_conversations.py`. The suite
+has 40 turns (11 follow-ups, 13 random, 16 other); the earlier "41" was a miscount. Run 2 and 3
+also score answer language (38 turns with an expected language).
+
+| | Registry (old) run 1 | LLM run 1 | Registry run 2 | LLM run 2 | LLM run 3 (final) |
+|---|---|---|---|---|---|
+| Total | 28/40 | 39/40 | 27/40 | 40/40 | 40/40 |
+| Follow-ups | 5/11 | 11/11 | 5/11 | 11/11 | 11/11 |
+| Random | 7/13 | 13/13 | 6/13 | 13/13 | 13/13 |
+| Other | 16/16 | 15/16 | 16/16 | 16/16 | 16/16 |
+| Language | — | — | 36/38 | 38/38 | 38/38 |
+| Fact-check flags | 7/35 | 1/40 | 7/35 | 1/39 | 0/39 |
+| Median s/turn | 3.4 | 3.7 | 3.2 | 3.3 | 3.1 |
+
+Run 1 exposed two LLM-route regressions: an ambiguous first message ("correction fee koto?") was
+answered instead of clarified, and some Banglish messages were answered in English. The prompt
+gained an ambiguity rule and a Banglish rule, plus a code override (Bangla script → Bangla).
+Because the first version of those rules quoted suite wording, a 7-turn **held-out set** with new
+wording was added (`conversation_cases_heldout.json`): **LLM 7/7, registry 4/7** (registry
+mis-scoped "pasport er meyad shesh…" and "NID ar passport duitar fee koto?" across services and
+answered "cricket match er score janen?" in mixed language).
+
+**Manual review for invented facts** (answers read against their records): both routes claimed
+the NID card status can be checked on the NID portal with an NID number (C6.2) — no record says
+so; this comes from the answer step, not routing. The registry route also added links from model
+memory (brta.gov.bd, bangladesh.gov.bd) and speculative trade-licence claims. One LLM-route run
+mislabelled the BDRIS 100-taka correction fee line (later runs correct). Verdict: no worse.
+
+**Retrieval evals** are unchanged by construction (no eval script, input or import changed):
+NID 11/4/1/2 of 18, ePassport 19/0/0/2 of 21, eReturn 15/0/1/1 of 17, BDRIS 15/2/1/0 of 18. The
+three fails are Banglish gold queries embedded raw; the app searches with transliterated
+(old) or LLM-written Bangla/English (new) queries instead.
+
+**Decision: adopted.** Remaining follow-ups: the invented NID-status claim (answer step); a
+two-service question retrieves only 2 records per service, so "NID ar passport duitar fee koto?"
+lacked the passport fee table (it did not invent fees; it named the fee dimensions, which the
+fact check flagged); the data problems in §4.

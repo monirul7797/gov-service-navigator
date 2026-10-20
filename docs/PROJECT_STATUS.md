@@ -143,11 +143,11 @@ git push origin codex/tracker-g0-p02b
 - **LLM:** `deepseek-flash` (= DeepSeek-V4.1-Flash-1017) with thinking **disabled**
   (`setenv_deepseek.bat`, gitignored). GLM is not the primary model. Evidence:
   `docs/reports/2026-10-21-llm-and-conversation-test.md`.
-- **Routing change approved:** "LLM understands the question, code checks the answer" replaces the
-  deterministic routing rule, kept only if it beats the current routing on the conversation
-  suite, the four evals and `test_multiturn.py`. Design:
-  `docs/superpowers/specs/2026-10-21-llm-query-understanding-design.md`. Fix code problems now,
-  before M0.
+- **Routing change adopted (2026-10-21):** "LLM understands the question, code checks the answer"
+  replaces deterministic routing; the registry router stays as fallback. Measured on
+  `deepseek-flash` (thinking off): follow-ups 11/11 vs 5/11, random questions 13/13 vs 6–7/13,
+  fact-check flags 0/39 vs 7/35, held-out set 7/7 vs 4/7; retrieval evals unchanged. Built on
+  branch `feat/llm-understanding` (merge pending owner OK). Evidence: report §9.
 - **Dev machine:** Rust 1.99.1 installed; Docker Desktop installed on `G:\Docker` (C: has ~4 GB
   free). No MSVC Build Tools: Rust compiles and tests inside Docker.
 

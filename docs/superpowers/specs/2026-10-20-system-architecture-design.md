@@ -58,7 +58,8 @@ Cloudflare during the pilot, multiple admin roles, a public Telegram bot, locall
 - **Project data-integrity rules** (`CLAUDE.md`) apply to every component: never invent URLs, fees,
   dates or documents; Bangla source text authoritative and verbatim; fees VAT-inclusive; numerals
   per answer language; portal URLs for "how to apply"; no evasion of site blocks; dedup before
-  adding; deterministic routing.
+  adding; LLM understanding with code-checked fact boundaries (see
+  `2026-10-21-llm-query-understanding-design.md`).
 
 ---
 
@@ -204,7 +205,7 @@ Request (JSON):
 
 Response: a Server-Sent Events stream.
 
-- `stage` events: `routing`, `searching`, `writing`, `checking` (for the progress UI).
+- `stage` events: `understanding`, `searching`, `writing`, `checking` (for the progress UI).
 - One final `result` event:
 
 | Field | Notes |
@@ -245,9 +246,12 @@ After generation, before anything is shown:
 - If no provider is available: `sources_only` — the top matching records' headings, Bangla text
   verbatim (with English where present, labelled as translation) and their links, plus a short
   fixed note.
-- The follow-up judgment `is_continuation()` is the one LLM call in the routing path. If it
-  cannot be answered, the turn is treated as a **new** question (the grounding floor then declines
-  true off-topic messages). Deterministic routing via `disambiguate.py` + registry is unchanged.
+- Routing is one LLM understanding call (`understand.py`, design
+  `2026-10-21-llm-query-understanding-design.md`): it classifies the turn and writes Bangla and
+  English search queries; code validates the output and filters model-written replies and
+  clarifying questions. If the call fails, the registry router (`disambiguate.py` +
+  `concept_registry.json`) is the fallback. Adopted 2026-10-21 on the evidence in
+  `docs/reports/2026-10-21-llm-and-conversation-test.md` §9.
 
 ### 5.5 Retrieval
 
@@ -475,7 +479,7 @@ admin panel **Rollback** (or `gsn release rollback`).
 | Unit | Function-level correctness | `cargo test`, pytest, Vitest |
 | Contract | `web` and `engine` agree on `/v1/turn`; both tested against the same JSON examples in `contracts/` (and any future Rust port must pass them) | Rust + Python |
 | Behaviour fixtures | Routing (`test_multiturn.py` cases as JSON), retrieval (existing gold queries with per-service thresholds), PII scrubber (must-scrub and must-not-scrub cases, Western and Bengali digits) | Language-neutral JSON |
-| Generation eval | 60–100 bn/en/Banglish questions with owner-checked expected facts; measures fact-check pass rate, citation correctness, answer language, numeral style; used to compare providers | Real LLM |
+| Generation eval | 60–100 bn/en/Banglish questions with owner-checked expected facts; measures fact-check pass rate, citation correctness, answer language, numeral style; used to compare providers; includes the 40-turn conversation suite (`conversation_cases.json`) and the 7-turn held-out set (`conversation_cases_heldout.json`) scored by `eval_conversations.py` | Real LLM |
 | End-to-end | Browser flows: ask → verified answer with citation; invite gate; rate limits; admin routes absent on the public listener | Playwright, fake LLM |
 | Security | Secret scanning, dependency audits, header checks, external exposure check | CI + deploy step |
 | Load (before pilot) | 100 concurrent users | k6 |

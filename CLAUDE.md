@@ -33,8 +33,14 @@ you go, and ask before anything hard to reverse.
 - Do not evade site blocks (no UA spoofing, proxies, CAPTCHA bypass, login automation). Blocked →
   manual screenshot by the owner.
 - Dedup against the existing corpus before adding any record.
-- Routing is deterministic (`disambiguate.py` + `concept_registry.json`). Do not replace it with
-  LLM judgment. Adding a service = corpus → embed → registry entry, not a router rewrite.
+- Routing: one LLM understanding call per turn (`understand.py`) classifies the turn
+  (service_question / small_talk / off_topic / unclear) and writes self-contained search queries;
+  code validates its JSON, filters any model-written reply or clarifying question (no links, no
+  figures) and keeps every fact boundary (facts only from retrieved records). `disambiguate.py` +
+  `concept_registry.json` remain the service catalogue and the fallback router
+  (`answer.handle_turn_registry`). Adding a service = corpus → embed → registry entry, not a
+  prompt or router rewrite. Never put suite or held-out test questions into the understanding
+  prompt.
 
 ## Repository safety rules
 
@@ -42,7 +48,8 @@ you go, and ask before anything hard to reverse.
   (`*_review_bundle*/`, `freshness_v21_final_review*`) that must not be committed. Stage explicit
   paths only.
 - Never push, merge, rebase shared history or delete branches without the owner's explicit OK.
-- `setenv.bat` is gitignored and holds the LLM API key: never commit, print or overwrite it.
+- `setenv.bat` (GLM, legacy) and `setenv_deepseek.bat` (primary) are gitignored (`setenv_*.bat`)
+  and hold LLM API keys: never commit, print, open or overwrite them.
 - `data/vectordb/` is generated; write to it only through `embed_*.py` scripts. If corrupted,
   delete and re-embed.
 - Do not run the legacy `freshness/reembed.py` executor on the working project (audited as unsafe).
@@ -55,11 +62,20 @@ you go, and ask before anything hard to reverse.
 
 ## Environment and commands
 
-- Windows; Python 3.12.10. Run `setenv.bat` before `answer.py` / `app.py` (LLM needed); not needed
-  for `embed_*.py`, `eval_*.py`, `build_*.py`.
+- Windows; Python 3.12.10. Run `setenv_deepseek.bat` (DeepSeek `deepseek-flash`, thinking
+  disabled) before `answer.py` / `app.py` (LLM needed); not needed for `embed_*.py`, `eval_*.py`,
+  `build_*.py`.
 - Chatbot: `python answer.py` (CLI), `streamlit run app.py` (web UI).
-- Routing regression tests (no DB/LLM): `python test_multiturn.py`.
+- Routing tests (no DB/LLM): `python test_understand.py`, `python test_turn_routing.py`,
+  `python test_multiturn.py` (fallback router), `python test_eval_conversations.py`.
 - Retrieval evals: `python eval_nid.py`, `eval_epassport.py`, `eval_ereturn.py`, `eval_bdris.py`.
+- Conversation suite (calls the LLM, ≈US$0.05 per run):
+  `python eval_conversations.py --route llm --env-bat setenv_deepseek.bat` (40 turns); held-out
+  set: add `--cases conversation_cases_heldout.json` (7 turns); `--route registry` measures the
+  fallback router. Set `PYTHONIOENCODING=utf-8` on Windows.
+- Retrieval-eval baseline (2026-10-21, unchanged by the routing change): NID 11 pass / 4 warn / 1
+  fail / 2 observe of 18; ePassport 19/0/0/2 of 21; eReturn 15/0/1/1 of 17; BDRIS 15/2/1/0 of 18.
+  The 3 fails are Banglish gold queries embedded raw (the eval scripts skip transliteration).
 - Freshness/acquisition legacy suites: `test_freshness.py`, `test_freshness_v21.py`,
   `test_acquisition.py`.
 - Offline test runner (only on `codex/tracker-g0-*` branches):
