@@ -111,7 +111,10 @@ class OpenAICompatibleBackend(LLMBackend):
         if missing:
             raise RuntimeError("OpenAI-compatible backend needs these env vars: "
                                + ", ".join(missing))
-        self.client = OpenAI(base_url=base_url, api_key=key)
+        # Bounded wait: the SDK default is 10 minutes, long enough to hang a user's turn.
+        # LLM_TIMEOUT_S (seconds, default 60) lets callers fail fast and fall back instead.
+        self.client = OpenAI(base_url=base_url, api_key=key,
+                             timeout=float(os.environ.get("LLM_TIMEOUT_S", "60")))
         # Opt-in latency cut for reasoning models (z.ai/GLM): set LLM_DISABLE_THINKING=1
         # to turn off the thinking phase for simple tasks like transliteration. Sent only
         # when the flag is set, so it never interferes with providers that don't use it.
