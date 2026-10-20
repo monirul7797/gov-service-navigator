@@ -1,0 +1,107 @@
+# Project status and handoff
+
+Written 2026-10-20 after a ~6-week pause (last activity 2026-09-06). Reconstructed from the working
+tree, the local git history (including unpushed branches), `docs/superpowers/`, the review bundles
+and the GitHub repo. Update this file as decisions are made.
+
+## 1. The owner's goals (in his words, lightly edited)
+
+1. **Complete the dataset manually.** The Visa dataset is incomplete; with Visa it is about 5
+   services. Expand to more government services. Automated collection from these sites hasn't
+   worked, so data has been collected manually.
+2. **Tracker.** Continuously monitor leading government newspapers and government sites for changes
+   to those services, notify the admin (me) and rank the changes. Based on the ranking I collect
+   the data and hand it to the system, which cleans it up and adds it to the dataset.
+3. **A proper public website** where people post queries and find answers about those services.
+   A server is ready. I have never built a website, so I need guidance on everything: frontend,
+   backend, server, management, security. **Backend in Rust**; everything else to be discussed.
+   Advice wanted on a scalable, robust site that needs minimal management staff.
+4. Whatever else genuinely makes this a working system.
+
+## 2. What exists today
+
+| Period | Work | Location |
+|---|---|---|
+| Jul – Aug 17 | Chatbot over NID (102 records), e-Passport (66), e-Return (83), BDRIS (42). Deterministic language detection + Banglish transliteration, rule-based cross-service disambiguation, bge-m3 + ChromaDB retrieval, grounded generation with citations, multi-turn memory, Streamlit UI + CLI, per-service eval harnesses, `test_multiturn.py`. LLM: z.ai free GLM-4.7-Flash. | GitHub (`master` @ `3aaaa0c`) |
+| Sep 3 | Build spec (`gsn-freshness-and-new-service-spec.md`) executed by GLM: freshness change-detection pipeline with human review gate; provenance-aware acquisition layer + bounded crawler (`acquisition/`, `crawl.py`); Visa corpus `data/chunks/visa.jsonl` grown 17 → 39 records (Phases 3–3.6b). | Local only |
+| Sep 5 | Freshness V2 / V2.1. Independent audit (`freshness_v21_final_review/`): **"not yet safe enough"**, 9 bugs (R1–R9). | Local only |
+| Sep 5 | Codex reconciliation + new design: `docs/superpowers/specs/2026-09-05-freshness-reconciliation.md` and `...-tracker-evidence-update-design.md`. Phase plans G0–G3 + control guide in `docs/superpowers/plans/`. | Local only, **untracked** |
+| Sep 5–6 | Tracker build, Codex reviewing / GLM implementing in temp worktrees: P00 ✅ `f808ce3`, P01 ✅ `41b8eed`, P02A ✅ `ac2930a`, **P02B implemented but failing, not reviewed** (`33c94b7`). | Local branches `codex/tracker-g0-p00…p02b` |
+
+**Visa is not live**: no `embed_visa.py`, no eval/gold set, not in `ALLOWED_COLLECTIONS` or
+`concept_registry.json`. Its 39 records are mostly English (38 `en`, 1 `bn+en`) from
+visa.gov.bd / immi.specialbranch.gov.bd / voa.specialbranch.gov.bd.
+
+### Where the tracker build stopped (P02B)
+
+GLM's report (`docs/superpowers/reports/P02B-worker-report.md` on branch
+`codex/tracker-g0-p02b`): 7 of 26 new P02B tests fail, 2 P00 tests regress, 2 offline-guard network
+attempts. A legacy test (`test_b12b` in `test_acquisition.py`) expects subdomain redirects to be
+allowed, which the new exact-host policy denies, and that file was outside GLM's allowed scope.
+Needs review and a corrective pass before P03 (browser navigation + robots policy) and the G0 gate.
+
+## 3. Git state and risks (as of 2026-10-20)
+
+- Local `master` = `8d3c83c`, **12 commits ahead** of `origin/master` (`3aaaa0c`). Nothing since
+  Aug 17 is on GitHub.
+- `codex/tracker-g0-p00 → p01 → p02a → p02b`: linear chain of 10 more commits, local only.
+- GitHub has one commit not in local: `ecb0ec4` (Oct 16, README wording "CSE299 …" → "Junior
+  Design Project"). Local commits never touch README, so a rebase is clean.
+- `docs/superpowers/` (2 specs, 13 plans/prompts, 7 review/acceptance reports) is untracked.
+- GLM worktrees live under `C:/Users/Monirul/AppData/Local/Temp/gsn-glm-p0*-…`; Windows cleanup can
+  delete them (commits stay safe on the branches; run `git worktree prune` if so). Codex review
+  evidence is under `C:/Users/Monirul/.codex/visualizations/…`, outside the repo.
+- The Codex reconciliation cites `Govt_Service_Navigator_Ultra_Handoff_2026-09-05.docx`, which is
+  not in the project folder.
+
+Suggested backup (explicit paths only):
+
+```powershell
+git add docs/superpowers CLAUDE.md docs/PROJECT_STATUS.md
+git commit -m "docs: tracker spec, phase plans, reviews; project status and Claude instructions"
+git pull --rebase --autostash origin master
+git push origin master
+git push origin codex/tracker-g0-p02b
+```
+
+## 4. How the goals map onto existing plans, and the gaps
+
+| Goal | Existing plan | Gap / conflict |
+|---|---|---|
+| 1 Dataset | Corpus conventions in the build spec; G2 (P10–P14) = evidence intake, extraction (screenshots, PDF, DOCX, XLSX, OCR), comparison and exact patch proposals | Visa incomplete; Visa publishing deliberately gated (G5). No plan yet for adding services 6+ |
+| 2 Tracker | G1 (P04–P09) = curated official + news sources, event grouping, priority ranking, alert inbox, source health. G3 (P15–P20) = approved, versioned publication with rollback | Spec excludes external messaging (in-app inbox only); the owner wants to be notified. Spec assumes a **single laptop** |
+| 3 Public website | **Not covered.** Spec lists public hosting as an exclusion; operator UI is a separate Streamlit app; storage is local SQLite | Needs a whole-system architecture: public site, answer engine, tracker workers, admin app, on the owner's server |
+| 4 Working system | — | See ideas in §6 |
+
+## 5. Open decisions (to settle at the start of the next session)
+
+1. **Re-scope the plan.** The website changes deployment assumptions behind G1–G3. Decide whether
+   to keep the G0 safety work (likely yes: crawler safety is needed regardless), then redesign
+   G1+ around the server deployment.
+2. **Rust boundary.** Rust for the public API layer (auth, rate limiting, sessions, serving the
+   frontend) is a good fit. Open question: keep the working Python RAG pipeline (normalization,
+   disambiguation, bge-m3, ChromaDB) as an internal service, or port parts to Rust later.
+3. **LLM for public traffic.** The free GLM-4.7-Flash tier (~1 req/s, ~1000/day) is fine for demos,
+   not for a public site. Needs a provider and a monthly budget.
+4. **Workflow.** Continue the Codex (architect/reviewer) + GLM (worker) loop, switch to Claude Code,
+   or combine them — but keep one source of truth for the plan.
+5. **Notifications.** Which channel(s) for admin alerts (email, Telegram, etc.).
+
+### Information needed from the owner
+
+- Server specs: provider/location, OS, CPU, RAM, GPU (if any), disk, bandwidth.
+- Monthly budget (LLM API, domain, backups).
+- Domain name (owned or to buy).
+- Expected users and whether public users need accounts.
+- Who operates it (just the owner?).
+
+## 6. Ideas for goal 4 (suggestions, not decisions)
+
+- Feedback on every answer ("wrong / outdated") that feeds the tracker inbox.
+- Log unanswered and low-confidence questions to show which services or topics to collect next.
+- Show "source last verified on <date>" with every answer.
+- Scrub personal data (NID, phone, passport numbers) from query logs; publish a privacy policy.
+- Clear "unofficial, independent service" labelling; no government logos or look-alike branding.
+- Mobile-first, low-bandwidth, Bangla-first UI.
+- Use the eval suites + `test_multiturn.py` as a release gate for every data or code change.
+- Staging and production environments, automated backups, uptime monitoring, rate limiting.
