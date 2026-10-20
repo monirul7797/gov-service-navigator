@@ -138,6 +138,19 @@ git push origin codex/tracker-g0-p02b
   legacy syntax; document OVH KVM/rescue console as break-glass if Tailscale fails; encrypted
   off-provider DB backups with a practised restore (GitHub only gets public release data); the old
   G1–G3 machinery (lease fencing, CAS protocols) is dropped, G0 crawler-safety work is salvaged.
+### Decided 2026-10-21
+
+- **LLM:** `deepseek-flash` (= DeepSeek-V4.1-Flash-1017) with thinking **disabled**
+  (`setenv_deepseek.bat`, gitignored). GLM is not the primary model. Evidence:
+  `docs/reports/2026-10-21-llm-and-conversation-test.md`.
+- **Routing change approved:** "LLM understands the question, code checks the answer" replaces the
+  deterministic routing rule, kept only if it beats the current routing on the conversation
+  suite, the four evals and `test_multiturn.py`. Design:
+  `docs/superpowers/specs/2026-10-21-llm-query-understanding-design.md`. Fix code problems now,
+  before M0.
+- **Dev machine:** Rust 1.99.1 installed; Docker Desktop installed on `G:\Docker` (C: has ~4 GB
+  free). No MSVC Build Tools: Rust compiles and tests inside Docker.
+
 - **Architecture spec:** `docs/superpowers/specs/2026-10-20-system-architecture-design.md`
   (draft for owner review). Phase 1 milestones M0–M7; each milestone gets its own plan.
 
