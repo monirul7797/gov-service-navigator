@@ -79,9 +79,9 @@ def build_system_prompt(reg: dict, live_services: set[str]) -> str:
         "conversation.\n\n"
         "Reply with one JSON object only (no markdown, no text before or after) with these fields:\n"
         "- type: one of service_question, small_talk, off_topic, unclear\n"
-        "- services: list of service IDs from the list above that the question is about "
-        "(for type unclear: the candidate services); [] for small_talk and off_topic, or when "
-        "the service is unknown\n"
+        "- services: list of service IDs from the list above that the question is about ([] if "
+        "the service is unknown); [] for small_talk and off_topic; for unclear, the candidate "
+        "services (or [] if none can be named)\n"
         "- query_bn: for service_question, a complete self-contained search query in Bangla "
         "(pronouns and ellipsis resolved from the conversation); otherwise \"\"\n"
         "- query_en: the same query in English; otherwise \"\"\n"
@@ -94,8 +94,10 @@ def build_system_prompt(reg: dict, live_services: set[str]) -> str:
         "- Never answer the question yourself. Your only job is to classify and rewrite.\n"
         "- If the message could refer to more than one of the listed services and the "
         "conversation so far does not settle which one (for example a first message like "
-        "\"correction fee koto?\"), use type unclear, put the candidate services in services, "
-        "and ask which one in clarify.\n"
+        "\"fee koto?\"), use type unclear, put the candidate services in services, and ask "
+        "which one in clarify. A message that itself names the services it asks about (for "
+        "example \"birth registration ar passport er fee ki?\") is a service_question for "
+        "those services, not unclear.\n"
         "- answer_language is \"bn\" when the message is written in Bangla script OR in "
         "romanized Bangla (Banglish, e.g. words such as koto, ki, lagbe, lage, korte, kivabe, "
         "hole, thakle, bhai, ar, amar, tumi); \"en\" only when the message is in English.\n"
@@ -163,8 +165,10 @@ def parse_understanding(text: str, live_services: set[str], message: str) -> Und
     known `type`; everything else is repaired deterministically (never guessed): non-live
     service IDs dropped, empty queries -> the raw message, bad/missing language -> detection.
     One value is overridden: a message in Bangla script always gets answer_language "bn",
-    whatever the model said (script is unambiguous). Banglish is NOT overridden here - that is
-    the prompt's job, because Latin-script text cannot be told from English by a script test."""
+    whatever the model said (script is unambiguous); when that changes the model's "en" the
+    model's reply / clarify text (written for an English reader) is cleared too. Banglish is NOT
+    overridden here - that is the prompt's job, because Latin-script text cannot be told from
+    English by a script test."""
     if not isinstance(text, str):
         raise UnderstandingError("model returned no text")
     obj = _json_object(text)
@@ -181,6 +185,7 @@ def parse_understanding(text: str, live_services: set[str], message: str) -> Und
                 services.append(s)
 
     query_bn, query_en = _text(obj.get("query_bn")), _text(obj.get("query_en"))
+    reply, clarify = _text(obj.get("reply")), _text(obj.get("clarify"))
     if kind == "service_question":
         raw_message = message.strip()
         query_bn, query_en = query_bn or raw_message, query_en or raw_message
@@ -188,13 +193,15 @@ def parse_understanding(text: str, live_services: set[str], message: str) -> Und
     language = obj.get("answer_language")
     if language not in ("bn", "en"):
         language = fallback_language(message)
-    if bangla_ratio(message) >= BANGLA_SKIP_RATIO:
-        language = "bn"          # Bangla script is unambiguous; the model's "en" is wrong here
+    if bangla_ratio(message) >= BANGLA_SKIP_RATIO and language != "bn":
+        # Bangla script is unambiguous; the model's "en" is wrong here. Its reply / clarify text
+        # was written for an English reader, so drop it: filter_reply then uses the Bangla
+        # template and answer.py asks its own Bangla clarifying question.
+        language, reply, clarify = "bn", "", ""
 
     return Understanding(
         type=kind, services=services, query_bn=query_bn, query_en=query_en,
-        answer_language=language, reply=_text(obj.get("reply")),
-        clarify=_text(obj.get("clarify")), raw=text,
+        answer_language=language, reply=reply, clarify=clarify, raw=text,
     )
 
 

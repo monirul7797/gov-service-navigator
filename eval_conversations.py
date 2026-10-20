@@ -2,11 +2,15 @@
 eval_conversations.py — run the 40-turn conversation suite (conversation_cases.json) through the
 real turn handler and score it, so two routing designs can be compared on the same questions.
 
-    python eval_conversations.py --route llm       [--env-bat FILE] [--out FILE.jsonl]
-    python eval_conversations.py --route registry  [--env-bat FILE] [--out FILE.jsonl]
+    python eval_conversations.py --route llm       [--cases FILE] [--env-bat FILE] [--out FILE.jsonl]
+    python eval_conversations.py --route registry  [--cases FILE] [--env-bat FILE] [--out FILE.jsonl]
 
 --route llm       answer.handle_turn          (one LLM "understanding" call per turn, registry fallback)
 --route registry  answer.handle_turn_registry (the older keyword router, kept for comparison)
+--cases FILE      the conversations to run (default: conversation_cases.json). The held-out file
+                  conversation_cases_heldout.json has questions that appear nowhere in the prompt or
+                  the main suite, so it shows whether a fix generalises. The scorecard denominators
+                  are whatever the loaded file contains.
 --env-bat FILE    apply the `set NAME=VALUE` lines of a .bat file (e.g. the LLM settings) to this
                   process; only the variable NAMES are printed, never the values.
 --out FILE.jsonl  one JSON line per turn (question, route, kind, text, services, hit ids, problems,
@@ -74,7 +78,10 @@ def _response_text(resp: dict) -> str:
 def measured_language(text: str) -> str:
     """Language of a reply by script: "bn" if >= LANG_BN_MIN of its letters are Bangla script,
     "en" if < LANG_EN_MAX, otherwise "mixed". Digits, punctuation and the danda are not letters,
-    so they do not count either way."""
+    so they do not count either way. Text with no letters at all (empty, digits only) is "none":
+    it is neither Bangla nor English, so it satisfies neither expectation."""
+    if not any(c.isalpha() for c in text):
+        return "none"
     share = bangla_ratio(text)
     if share >= LANG_BN_MIN:
         return "bn"
@@ -287,7 +294,8 @@ def scorecard(rows: list[dict]) -> list[str]:
     lines = [f"total {sum(r['passed'] for r in rows)}/{len(rows)}"]
     for tag in TAGS:
         sel = [r for r in rows if r["tag"] == tag]
-        lines.append(f"{tag} {sum(r['passed'] for r in sel)}/{len(sel)}")
+        if sel:                                           # a tag the loaded file does not use prints nothing
+            lines.append(f"{tag} {sum(r['passed'] for r in sel)}/{len(sel)}")
     lang_rows = [r for r in rows if r.get("lang_ok") is not None]
     lines.append(f"language {sum(bool(r['lang_ok']) for r in lang_rows)}/{len(lang_rows)}")
     answers = [r for r in rows if r["kind"] == "answer" and (r["text"] or "").strip()]
@@ -307,7 +315,28 @@ def _print_row(row: dict) -> None:
         print(f"       ! fact check: unsourced {row['factcheck']}", flush=True)
 
 
-def main(argv=None) -> int:
+def load_cases(path=None) -> list[dict]:
+    """Read a conversation file (default: conversation_cases.json): a non-empty JSON list of
+    {"id", "title", "turns": [{"q", "tag", "kind", ...}]}. A missing / unreadable / malformed file
+    ends the run with a message that names the file (not its directory)."""
+    p = Path(path) if path is not None else CASES_PATH
+    if not p.is_file():
+        raise SystemExit(f"--cases: file not found: {p.name}")
+    try:
+        cases = json.loads(p.read_text(encoding="utf-8"))
+    except ValueError as e:                               # includes UnicodeDecodeError
+        raise SystemExit(f"--cases: {p.name} is not valid UTF-8 JSON: {e}")
+    ok = (isinstance(cases, list) and cases
+          and all(isinstance(c, dict) and "id" in c and isinstance(c.get("turns"), list) and c["turns"]
+                  and all(isinstance(t, dict) and {"q", "tag", "kind"} <= set(t) for t in c["turns"])
+                  for c in cases))
+    if not ok:
+        raise SystemExit(f"--cases: {p.name} must be a JSON list of conversations, each with an id and "
+                         f"turns that have q, tag and kind")
+    return cases
+
+
+def parse_args(argv=None):
     ap = argparse.ArgumentParser(
         prog="eval_conversations.py",
         description="Run the conversation suite through a routing design and print a scorecard. "
@@ -319,7 +348,14 @@ def main(argv=None) -> int:
                     help="apply `set NAME=VALUE` lines of this .bat file to the environment "
                          "(only the variable names are printed)")
     ap.add_argument("--out", metavar="FILE.jsonl", help="write one JSON line per turn to this file")
-    args = ap.parse_args(argv)
+    ap.add_argument("--cases", metavar="FILE", default=None,
+                    help="conversation file to run (default: conversation_cases.json); "
+                         "conversation_cases_heldout.json holds questions the prompt and the main suite never saw")
+    return ap.parse_args(argv)
+
+
+def main(argv=None) -> int:
+    args = parse_args(argv)
 
     for stream in (sys.stdout, sys.stderr):                  # Bangla must not crash a cp1252 console
         if hasattr(stream, "reconfigure"):
@@ -327,13 +363,14 @@ def main(argv=None) -> int:
 
     env_path = Path(args.env_bat).resolve() if args.env_bat else None
     out_path = Path(args.out).resolve() if args.out else None
+    cases_path = Path(args.cases).resolve() if args.cases else CASES_PATH
     if env_path is not None:
         if not env_path.is_file():
             raise SystemExit(f"--env-bat: file not found: {env_path.name}")
         print("env vars set: " + ", ".join(apply_env_bat(env_path)))
 
     os.chdir(HERE)                                           # answer.DB_DIR is relative
-    cases = json.loads(CASES_PATH.read_text(encoding="utf-8"))
+    cases = load_cases(cases_path)
     records = load_records(CHUNKS_DIR)
 
     # heavy imports only now, so `--help` and the unit tests stay instant
@@ -358,6 +395,8 @@ def main(argv=None) -> int:
 
     n_turns = sum(len(c["turns"]) for c in cases)
     print(f"route={args.route}: {len(cases)} conversations, {n_turns} turns")
+    if args.cases:
+        print(f"cases file: {cases_path.name}")
     print("=" * 74)
     out_file = out_path.open("w", encoding="utf-8") if out_path else None
 

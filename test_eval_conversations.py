@@ -32,8 +32,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-from eval_conversations import (CASES_PATH, apply_env_bat, factcheck, load_records, run_suite,
-                                score_turn, scorecard)
+from eval_conversations import (CASES_PATH, apply_env_bat, factcheck, load_cases, load_records,
+                                measured_language, parse_args, run_suite, score_turn, scorecard)
 
 FAILS = []
 
@@ -151,6 +151,19 @@ check("lang en: Bangla clarify question fails", score_turn(dict(L_EN, kind=["cla
 check("lang bn: empty text fails", score_turn(L_BN, ans("")) != [])
 check("lang problem is added to the other problems",
       len(score_turn(dict(L_BN, must_contain_any=["zzz"]), ans(EN_TXT))) == 2)
+# text with no letters at all (empty, digits, punctuation) is "none": it is neither Bangla nor English
+check("measured_language: empty text is 'none'", measured_language("") == "none")
+check("measured_language: whitespace is 'none'", measured_language("  \n\t ") == "none")
+check("measured_language: digits and punctuation only are 'none'", measured_language("৳৫০০, 12.5 (৩)।") == "none")
+check("measured_language: bn / en / mixed unchanged",
+      (measured_language(BN_TXT), measured_language(EN_TXT), measured_language("অ" + "abcdefghi")) == ("bn", "en", "mixed"))
+check("lang en: empty text is a miss ('none')", score_turn(L_EN, ans("")) == ["answer language 'none' expected 'en'"], str(score_turn(L_EN, ans(""))))
+check("lang bn: empty text is a miss ('none')", score_turn(L_BN, ans("")) == ["answer language 'none' expected 'bn'"], str(score_turn(L_BN, ans(""))))
+check("lang en: digits-only text is a miss", score_turn(L_EN, ans("৫০০ 123")) == ["answer language 'none' expected 'en'"])
+check("lang bn: digits-only text is a miss", score_turn(L_BN, ans("৫০০ 123")) == ["answer language 'none' expected 'bn'"])
+check("lang null: empty text still adds no language rule", score_turn(L_NULL, ans("")) == [])
+check("lang en: a response with no answer / question key (empty text) is a miss",
+      score_turn(L_EN, {"kind": "answer", "services": ["nid"]}) == ["answer language 'none' expected 'en'"])
 
 # ------------------------------------------------------------------ factcheck
 section("factcheck")
@@ -402,6 +415,54 @@ check("scorecard: language 2/4 (turns with lang set)", "language 2/4" in lcard, 
 check("scorecard: language line sits with the other counts", lcard.index("language 2/4") < lcard.index(next(x for x in lcard if x.startswith("median"))), str(lcard))
 check("scorecard: language line is built from rows without lang_ok too", "language 0/0" in scorecard([{k: v for k, v in r.items() if k not in ("lang", "lang_ok")} for r in rows]))
 
+# --- the denominators come from the loaded cases; a tag with no case prints no line
+section("scorecard follows the loaded cases")
+TWO = [{"id": "X", "title": "two cases", "turns": [
+    {"q": "x1", "tag": "other", "kind": ["answer"], "services": None, "must_contain_any": [], "must_not_contain": [], "lang": "en"},
+    {"q": "x2", "tag": "random", "kind": ["answer"], "services": None, "must_contain_any": [], "must_not_contain": [], "lang": "en"},
+]}]
+with tempfile.TemporaryDirectory() as td:
+    two_path = Path(td) / "two.json"
+    two_path.write_text(json.dumps(TWO, ensure_ascii=False), encoding="utf-8")
+    two_loaded = load_cases(two_path)
+    check("load_cases reads the given file", two_loaded == TWO)
+    check("load_cases accepts a str path too", load_cases(str(two_path)) == TWO)
+    bad = Path(td) / "bad.json"
+    bad.write_text('{"id": "not a list"}', encoding="utf-8")
+    for label, p in (("missing file", Path(td) / "nope.json"), ("JSON object instead of a list", bad)):
+        try:
+            load_cases(p)
+            raised = False
+        except SystemExit as e:
+            raised = "nope.json" in str(e) or "bad.json" in str(e)
+        check(f"load_cases: {label} -> SystemExit naming the file", raised)
+
+
+def two_handle(q, state):
+    return ({"kind": "answer", "answer": EN_TXT if q == "x1" else BN_TXT, "services": [], "hits": []}, state)
+
+
+trows = run_suite(two_loaded, two_handle, {}, route="llm")
+tcard = scorecard(trows)
+check("a 2-case file prints total 1/2 (denominator = cases in the file)", "total 1/2" in tcard, str(tcard))
+check("tags present in the file print their line", "other 1/1" in tcard and "random 0/1" in tcard, str(tcard))
+check("a tag with no case prints no line", not any(x.startswith("followup") for x in tcard), str(tcard))
+check("language denominator = turns with lang set in the file", "language 1/2" in tcard, str(tcard))
+check("scorecard of nothing prints no tag lines", not any(x.split(" ")[0] in ("followup", "random", "other") for x in scorecard([])), str(scorecard([])))
+check("scorecard of nothing: total 0/0", "total 0/0" in scorecard([]))
+check("default file keeps all three tag lines", all(any(x.startswith(t + " ") for x in scorecard(
+    [{"tag": t, "passed": True, "kind": "answer", "text": "x", "factcheck": [], "wall_s": 1.0, "route": "llm", "requested_route": "llm"}
+     for t in ("followup", "random", "other")])) for t in ("followup", "random", "other")))
+
+section("--cases")
+check("--cases defaults to None (-> conversation_cases.json)", parse_args(["--route", "llm"]).cases is None)
+check("--cases FILE is parsed", parse_args(["--route", "registry", "--cases", "x.json"]).cases == "x.json")
+check("--cases does not disturb the other options",
+      (lambda a: (a.route, a.out, a.env_bat, a.cases))(parse_args(["--route", "llm", "--out", "o.jsonl", "--cases", "h.json"])) == ("llm", "o.jsonl", None, "h.json"))
+check("load_cases() with no path reads the default suite", load_cases() == json.load(open("conversation_cases.json", encoding="utf-8")))
+check("load_cases(None) reads the default suite", load_cases(None) == load_cases(CASES_PATH))
+
+
 # ------------------------------------------------------------------ the suite file
 section("conversation_cases.json")
 raw_bytes = Path(CASES_PATH).read_bytes()
@@ -444,6 +505,38 @@ check("C7 turn 1 expects a clarify, turn 3 answer-or-clarify",
       convs[6]["turns"][0]["kind"] == ["clarify"] and convs[6]["turns"][2]["kind"] == ["answer", "clarify"])
 check("Bangla text kept verbatim (C3 turn 1)", convs[2]["turns"][0]["q"] == "জন্ম নিবন্ধন সংশোধন করতে কী কী কাগজ লাগে?")
 check("CASES_PATH points at the repo file", Path(CASES_PATH).name == "conversation_cases.json" and Path(CASES_PATH).exists())
+
+section("conversation_cases_heldout.json")
+HELD_PATH = Path(CASES_PATH).with_name("conversation_cases_heldout.json")
+check("held-out file exists next to the main suite", HELD_PATH.exists())
+held_bytes = HELD_PATH.read_bytes()
+check("held-out file is valid UTF-8 without BOM", not held_bytes.startswith(b"\xef\xbb\xbf") and held_bytes.decode("utf-8") is not None)
+held = load_cases(HELD_PATH)
+held_turns = [t for c in held for t in c["turns"]]
+check("held-out: 7 conversations H1..H7, one turn each",
+      [c["id"] for c in held] == [f"H{i}" for i in range(1, 8)] and [len(c["turns"]) for c in held] == [1] * 7 and len(held_turns) == 7)
+check("held-out: every conversation has a title", all(isinstance(c["title"], str) and c["title"] for c in held))
+check("held-out: every case has exactly the schema keys (incl. lang)", all(set(t) == KEYS for t in held_turns))
+HELD_EXPECT = [
+    ("renew er fee koto?", "other", ["clarify"], None, "bn"),
+    ("How much is the correction fee?", "other", ["clarify"], None, "en"),
+    ("pasport er meyad shesh, notun banate chai", "other", ["answer"], ["epassport"], "bn"),
+    ("jonmo nibondhoner bhul shongshodhon er niyom bolen", "other", ["answer"], ["bdris"], "bn"),
+    ("baba mara gechen, mrittu nibondhon dorkar", "other", ["answer"], ["bdris"], "bn"),
+    ("NID ar passport duitar fee koto?", "other", ["answer"], ["nid", "epassport"], "bn"),
+    ("cricket match er score janen?", "random", ["answer"], None, "bn"),
+]
+check("held-out: q / tag / kind / services / lang exactly as specified",
+      [(t["q"], t["tag"], t["kind"], t["services"], t["lang"]) for t in held_turns] == HELD_EXPECT,
+      str([(t["q"], t["tag"], t["kind"], t["services"], t["lang"]) for t in held_turns]))
+check("held-out: must_contain_any / must_not_contain are empty lists",
+      all(t["must_contain_any"] == [] and t["must_not_contain"] == [] for t in held_turns))
+check("held-out: services are live ids or null", all(t["services"] is None or set(t["services"]) <= LIVE for t in held_turns))
+check("held-out: no question is also in the main suite",
+      not ({t["q"].lower() for t in held_turns} & {t["q"].lower() for t in turns}))
+check("held-out: lang counts bn 6, en 1", (sum(t["lang"] == "bn" for t in held_turns), sum(t["lang"] == "en" for t in held_turns)) == (6, 1))
+check("held-out file runs through run_suite with a fresh state per conversation",
+      [r["conv"] for r in run_suite(held, lambda q, s: ({"kind": "clarify", "question": "Which?"}, dict(s, seen=True)), {}, route="llm")] == [f"H{i}" for i in range(1, 8)])
 
 # ------------------------------------------------------------------ importing must stay light
 section("import hygiene")

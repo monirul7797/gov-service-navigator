@@ -1,0 +1,51 @@
+[
+  {
+    "id": "H1",
+    "title": "held-out: ambiguous first message (Banglish), several services have a renewal fee",
+    "turns": [
+      {"q": "renew er fee koto?", "tag": "other", "kind": ["clarify"], "services": null, "must_contain_any": [], "must_not_contain": [], "lang": "bn"}
+    ]
+  },
+  {
+    "id": "H2",
+    "title": "held-out: ambiguous first message (English), several services have a correction fee",
+    "turns": [
+      {"q": "How much is the correction fee?", "tag": "other", "kind": ["clarify"], "services": null, "must_contain_any": [], "must_not_contain": [], "lang": "en"}
+    ]
+  },
+  {
+    "id": "H3",
+    "title": "held-out: passport renewal (Banglish)",
+    "turns": [
+      {"q": "pasport er meyad shesh, notun banate chai", "tag": "other", "kind": ["answer"], "services": ["epassport"], "must_contain_any": [], "must_not_contain": [], "lang": "bn"}
+    ]
+  },
+  {
+    "id": "H4",
+    "title": "held-out: birth registration correction rules (Banglish)",
+    "turns": [
+      {"q": "jonmo nibondhoner bhul shongshodhon er niyom bolen", "tag": "other", "kind": ["answer"], "services": ["bdris"], "must_contain_any": [], "must_not_contain": [], "lang": "bn"}
+    ]
+  },
+  {
+    "id": "H5",
+    "title": "held-out: death registration (Banglish)",
+    "turns": [
+      {"q": "baba mara gechen, mrittu nibondhon dorkar", "tag": "other", "kind": ["answer"], "services": ["bdris"], "must_contain_any": [], "must_not_contain": [], "lang": "bn"}
+    ]
+  },
+  {
+    "id": "H6",
+    "title": "held-out: message that names two services (not ambiguous)",
+    "turns": [
+      {"q": "NID ar passport duitar fee koto?", "tag": "other", "kind": ["answer"], "services": ["nid", "epassport"], "must_contain_any": [], "must_not_contain": [], "lang": "bn"}
+    ]
+  },
+  {
+    "id": "H7",
+    "title": "held-out: off-topic question (Banglish)",
+    "turns": [
+      {"q": "cricket match er score janen?", "tag": "random", "kind": ["answer"], "services": null, "must_contain_any": [], "must_not_contain": [], "lang": "bn"}
+    ]
+  }
+]

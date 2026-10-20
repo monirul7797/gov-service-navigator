@@ -12,18 +12,23 @@ PROTECTS (spec 2026-10-21-llm-query-understanding-design.md §4.1-4.2):
   1. parse_understanding(): fenced / prose-wrapped JSON accepted; garbage, non-objects and
      unknown types rejected; non-live service ids dropped; empty queries -> raw message;
      missing answer_language -> deterministic detection; Bangla-script message -> answer_language
-     "bn" whatever the model said (the only override); raw output kept untouched.
+     "bn" whatever the model said (the only override); when that override changes "en" to "bn"
+     the model's reply / clarify text (written for an English reader) is cleared; raw output kept
+     untouched.
   2. understand(): temperature 0, max_tokens 600, last 6 history entries, assistant text cut
      to 400 chars, message last; ANY backend exception -> UnderstandingError.
   3. build_system_prompt(): lists live services from the registry, the four types, the
      driving-licence-is-off-topic rule, the JSON-only / no-answering rules, the ambiguity rule
-     (more than one possible service -> unclear) and the Banglish -> bn language rule.
+     (more than one possible service -> unclear; a message that names its services is not
+     unclear), the Banglish -> bn language rule, and examples that appear in neither
+     conversation suite.
   4. is_safe_text() / filter_reply(): model text with a link, a digit, >300 chars or nothing is
      rejected / replaced by the fixed template.
   5. LLM_TIMEOUT_S sets the OpenAI client timeout (default 60 s).
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 
@@ -116,9 +121,24 @@ def test_parse():
     EN_MODEL = VALID.replace('"answer_language":"bn"', '"answer_language":"en"')
     check("Bangla-script message + model en -> bn", parse_understanding(EN_MODEL, LIVE, "ফি কত?").answer_language == "bn")
     check("code-mixed message (Bangla share >= 0.30) + model en -> bn", parse_understanding(EN_MODEL, LIVE, "NID এর ফি কত").answer_language == "bn")
-    check("Bangla-script small_talk + model en -> bn", parse_understanding(
-        '{"type":"small_talk","services":[],"query_bn":"","query_en":"","answer_language":"en","reply":"Hi","clarify":""}',
-        LIVE, "ধন্যবাদ").answer_language == "bn")
+    ST_EN = '{"type":"small_talk","services":[],"query_bn":"","query_en":"","answer_language":"en","reply":"Hi","clarify":""}'
+    ST_BN = ST_EN.replace('"answer_language":"en"', '"answer_language":"bn"').replace('"reply":"Hi"', '"reply":"ধন্যবাদ!"')
+    UN_EN = '{"type":"unclear","services":["nid","bdris"],"query_bn":"","query_en":"","answer_language":"en","reply":"","clarify":"Which service?"}'
+    u = parse_understanding(ST_EN, LIVE, "ধন্যবাদ")
+    check("Bangla-script small_talk + model en -> bn", u.answer_language == "bn")
+    check("override en -> bn also clears the English reply (filter_reply then uses the Bangla template)",
+          u.reply == "" and filter_reply(u.reply, u.type, u.answer_language, REG, LIVE) == template_reply("small_talk", "bn", REG, LIVE), repr(u.reply))
+    u = parse_understanding(UN_EN, LIVE, "ফি কত?")
+    check("override en -> bn also clears the English clarify text; candidate services are kept",
+          u.answer_language == "bn" and u.clarify == "" and u.services == ["nid", "bdris"], repr((u.answer_language, u.clarify, u.services)))
+    check("unchanged bn keeps the model's reply", parse_understanding(ST_BN, LIVE, "ধন্যবাদ").reply == "ধন্যবাদ!")
+    check("unchanged bn keeps the model's clarify text",
+          parse_understanding(UN_EN.replace('"en"', '"bn"').replace("Which service?", "কোন সেবা?"), LIVE, "ফি কত?").clarify == "কোন সেবা?")
+    check("model bn + English message keeps the reply (nothing was overridden)", parse_understanding(ST_BN, LIVE, "thanks").reply == "ধন্যবাদ!")
+    check("model en + Banglish message keeps the English reply (no Banglish override)", parse_understanding(ST_EN, LIVE, "dhonnobad").reply == "Hi")
+    check("model en + English message keeps the English reply", parse_understanding(ST_EN, LIVE, "thanks").reply == "Hi")
+    check("model language missing + Bangla message: reply kept (language came from detection, not overridden)",
+          parse_understanding(ST_BN.replace('"answer_language":"bn",', ""), LIVE, "ধন্যবাদ").reply == "ধন্যবাদ!")
     check("Banglish message + model en stays en (no Banglish override in code)", parse_understanding(EN_MODEL, LIVE, "passport korte?").answer_language == "en")
     check("English message + model en -> en", parse_understanding(EN_MODEL, LIVE, "What is the fee?").answer_language == "en")
     check("English message + model bn stays bn (only Bangla script overrides)", parse_understanding(VALID, LIVE, "What is the fee?").answer_language == "bn")
@@ -174,7 +194,21 @@ def test_system_prompt():
     check("prompt has a 'more than one service' ambiguity rule", "more than one" in p and len(ambiguity) == 1)
     check("ambiguity rule says to use unclear, list candidates in services, ask in clarify",
           bool(ambiguity) and all(w in ambiguity[0] for w in ("unclear", "services", "clarify")), str(ambiguity))
-    check("ambiguity rule gives the 'correction fee koto?' example", bool(ambiguity) and "correction fee koto?" in ambiguity[0])
+    check("ambiguity rule gives the generic 'fee koto?' example", bool(ambiguity) and '"fee koto?"' in ambiguity[0])
+    check("ambiguity rule does not use the suite question 'correction fee koto?'", "correction fee koto?" not in p.lower())
+    check("a message that names its services is a service_question for them, not unclear",
+          bool(ambiguity) and all(w in ambiguity[0] for w in ("itself names", "service_question", "not unclear")), str(ambiguity))
+    sv = [ln for ln in p.split("\n") if ln.startswith("- services:")]
+    check("services field: [] for small_talk/off_topic; unclear -> candidates (or [] if none can be named)",
+          len(sv) == 1 and "[] for small_talk and off_topic" in sv[0]
+          and "for unclear, the candidate services (or [] if none can be named)" in sv[0], str(sv))
+    # the prompt's examples must stay outside the suites, or the suites cannot show the rules generalise
+    suite_qs = [t["q"] for f in ("conversation_cases.json", "conversation_cases_heldout.json")
+                for c in json.load(open(f, encoding="utf-8")) for t in c["turns"]]
+    leaked = [q for q in suite_qs if len(q.split()) >= 3 and q.lower() in p.lower()]
+    check("no suite / held-out question (3+ words) appears in the system prompt", not leaked, str(leaked))
+    check("the prompt's example questions are in neither suite", not any(
+        ex.lower() == q.lower() for ex in ("fee koto?", "birth registration ar passport er fee ki?") for q in suite_qs))
     language = [ln for ln in p.split("\n") if "Banglish" in ln and "romanized" in ln]
     check("prompt defines Banglish as romanized Bangla -> answer_language bn", bool(language) and "answer_language" in language[0] and "bn" in language[0], str(language))
     check("language rule lists example Banglish words", bool(language) and all(w in language[0] for w in ("koto", "lagbe", "korte", "kivabe", "amar")))
