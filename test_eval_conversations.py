@@ -18,7 +18,11 @@ PROTECTS:
   4. apply_env_bat(): applies `set NAME=VALUE` lines, returns the NAMES only.
   5. run_suite()/scorecard(): state is reset per conversation, one failing turn (exception) is
      recorded as FAIL and does not stop the run, tag counts and the median are computed.
-  6. conversation_cases.json: schema, UTF-8 Bangla, turn counts per tag.
+  6. conversation_cases.json: schema, UTF-8 Bangla, turn counts per tag, and the expected answer
+     language (`lang`: bn 27 / en 11 / null 2) on every turn.
+  7. score_turn() answer-language rule: `lang` bn needs a Bangla-letter share >= 0.30 in the text
+     the user reads, en needs < 0.10, null / absent adds no rule; the scorecard prints
+     `language x/<turns with lang set>`.
 """
 from __future__ import annotations
 
@@ -112,6 +116,41 @@ check("must_not_contain: absent passes", score_turn(MN, {"kind": "answer", "answ
 check("score_turn returns a list of strings",
       isinstance(score_turn(FU, {"kind": "clarify", "question": "?"}), list)
       and all(isinstance(p, str) for p in score_turn(FU, {"kind": "clarify", "question": "?"})))
+
+# --- answer language (Task 4a): `lang` is optional; set -> the text the user reads must be Bangla / English
+section("score_turn: lang")
+BN_TXT = "আপনি এনআইডি সংশোধনের জন্য অনলাইনে আবেদন করতে পারেন।"
+EN_TXT = "You can apply for the NID correction online."
+L_BN, L_EN, L_NULL = dict(OTHER, lang="bn"), dict(OTHER, lang="en"), dict(OTHER, lang=None)
+
+
+def ans(text):
+    return {"kind": "answer", "answer": text, "services": ["nid"]}
+
+
+check("lang bn: Bangla answer passes", score_turn(L_BN, ans(BN_TXT)) == [])
+check("lang bn: English answer fails", score_turn(L_BN, ans(EN_TXT)) == ["answer language 'en' expected 'bn'"], str(score_turn(L_BN, ans(EN_TXT))))
+check("lang en: English answer passes", score_turn(L_EN, ans(EN_TXT)) == [])
+check("lang en: Bangla answer fails", score_turn(L_EN, ans(BN_TXT)) == ["answer language 'bn' expected 'en'"], str(score_turn(L_EN, ans(BN_TXT))))
+check("lang null: adds no rule (English)", score_turn(L_NULL, ans(EN_TXT)) == [])
+check("lang null: adds no rule (Bangla)", score_turn(L_NULL, ans(BN_TXT)) == [])
+check("no lang key: adds no rule", score_turn(OTHER, ans(EN_TXT)) == [] and score_turn(OTHER, ans(BN_TXT)) == [])
+check("lang bn: a Banglish (Latin-letter) answer fails", score_turn(L_BN, ans("apni online e apply korte paren")) != [])
+check("lang bn: share exactly 0.30 passes", score_turn(L_BN, ans("অআই" + "abcdefg")) == [])
+check("lang bn: share 0.20 fails", score_turn(L_BN, ans("অআ" + "abcdefgh")) != [])
+check("lang en: share just under 0.10 passes", score_turn(L_EN, ans("অ" + "abcdefghijk")) == [])
+check("lang en: share exactly 0.10 fails and is reported as mixed",
+      score_turn(L_EN, ans("অ" + "abcdefghi")) == ["answer language 'mixed' expected 'en'"], str(score_turn(L_EN, ans("অ" + "abcdefghi"))))
+check("lang bn: a mixed answer (0.10 <= share < 0.30) is reported as mixed",
+      score_turn(L_BN, ans("অ" + "abcdefghi")) == ["answer language 'mixed' expected 'bn'"])
+check("lang bn: Bengali digits, punctuation and a URL in a Bangla answer do not hide the language",
+      score_turn(L_BN, ans("ফি ৳৮,০৫০। বিস্তারিত https://x.gov.bd")) == [])
+check("lang is checked on the clarify question", score_turn(dict(L_BN, kind=["clarify"]), {"kind": "clarify", "question": BN_TXT}) == []
+      and score_turn(dict(L_BN, kind=["clarify"]), {"kind": "clarify", "question": EN_TXT}) != [])
+check("lang en: Bangla clarify question fails", score_turn(dict(L_EN, kind=["clarify"]), {"kind": "clarify", "question": BN_TXT}) != [])
+check("lang bn: empty text fails", score_turn(L_BN, ans("")) != [])
+check("lang problem is added to the other problems",
+      len(score_turn(dict(L_BN, must_contain_any=["zzz"]), ans(EN_TXT))) == 2)
 
 # ------------------------------------------------------------------ factcheck
 section("factcheck")
@@ -327,6 +366,41 @@ check("scorecard: median seconds line", any(x.startswith("median seconds per tur
 fixed = [dict(r, wall_s=w) for r, w in zip(rows, (1.0, 2.0, 3.0, 4.0, 5.0, 100.0))]
 check("median is over all turns", "median seconds per turn: 3.5" in scorecard(fixed), str(scorecard(fixed)))
 check("scorecard of nothing does not crash", isinstance(scorecard([]), list))
+check("scorecard: no lang-set turns -> language 0/0", "language 0/0" in card, str(card))
+
+LANG_SUITE = [{"id": "L", "title": "lang", "turns": [
+    {"q": "l1", "tag": "other", "kind": ["answer"], "services": None, "must_contain_any": [], "must_not_contain": [], "lang": "bn"},
+    {"q": "l2", "tag": "other", "kind": ["answer"], "services": None, "must_contain_any": [], "must_not_contain": [], "lang": "bn"},
+    {"q": "l3", "tag": "other", "kind": ["answer"], "services": None, "must_contain_any": [], "must_not_contain": [], "lang": None},
+    {"q": "l4", "tag": "other", "kind": ["answer"], "services": None, "must_contain_any": [], "must_not_contain": [], "lang": "en"},
+    {"q": "l5", "tag": "other", "kind": ["answer"], "services": None, "must_contain_any": [], "must_not_contain": [], "lang": "en"},
+]}]
+
+
+def lang_handle(q, state):
+    if q == "l1":
+        return ({"kind": "answer", "answer": BN_TXT, "services": [], "hits": []}, state)
+    if q == "l2":
+        return ({"kind": "answer", "answer": EN_TXT, "services": [], "hits": []}, state)
+    if q == "l3":
+        return ({"kind": "answer", "answer": EN_TXT, "services": [], "hits": []}, state)
+    if q == "l4":
+        return ({"kind": "answer", "answer": EN_TXT, "services": [], "hits": []}, state)
+    raise RuntimeError("API 429 overloaded")
+
+
+lrows = run_suite(LANG_SUITE, lang_handle, {}, route="llm")
+check("row records the expected lang", [r["lang"] for r in lrows] == ["bn", "bn", None, "en", "en"], str([r["lang"] for r in lrows]))
+check("row records whether the language matched (None when no lang)",
+      [r["lang_ok"] for r in lrows] == [True, False, None, True, False], str([r["lang_ok"] for r in lrows]))
+check("a language miss is a failing turn with the message",
+      lrows[1]["passed"] is False and "answer language 'en' expected 'bn'" in lrows[1]["problems"], str(lrows[1]["problems"]))
+check("a turn with no lang is not counted for language", lrows[2]["passed"] is True)
+check("an error turn with a lang set counts as a language miss", lrows[4]["lang_ok"] is False and lrows[4]["passed"] is False)
+lcard = scorecard(lrows)
+check("scorecard: language 2/4 (turns with lang set)", "language 2/4" in lcard, str(lcard))
+check("scorecard: language line sits with the other counts", lcard.index("language 2/4") < lcard.index(next(x for x in lcard if x.startswith("median"))), str(lcard))
+check("scorecard: language line is built from rows without lang_ok too", "language 0/0" in scorecard([{k: v for k, v in r.items() if k not in ("lang", "lang_ok")} for r in rows]))
 
 # ------------------------------------------------------------------ the suite file
 section("conversation_cases.json")
@@ -340,7 +414,7 @@ check("suite has 16 'other' turns", sum(t["tag"] == "other" for c in convs for t
 check("8 conversations C1..C8", [c["id"] for c in convs] == [f"C{i}" for i in range(1, 9)])
 check("turns per conversation 5,5,5,5,5,5,4,6", [len(c["turns"]) for c in convs] == [5, 5, 5, 5, 5, 5, 4, 6])
 check("every conversation has a title", all(isinstance(c["title"], str) and c["title"] for c in convs))
-KEYS = {"q", "tag", "kind", "services", "must_contain_any", "must_not_contain"}
+KEYS = {"q", "tag", "kind", "services", "must_contain_any", "must_not_contain", "lang"}
 LIVE = {"nid", "epassport", "ereturn", "bdris"}
 turns = [t for c in convs for t in c["turns"]]
 check("every case has exactly the schema keys", all(set(t) == KEYS for t in turns))
@@ -351,6 +425,15 @@ check("services is null or a non-empty list of live services",
 check("content lists are lists of non-empty strings",
       all(isinstance(t[k], list) and all(isinstance(s, str) and s for s in t[k]) for t in turns for k in ("must_contain_any", "must_not_contain")))
 check("every question is a non-empty string", all(isinstance(t["q"], str) and t["q"].strip() for t in turns))
+check("every turn has lang bn / en / null", all("lang" in t and t["lang"] in ("bn", "en", None) for t in turns))
+check("lang counts: bn 27, en 11, null 2",
+      (sum(t["lang"] == "bn" for t in turns), sum(t["lang"] == "en" for t in turns), sum(t["lang"] is None for t in turns)) == (27, 11, 2),
+      str([t["lang"] for t in turns]))
+LANGS = {"C1": "bn bn bn bn bn", "C2": "en en en en en", "C3": "bn bn bn bn bn", "C4": "en en en bn en",
+         "C5": "bn bn bn bn bn", "C6": "en bn bn bn bn", "C7": "bn en null bn", "C8": "bn bn bn bn bn null"}
+check("lang per turn as in the brief",
+      {c["id"]: " ".join("null" if t["lang"] is None else t["lang"] for t in c["turns"]) for c in convs} == LANGS,
+      str({c["id"]: [t["lang"] for t in c["turns"]] for c in convs}))
 check("random and follow-up service expectations as in the brief",
       all(t["services"] is None for t in turns if t["tag"] == "random")
       and all(t["services"] for t in turns if t["tag"] == "followup"))

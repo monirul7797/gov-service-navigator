@@ -17,11 +17,13 @@ gate: the exit code is 0 whatever the scores. A turn that raises (e.g. an API 42
 a FAIL with the error text and the run goes on; conversation state is reset for every conversation.
 
 Per turn the scorer checks (score_turn): the response kind, that answers come only from the
-expected service(s), words that must / must not appear, and for "random" (off-topic) turns a short,
-link-free, figure-free reply. Separately every answer is fact-checked (factcheck, the prototype of
-spec §5.3): each number and URL in it must appear in the records it was built from or in the
-question. The fact check catches invented numbers and links, NOT a real number attached to the
-wrong item.
+expected service(s), words that must / must not appear, for "random" (off-topic) turns a short,
+link-free, figure-free reply, and, where a turn sets `lang` ("bn" | "en"), that the text the user
+reads is in that language (share of Bangla-script letters >= 0.30 for bn, < 0.10 for en; a turn
+with `lang: null` is not checked). Separately every answer is fact-checked (factcheck, the
+prototype of spec §5.3): each number and URL in it must appear in the records it was built from
+or in the question. The fact check catches invented numbers and links, NOT a real number attached
+to the wrong item.
 
 Importing this module is cheap on purpose (no chromadb / sentence_transformers / answer): the heavy
 imports happen inside main(), so test_eval_conversations.py can use the scoring functions alone.
@@ -37,12 +39,19 @@ import sys
 import time
 from pathlib import Path
 
+from normalize_query import bangla_ratio      # cheap: only re + dataclasses, no model / DB / SDK
+
 HERE = Path(__file__).resolve().parent
 CASES_PATH = HERE / "conversation_cases.json"
 CHUNKS_DIR = HERE / "data" / "chunks"
 
 TAGS = ("followup", "random", "other")
 RANDOM_MAX_CHARS = 400
+# Answer-language measurement: the share of Bangla-script letters among all letters of the reply.
+# Own constants (not normalize_query.BANGLA_SKIP_RATIO) so the measuring stick does not move
+# if the production threshold is tuned.
+LANG_BN_MIN = 0.30        # share >= this -> the reply is Bangla
+LANG_EN_MAX = 0.10        # share <  this -> the reply is English; in between it is "mixed"
 
 BN_DIGITS = str.maketrans("০১২৩৪৫৬৭৮৯", "0123456789")
 # ASCII only on purpose: a URL followed by Bangla text ("...gov.bd-এ।") must stop at the Bangla.
@@ -60,6 +69,26 @@ def _response_text(resp: dict) -> str:
     if resp.get("kind") == "clarify":
         return resp.get("question") or ""
     return resp.get("answer") or ""
+
+
+def measured_language(text: str) -> str:
+    """Language of a reply by script: "bn" if >= LANG_BN_MIN of its letters are Bangla script,
+    "en" if < LANG_EN_MAX, otherwise "mixed". Digits, punctuation and the danda are not letters,
+    so they do not count either way."""
+    share = bangla_ratio(text)
+    if share >= LANG_BN_MIN:
+        return "bn"
+    return "en" if share < LANG_EN_MAX else "mixed"
+
+
+def language_problem(case: dict, text: str) -> str | None:
+    """None if the turn has no `lang` expectation (absent / null) or `text` is in the expected
+    language; otherwise the problem message."""
+    expected = case.get("lang")
+    if expected not in ("bn", "en"):
+        return None
+    got = measured_language(text)
+    return None if got == expected else f"answer language '{got}' expected '{expected}'"
 
 
 def score_turn(case: dict, resp: dict) -> list[str]:
@@ -96,6 +125,10 @@ def score_turn(case: dict, resp: dict) -> list[str]:
         m = BIG_NUMBER_RE.search(text.translate(BN_DIGITS).replace(",", ""))
         if m:
             problems.append(f"random reply contains a number of 3+ digits ({m.group()})")
+
+    lang_problem = language_problem(case, text)
+    if lang_problem:
+        problems.append(lang_problem)
     return problems
 
 
@@ -207,12 +240,15 @@ def apply_env_bat(path) -> list[str]:
 
 def _make_row(conv_id, idx, case, resp, err, wall, route, records) -> dict:
     kind = resp.get("kind")
+    has_lang = case.get("lang") in ("bn", "en")
     if err is not None:
         text, problems, flags = err, [f"error: {err}"], []
         services, hit_ids, understanding, kind = [], [], None, "error"
+        lang_ok = False if has_lang else None            # no reply was produced: a language miss
     else:
         text = _response_text(resp)
         problems = score_turn(case, resp)
+        lang_ok = (language_problem(case, text) is None) if has_lang else None
         services = list(resp.get("services") or [])
         hit_ids = [h["id"] for h in resp.get("hits") or [] if isinstance(h, dict) and h.get("id") is not None]
         understanding = resp.get("understanding")
@@ -220,6 +256,7 @@ def _make_row(conv_id, idx, case, resp, err, wall, route, records) -> dict:
     return {"conv": conv_id, "turn": idx, "tag": case["tag"], "question": case["q"],
             "requested_route": route, "route": resp.get("route", route), "kind": kind, "text": text,
             "services": services, "hit_ids": hit_ids, "problems": problems, "passed": not problems,
+            "lang": case.get("lang"), "lang_ok": lang_ok,
             "factcheck": flags, "wall_s": wall, "understanding": understanding}
 
 
@@ -245,11 +282,14 @@ def run_suite(cases, handle, records, *, route, on_row=None, clock=time.perf_cou
 
 
 def scorecard(rows: list[dict]) -> list[str]:
-    """The summary lines: passes per tag, answers flagged by the fact check, median seconds."""
+    """The summary lines: passes per tag, replies in the expected language (of the turns that
+    set `lang`), answers flagged by the fact check, median seconds."""
     lines = [f"total {sum(r['passed'] for r in rows)}/{len(rows)}"]
     for tag in TAGS:
         sel = [r for r in rows if r["tag"] == tag]
         lines.append(f"{tag} {sum(r['passed'] for r in sel)}/{len(sel)}")
+    lang_rows = [r for r in rows if r.get("lang_ok") is not None]
+    lines.append(f"language {sum(bool(r['lang_ok']) for r in lang_rows)}/{len(lang_rows)}")
     answers = [r for r in rows if r["kind"] == "answer" and (r["text"] or "").strip()]
     lines.append(f"factcheck_flagged {sum(bool(r['factcheck']) for r in answers)}/{len(answers)}")
     median = statistics.median(r["wall_s"] for r in rows) if rows else 0.0

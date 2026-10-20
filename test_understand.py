@@ -11,11 +11,13 @@ returns a canned string, and the registry is the real concept_registry.json.
 PROTECTS (spec 2026-10-21-llm-query-understanding-design.md §4.1-4.2):
   1. parse_understanding(): fenced / prose-wrapped JSON accepted; garbage, non-objects and
      unknown types rejected; non-live service ids dropped; empty queries -> raw message;
-     missing answer_language -> deterministic detection; raw output kept untouched.
+     missing answer_language -> deterministic detection; Bangla-script message -> answer_language
+     "bn" whatever the model said (the only override); raw output kept untouched.
   2. understand(): temperature 0, max_tokens 600, last 6 history entries, assistant text cut
      to 400 chars, message last; ANY backend exception -> UnderstandingError.
   3. build_system_prompt(): lists live services from the registry, the four types, the
-     driving-licence-is-off-topic rule and the JSON-only / no-answering rules.
+     driving-licence-is-off-topic rule, the JSON-only / no-answering rules, the ambiguity rule
+     (more than one possible service -> unclear) and the Banglish -> bn language rule.
   4. is_safe_text() / filter_reply(): model text with a link, a digit, >300 chars or nothing is
      rejected / replaced by the fixed template.
   5. LLM_TIMEOUT_S sets the OpenAI client timeout (default 60 s).
@@ -109,6 +111,20 @@ def test_parse():
     check("unclear keeps clarify", u.type == "unclear" and u.clarify == "Which service do you mean?")
     check("Understanding is the declared dataclass", isinstance(u, Understanding))
 
+    # Task 4a: Bangla script is unambiguous -> answer_language is "bn" whatever the model said.
+    # Nothing else is overridden: Banglish (Latin letters) stays whatever the model returned.
+    EN_MODEL = VALID.replace('"answer_language":"bn"', '"answer_language":"en"')
+    check("Bangla-script message + model en -> bn", parse_understanding(EN_MODEL, LIVE, "ফি কত?").answer_language == "bn")
+    check("code-mixed message (Bangla share >= 0.30) + model en -> bn", parse_understanding(EN_MODEL, LIVE, "NID এর ফি কত").answer_language == "bn")
+    check("Bangla-script small_talk + model en -> bn", parse_understanding(
+        '{"type":"small_talk","services":[],"query_bn":"","query_en":"","answer_language":"en","reply":"Hi","clarify":""}',
+        LIVE, "ধন্যবাদ").answer_language == "bn")
+    check("Banglish message + model en stays en (no Banglish override in code)", parse_understanding(EN_MODEL, LIVE, "passport korte?").answer_language == "en")
+    check("English message + model en -> en", parse_understanding(EN_MODEL, LIVE, "What is the fee?").answer_language == "en")
+    check("English message + model bn stays bn (only Bangla script overrides)", parse_understanding(VALID, LIVE, "What is the fee?").answer_language == "bn")
+    check("mostly-Latin message with a little Bangla (share < 0.30) + model en stays en", parse_understanding(EN_MODEL, LIVE, "passport fee ফি").answer_language == "en")
+    check("Bangla-script message + model bn -> bn", parse_understanding(VALID, LIVE, "ফি কত?").answer_language == "bn")
+
 
 def test_understand_call():
     print("understand()")
@@ -153,6 +169,16 @@ def test_system_prompt():
     check("prompt forbids links and figures in reply/clarify", "contain no links and no figures" in p)
     check("prompt names every JSON field", all(f in p for f in ("services", "query_bn", "query_en", "answer_language", "reply", "clarify")))
     check("services are listed sorted by id", p.index("bdris") < p.index("epassport") < p.index("ereturn") < p.index("nid"))
+    # Task 4a: ambiguity rule + Banglish language rule
+    ambiguity = [ln for ln in p.split("\n") if "more than one" in ln]
+    check("prompt has a 'more than one service' ambiguity rule", "more than one" in p and len(ambiguity) == 1)
+    check("ambiguity rule says to use unclear, list candidates in services, ask in clarify",
+          bool(ambiguity) and all(w in ambiguity[0] for w in ("unclear", "services", "clarify")), str(ambiguity))
+    check("ambiguity rule gives the 'correction fee koto?' example", bool(ambiguity) and "correction fee koto?" in ambiguity[0])
+    language = [ln for ln in p.split("\n") if "Banglish" in ln and "romanized" in ln]
+    check("prompt defines Banglish as romanized Bangla -> answer_language bn", bool(language) and "answer_language" in language[0] and "bn" in language[0], str(language))
+    check("language rule lists example Banglish words", bool(language) and all(w in language[0] for w in ("koto", "lagbe", "korte", "kivabe", "amar")))
+    check("language rule says en only for English", bool(language) and "only when the message is in English" in language[0])
     only_nid = build_system_prompt(REG, {"nid"})
     check("a registry service that is not live is not offered", "epassport" not in only_nid and REG["services"]["epassport"]["labels"]["bn"] not in only_nid)
 
