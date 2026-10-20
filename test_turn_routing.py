@@ -11,7 +11,7 @@ concept_registry.json.
 
 PROTECTS:
   1. handle_turn() dispatches on the Understanding: small_talk / off_topic -> filtered reply with
-     no answer() call; unclear -> clarify (model question, else the registry's question);
+     no answer() call; unclear -> clarify (model question if it passes is_safe_text, else the registry's question);
      service_question -> answer() with the standalone queries, the services and the language.
   2. u.services is used ONLY for service_question (search scope) and unclear (clarify options).
   3. ANY exception from understand() (not just UnderstandingError) -> handle_turn_registry(),
@@ -172,6 +172,20 @@ def test_2_unclear():
     check("unclear: clarify question appended to history",
           s["history"][-1] == {"role": "assistant", "content": "Which service?"}
           and s["history"][-2] == {"role": "user", "content": "hello"})
+    registry_q = clarify_question(["nid", "bdris"], "correction fee koto?", REG)
+    r, _ = turn(U(type="unclear", clarify="NID correction (fee 230 Tk) or birth registration?",
+                  services=["nid", "bdris"]), raw="correction fee koto?")
+    check("clarify with a figure -> registry question instead", r["question"] == registry_q)
+    r, _ = turn(U(type="unclear", clarify="কোন সেবা? ফি ২৩০ টাকা", services=["nid", "bdris"]),
+                raw="correction fee koto?")
+    check("clarify with a Bengali figure -> registry question instead", r["question"] == registry_q)
+    r, s = turn(U(type="unclear", clarify="See https://brta.gov.bd or tell me which service?",
+                  services=["nid", "bdris"]), raw="correction fee koto?")
+    check("clarify with a link -> registry question instead", r["question"] == registry_q)
+    check("history stores the question the user actually saw",
+          s["history"][-1] == {"role": "assistant", "content": registry_q})
+    r, _ = turn(U(type="unclear", clarify="Which service?", services=["nid", "bdris"]))
+    check("clean clarify passes through unchanged", r["question"] == "Which service?")
     r, _ = turn(U(type="unclear", clarify="", services=["nid", "bdris"]), raw="correction fee koto?")
     check("empty clarify -> registry question over u.services",
           r["question"] == clarify_question(["nid", "bdris"], "correction fee koto?", REG))
@@ -256,7 +270,7 @@ def test_5_fallback():
           len(registry_calls) == 1 and r["route"] == "registry"
           and r["understanding"] == {"error": "boom"})
     r, _ = turn(raises=KeyError("services"))
-    check("KeyError (malformed registry) also falls back", len(registry_calls) == 1 and r["route"] == "registry")
+    check("KeyError raised by understand() falls back", len(registry_calls) == 1 and r["route"] == "registry")
     r, _ = turn(raises=RecursionError())
     check("RecursionError (pathological JSON) falls back with a non-empty error text",
           r["route"] == "registry" and r["understanding"]["error"] == "RecursionError")

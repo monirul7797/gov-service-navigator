@@ -35,7 +35,8 @@ from llm_backends import get_backend
 from normalize_query import normalize, is_continuation, NormalizedQuery
 from disambiguate import (load_registry, decide, match_reply_to_service, named_services,
                           candidate_services, clarify_question)
-from understand import understand, UnderstandingError, filter_reply  # noqa: F401 (UnderstandingError re-exported)
+from understand import (understand, UnderstandingError,  # noqa: F401 (UnderstandingError re-exported)
+                        filter_reply, is_safe_text)
 
 MODEL_NAME = "BAAI/bge-m3"
 DB_DIR = "data/vectordb"
@@ -357,7 +358,9 @@ def handle_turn(raw, state, backend, model, colls, reg):
                   "services": [], "scoped": None}
         text = reply
     elif u.type == "unclear":
-        question = u.clarify or clarify_question(u.services or sorted(live), raw, reg)
+        # model text is shown only if it passes the same no-link/no-figure check as replies
+        question = (u.clarify if is_safe_text(u.clarify)
+                    else clarify_question(u.services or sorted(live), raw, reg))
         result = {"kind": "clarify", "question": question}
         text = question
     else:   # service_question (parse_understanding admits no other type)

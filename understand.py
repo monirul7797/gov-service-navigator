@@ -223,11 +223,19 @@ def template_reply(kind: str, language: str, reg: dict, live_services: set[str])
     return _TEMPLATES[(kind, lang)].format(services=services)
 
 
+def is_safe_text(text) -> bool:
+    """True iff model-written text may be shown to a user: a non-empty string (after strip) of
+    at most REPLY_MAX_CHARS with no link and no digit (Western or Bengali), so it cannot state a
+    fee, date or URL the corpus never verified. One definition shared by every model-text path."""
+    if not isinstance(text, str):
+        return False
+    t = text.strip()
+    return bool(t) and len(t) <= REPLY_MAX_CHARS and not _LINK.search(t) and not _DIGIT.search(t)
+
+
 def filter_reply(reply: str, kind: str, language: str, reg: dict, live_services: set[str]) -> str:
-    """Use the model's small-talk / off-topic reply only if it is short and carries no link and
-    no digit (so it cannot state a fee, date or URL the corpus never verified); otherwise the
-    fixed template. Empty or non-text replies also get the template."""
-    text = reply.strip() if isinstance(reply, str) else ""
-    if not text or len(text) > REPLY_MAX_CHARS or _LINK.search(text) or _DIGIT.search(text):
+    """Use the model's small-talk / off-topic reply only if is_safe_text() accepts it;
+    otherwise the fixed template. Empty or non-text replies also get the template."""
+    if not is_safe_text(reply):
         return template_reply(kind, language, reg, live_services)
-    return text
+    return reply.strip()

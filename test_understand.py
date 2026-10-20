@@ -16,8 +16,8 @@ PROTECTS (spec 2026-10-21-llm-query-understanding-design.md §4.1-4.2):
      to 400 chars, message last; ANY backend exception -> UnderstandingError.
   3. build_system_prompt(): lists live services from the registry, the four types, the
      driving-licence-is-off-topic rule and the JSON-only / no-answering rules.
-  4. filter_reply(): a model reply with a link, a digit, >300 chars or nothing is replaced by
-     the fixed template.
+  4. is_safe_text() / filter_reply(): model text with a link, a digit, >300 chars or nothing is
+     rejected / replaced by the fixed template.
   5. LLM_TIMEOUT_S sets the OpenAI client timeout (default 60 s).
 """
 from __future__ import annotations
@@ -29,7 +29,7 @@ import disambiguate
 from llm_backends import OpenAICompatibleBackend
 from understand import (
     TYPES, Understanding, UnderstandingError, build_system_prompt, build_user_prompt,
-    fallback_language, filter_reply, parse_understanding, template_reply, understand,
+    fallback_language, filter_reply, is_safe_text, parse_understanding, template_reply, understand,
 )
 
 FAILS = []
@@ -168,6 +168,7 @@ def test_reply_filter():
     check("exactly 300 chars kept", filter_reply("a" * 300, "small_talk", "en", REG, LIVE) == "a" * 300)
     check("empty -> template", filter_reply("  ", "small_talk", "bn", REG, LIVE) == template_reply("small_talk", "bn", REG, LIVE))
     check("non-string reply -> template", filter_reply(None, "small_talk", "en", REG, LIVE) == template_reply("small_talk", "en", REG, LIVE))
+    check("kept reply is stripped", filter_reply("  Hi!  ", "small_talk", "en", REG, LIVE) == "Hi!")
     check("bn template uses Bangla labels", REG["services"]["nid"]["labels"]["bn"] in template_reply("off_topic", "bn", REG, LIVE))
     check("en template uses English labels", all(REG["services"][s]["labels"]["en"] in template_reply("small_talk", "en", REG, LIVE) for s in LIVE))
     en_labels = ", ".join(REG["services"][s]["labels"]["en"] for s in sorted(LIVE))
@@ -182,6 +183,21 @@ def test_reply_filter():
     check("unknown kind raises", raises(ValueError, lambda: template_reply("service_question", "en", REG, LIVE)))
 
 
+def test_is_safe_text():
+    print("is_safe_text")
+    check("plain text -> True", is_safe_text("Which service do you mean?") is True)
+    check("Bangla text -> True", is_safe_text("আপনি কোন সেবার কথা বলছেন?") is True)
+    check("https link -> False", is_safe_text("See https://brta.gov.bd") is False)
+    check("www link -> False", is_safe_text("Try www.brta.gov.bd") is False)
+    check("Bengali digit -> False", is_safe_text("ফি ৫০০ টাকা") is False)
+    check("Western digit -> False", is_safe_text("NID correction (fee 230 Tk)?") is False)
+    check("301 chars -> False", is_safe_text("a" * 301) is False)
+    check("300 chars -> True", is_safe_text("a" * 300) is True)
+    check("empty -> False", is_safe_text("") is False)
+    check("whitespace only -> False", is_safe_text("  \n\t ") is False)
+    check("non-string -> False", is_safe_text(None) is False)
+
+
 def test_timeout():
     print("client timeout")
     os.environ.update(LLM_BASE_URL="http://localhost:9", LLM_MODEL="m", LLM_API_KEY="k", LLM_TIMEOUT_S="7")
@@ -194,7 +210,8 @@ def main():
     print("=" * 74)
     print("understand.py unit tests (fake backend, real registry)")
     print("=" * 74)
-    for t in (test_parse, test_understand_call, test_system_prompt, test_reply_filter, test_timeout):
+    for t in (test_parse, test_understand_call, test_system_prompt, test_reply_filter,
+              test_is_safe_text, test_timeout):
         t()
     print("=" * 74)
     print("Result:", "ALL CHECKS PASS" if not FAILS else f"{len(FAILS)} FAIL — " + ", ".join(FAILS))
