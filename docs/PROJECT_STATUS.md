@@ -87,6 +87,60 @@ git push origin codex/tracker-g0-p02b
    or combine them — but keep one source of truth for the plan.
 5. **Notifications.** Which channel(s) for admin alerts (email, Telegram, etc.).
 
+### Decided 2026-10-20 (architecture session)
+
+- **Backup done:** `master` (rebased onto `ecb0ec4`, now `dde8808`) and `codex/tracker-g0-p02b`
+  pushed to GitHub. The rebase gave old master commits new IDs (`8d3c83c` → `751cfad`); the
+  `codex/tracker-g0-*` chain still sits on the pre-rebase copies.
+- **Deployment path:** build and test everything locally (Windows) + GitHub; deploy only when the
+  system works. First target is an OVH **test** server (Singapore, Debian, public IP) for a pilot
+  with 50–100 invited users; a production-sized server comes later, so nothing may be tied to the
+  test machine.
+- **LLM (decision 3):** DeepSeek API (owner's pick: "DeepSeek-V4.1-Flash-1017"; verify model ID and
+  pricing against DeepSeek docs when wiring). No locally hosted LLM.
+- **Workflow (decision 4):** Claude Code. Opus 5.5 (max effort) plans, orchestrates and reviews;
+  it sends small instruction packets to Sonnet 5.5 (xhigh/max) subagents that write code and
+  report back; Opus reviews each report before the next packet. Replaces the Codex/GLM loop.
+- **Public accounts:** none for the pilot (anonymous use, rate limits, invite gate). Design so
+  required accounts can be added later. Admin side still needs a secure login.
+- **Notifications (decision 5):** tracker alerts go to the admin by **email and Telegram**
+  (overrides the old spec's in-app-inbox-only exclusion).
+- **Admin/data work runs on the server** (owner works remotely, not always at the PC): tracker,
+  evidence upload, cleaning/OCR, review, embedding and publishing all server-side behind an admin
+  web panel. This reverses the old single-laptop assumption of G1–G3.
+- **Everything is recorded:** append-only audit log of every admin/system action, and full version
+  history of every dataset record (never edited in place), linked to its evidence.
+- **Database:** PostgreSQL (multiple concurrent writers: Rust site, tracker, workers). Published
+  releases are also copied to GitHub as an off-server backup.
+- **Admin access:** admin panel and SSH reachable only over a Tailscale private network, plus
+  password + 2FA/passkey login. Not exposed on the public internet.
+- **Test server resources:** 32 GB RAM, ample CPU; no GPU assumed.
+- **Architecture (decision 2):** approach A — Rust `web` service at the edge (public site, API,
+  rate limits, sessions, PII scrub, admin panel, auth, audit), Python `engine` (existing RAG) and
+  Python `worker` (tracker, OCR, embedding, releases, notifications) behind an internal API;
+  PostgreSQL + pgvector replaces ChromaDB (only if all four evals match); Docker Compose; Caddy for
+  HTTPS. **Long-term goal: the whole backend in Rust** (engine and worker ported piece by piece
+  behind the same contracts). The frontend is not part of that goal.
+- **Frontend:** SvelteKit (static build) + TypeScript + Tailwind CSS, talking to the Rust JSON API
+  (answers streamed via Server-Sent Events). Admin panel is a separate frontend app served only on
+  Tailscale.
+- **Stack critique accepted (2026-10-20):**
+  1. Deploy a thin vertical slice to the test server early and grow it there (no big-bang deploy).
+  2. Three phases: **Phase 1 pilot** = public site + answer API + feedback + minimal admin (invites,
+     feedback inbox, query logs) + script-published data releases; **Phase 2** = tracker + email/
+     Telegram alerts; **Phase 3** = evidence upload/OCR/review in the admin panel.
+  3. Deterministic answer verification: every number, fee, date and URL in a generated answer must
+     appear in its cited records, else block/flag; plus a generation eval set (bn + en).
+  4. Fallback LLM provider + "sources-only" answer mode when no LLM is available.
+  5. Rate limits primarily per session / invite code (Bangladeshi mobile CGNAT); loose per-IP
+     flood limits; daily LLM budget cap as backstop.
+  Also: max five containers (web, engine, worker, postgres, caddy); pin Svelte 5 + lint against
+  legacy syntax; document OVH KVM/rescue console as break-glass if Tailscale fails; encrypted
+  off-provider DB backups with a practised restore (GitHub only gets public release data); the old
+  G1–G3 machinery (lease fencing, CAS protocols) is dropped, G0 crawler-safety work is salvaged.
+- **Architecture spec:** `docs/superpowers/specs/2026-10-20-system-architecture-design.md`
+  (draft for owner review). Phase 1 milestones M0–M7; each milestone gets its own plan.
+
 ### Information needed from the owner
 
 - Server specs: provider/location, OS, CPU, RAM, GPU (if any), disk, bandwidth.
