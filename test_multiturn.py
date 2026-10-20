@@ -62,7 +62,7 @@ def run_turn(raw, state, decide_ret, named=(), cand=(), reply_match=None, cont=T
     A.candidate_services = lambda q, reg: list(cand)
     A.match_reply_to_service = lambda reply, offered, reg: reply_match
     A.is_continuation = lambda msg, prev, backend: cont     # controlled classifier verdict
-    resp, ns = A.handle_turn(raw, state, backend=None, model=None, colls=None, reg={})
+    resp, ns = A.handle_turn_registry(raw, state, backend=None, model=None, colls=None, reg={})
     return resp, ns, rec
 
 

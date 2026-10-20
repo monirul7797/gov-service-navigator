@@ -7,6 +7,10 @@ and merges by similarity. The right service wins on its own because its chunks s
 highest — no routing classifier to mis-fire. Add a service later just by embedding it;
 this picks it up automatically.
 
+Turn handling: handle_turn() first asks understand.py (one LLM call) what the message is and
+what standalone queries it should become; if that fails, handle_turn_registry() (rule-based
+routing, disambiguate.py) takes over. The pipeline below is retrieval + answering, used by both.
+
 Pipeline per question:
   1. normalize (Banglish→Bangla, expand-don't-replace) — shared with the eval
   2. retrieve across every collection, merge by best similarity, take global top-k
@@ -22,12 +26,16 @@ env vars set (LLM_PROVIDER / LLM_BASE_URL / LLM_MODEL / LLM_API_KEY, LLM_DISABLE
 """
 from __future__ import annotations
 
+import dataclasses
+
 import chromadb
 from sentence_transformers import SentenceTransformer
 
 from llm_backends import get_backend
-from normalize_query import normalize, is_continuation
-from disambiguate import load_registry, decide, match_reply_to_service, named_services, candidate_services
+from normalize_query import normalize, is_continuation, NormalizedQuery
+from disambiguate import (load_registry, decide, match_reply_to_service, named_services,
+                          candidate_services, clarify_question)
+from understand import understand, UnderstandingError, filter_reply  # noqa: F401 (UnderstandingError re-exported)
 
 MODEL_NAME = "BAAI/bge-m3"
 DB_DIR = "data/vectordb"
@@ -146,19 +154,42 @@ def load_collections(client):
 
 
 def retrieve(question, backend, model, colls, only_service=None, per_service_k=PER_SERVICE_K,
-             candidate_n=CANDIDATE_N, service_min_sim=SERVICE_MIN_SIM, max_context=MAX_CONTEXT):
+             candidate_n=CANDIDATE_N, service_min_sim=SERVICE_MIN_SIM, max_context=MAX_CONTEXT,
+             *, queries=None, services=None, answer_language=None):
     """Normalize, search EVERY collection, then keep each RELEVANT service's top chunks so no
     single service can crowd the others out of the context. A service contributes only if its
     best hit clears service_min_sim; the merged context is capped at max_context.
-    If only_service is set (disambiguation scoped us), search just that one collection."""
-    norm = normalize(question, backend)
+    If only_service is set (disambiguation scoped us), search just that one collection.
+
+    LLM-understanding path (keyword-only, all optional; see understand.py):
+      queries         ready-made standalone search queries — normalize() is skipped, because the
+                      understanding call already produced the Bangla/English rewrites
+      services        search only these collections (one → the same scoped settings as
+                      only_service; several → normal per-service caps; empty/None → all)
+      answer_language "bn" | "en", recorded as the NormalizedQuery kind
+    only_service, if also given, wins over services."""
+    if queries is not None:
+        # dict.fromkeys = de-duplicate keeping order (query_bn / query_en / raw may coincide)
+        wanted = list(dict.fromkeys(q.strip() for q in queries if q and q.strip()))
+        norm = NormalizedQuery(question, None,
+                               {"bn": "bangla", "en": "english"}.get(answer_language or "en", "english"),
+                               wanted)
+    else:
+        norm = normalize(question, backend)
+    scope = None
     if only_service and only_service in colls:
-        colls = {only_service: colls[only_service]}
-        # only one service in play → no crowding to guard against; pull more of its chunks
-        # so answers that span several records (e.g. all the passport fee tables) are complete
-        per_service_k = SCOPED_TOP_K
-        max_context = SCOPED_TOP_K
-        candidate_n = max(candidate_n, SCOPED_TOP_K + 4)
+        scope = {only_service: colls[only_service]}
+    elif services:
+        # ids we hold no collection for are ignored (same leniency as only_service)
+        scope = {s: colls[s] for s in dict.fromkeys(services) if s in colls} or None
+    if scope:
+        colls = scope
+        if len(scope) == 1:
+            # only one service in play → no crowding to guard against; pull more of its chunks
+            # so answers that span several records (e.g. all the passport fee tables) are complete
+            per_service_k = SCOPED_TOP_K
+            max_context = SCOPED_TOP_K
+            candidate_n = max(candidate_n, SCOPED_TOP_K + 4)
     per_service: dict[str, dict[str, dict]] = {}
     for qt in norm.queries:
         emb = model.encode([as_query(qt)], normalize_embeddings=True)[0].tolist()
@@ -183,8 +214,13 @@ def retrieve(question, backend, model, colls, only_service=None, per_service_k=P
     return norm, hits
 
 
-def answer(question, backend, model, colls, only_service=None, history=None):
-    norm, hits = retrieve(question, backend, model, colls, only_service=only_service)
+def answer(question, backend, model, colls, only_service=None, history=None, *,
+           queries=None, services=None, answer_language=None):
+    """Retrieve, ground, generate. The keyword-only arguments are the LLM-understanding path's
+    (see retrieve()); `question` stays the user's raw message — it is what the model is shown.
+    Called without them this is exactly the pre-understanding behaviour (fallback path, evals)."""
+    norm, hits = retrieve(question, backend, model, colls, only_service=only_service,
+                          queries=queries, services=services, answer_language=answer_language)
 
     if not hits or hits[0]["sim"] < GROUNDING_FLOOR:
         return {"answer": DECLINE, "sources": [], "hits": hits,
@@ -202,10 +238,14 @@ def answer(question, backend, model, colls, only_service=None, history=None):
         convo = "CONVERSATION SO FAR:\n" + "\n".join(lines) + "\n\n"
     # Enforce answer language per-turn (the passive system-prompt rule alone was ignored when
     # the retrieved context was Bangla but the question English). English question -> English;
-    # Bangla or Banglish -> Bangla.
-    lang_directive = {"english": "Answer in English.",
-                      "bangla": "বাংলায় উত্তর দিন।",
-                      "banglish": "বাংলায় উত্তর দিন।"}.get(norm.kind, "")
+    # Bangla or Banglish -> Bangla. An explicit answer_language (from the understanding call)
+    # wins over what the normalizer detected.
+    if answer_language in ("bn", "en"):
+        lang_directive = {"bn": "বাংলায় উত্তর দিন।", "en": "Answer in English."}[answer_language]
+    else:
+        lang_directive = {"english": "Answer in English.",
+                          "bangla": "বাংলায় উত্তর দিন।",
+                          "banglish": "বাংলায় উত্তর দিন।"}.get(norm.kind, "")
     user_msg = (f"{convo}CONTEXT PASSAGES:\n{context}\n\nQUESTION: {question}"
                 + (f"\n\n{lang_directive}" if lang_directive else ""))
     reply = backend.complete(ANSWER_SYSTEM_PROMPT, user_msg, max_tokens=ANSWER_MAX_TOKENS)
@@ -216,9 +256,10 @@ def answer(question, backend, model, colls, only_service=None, history=None):
             "normalized": norm.normalized, "services": services}
 
 
-def handle_turn(raw, state, backend, model, colls, reg):
-    """Process one user turn given conversation state — the single orchestration shared by
-    both the CLI and the Streamlit app. Returns (response, new_state).
+def handle_turn_registry(raw, state, backend, model, colls, reg):
+    """The rule-based turn router (disambiguate.py registry + continuation classifier). Kept
+    unchanged as the fallback handle_turn() uses when the LLM understanding call fails.
+    Returns (response, new_state).
       state    = {"pending": (orig_q, offered_services) | None,
                   "last": (raw_q, service) | None,   # raw_q is the ORIGINAL user text, never a combined string
                   "history": [{"role","content"}, ...]}
@@ -283,6 +324,59 @@ def handle_turn(raw, state, backend, model, colls, reg):
     new_hist = (gen_history + [{"role": "user", "content": last_q},
                               {"role": "assistant", "content": result["answer"]}])[-8:]
     return result, {"pending": None, "last": (last_q, only_service), "history": new_hist}
+
+
+def handle_turn(raw, state, backend, model, colls, reg):
+    """Process one user turn — the single orchestration shared by the CLI and the Streamlit
+    app. One LLM understanding call decides what the message is (service question, small talk,
+    off-topic, unclear) and rewrites it as standalone queries; code then validates and acts on
+    it (docs/superpowers/specs/2026-10-21-llm-query-understanding-design.md §4). If that call
+    fails in ANY way the rule-based handle_turn_registry() answers the turn instead.
+    Returns (response, new_state).
+      state    = {"history": [{"role","content"}, ...], "pending"/"last": registry-path only}
+      response = {"kind": "clarify", "question": str}
+              or answer()'s dict + {"kind": "answer", "scoped": service | None}
+              plus, on every response, "route": "llm" | "registry" and
+              "understanding": the Understanding as a dict (or {"error": str} on fallback)
+    """
+    live = set(colls) & set(reg["services"])        # only services that are embedded AND routable
+    history = state.get("history") or []
+    try:
+        u = understand(raw, history, backend, reg, live)
+    except Exception as e:     # not just UnderstandingError: e.g. RecursionError on hostile JSON
+        result, new_state = handle_turn_registry(raw, state, backend, model, colls, reg)
+        result["route"] = "registry"
+        result["understanding"] = {"error": str(e) or type(e).__name__}
+        return result, new_state
+
+    scoped = None
+    if u.type in ("small_talk", "off_topic"):
+        # u.services means nothing here (the model is told to leave it empty), so it is ignored
+        reply = filter_reply(u.reply, u.type, u.answer_language, reg, live)
+        result = {"kind": "answer", "answer": reply, "sources": [], "hits": [], "normalized": None,
+                  "services": [], "scoped": None}
+        text = reply
+    elif u.type == "unclear":
+        question = u.clarify or clarify_question(u.services or sorted(live), raw, reg)
+        result = {"kind": "clarify", "question": question}
+        text = question
+    else:   # service_question (parse_understanding admits no other type)
+        scoped = u.services[0] if len(u.services) == 1 else None
+        # raw is searched too, so a query the model rewrote badly still has the user's own words
+        result = answer(raw, backend, model, colls, history=history,
+                        queries=[u.query_bn, u.query_en, raw], services=u.services or None,
+                        answer_language=u.answer_language)
+        result["kind"] = "answer"
+        result["scoped"] = scoped
+        text = result["answer"]
+
+    result["route"] = "llm"
+    result["understanding"] = dataclasses.asdict(u)
+    # The LLM path reads only `history` next turn (the next understand() resolves a clarify
+    # reply from it); pending/last are kept in shape for a registry fallback on a later turn.
+    new_hist = (history + [{"role": "user", "content": raw},
+                           {"role": "assistant", "content": text}])[-8:]
+    return result, {"pending": None, "last": (raw, scoped), "history": new_hist}
 
 
 def main():
