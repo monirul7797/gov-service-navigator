@@ -256,6 +256,16 @@ def test_is_safe_text():
     check("empty -> False", is_safe_text("") is False)
     check("whitespace only -> False", is_safe_text("  \n\t ") is False)
     check("non-string -> False", is_safe_text(None) is False)
+    check("bare domain in a sentence -> False", is_safe_text("Please visit brta.gov.bd for renewal.") is False)
+    check("bare gov.bd domain -> False", is_safe_text("see nbr.gov.bd") is False)
+    check("bare .com domain -> False", is_safe_text("example.com") is False)
+    check("fullwidth digit -> False", is_safe_text("fee \uff15 taka") is False)
+    check("lone Bengali digit -> False", is_safe_text("\u09eb") is False)
+    check("friendly English sentence -> True", is_safe_text("Hello! How can I help?") is True)
+    check("Bangla sentence without digits or domains -> True",
+          is_safe_text("আমি এনআইডি, পাসপোর্ট ও জন্ম নিবন্ধন বিষয়ে সাহায্য করতে পারি।") is True)
+    check("abbreviations (e.g. / i.e.) are not domains",
+          is_safe_text("I can help with e.g. NID or e-Passport, i.e. the main services") is True)
 
 
 def test_timeout():

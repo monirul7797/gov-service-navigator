@@ -8,3 +8,5 @@ freshness/approved_for_reembed.json
 freshness/backup_v1/
 
 setenv_*.bat
+conv_*.jsonl
+heldout_*.jsonl

@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the code-driven routing decisions with one LLM "understanding" call per turn,
-keep the registry router as fallback, and measure both routes on a 41-turn conversation suite.
+keep the registry router as fallback, and measure both routes on a 40-turn conversation suite.
 
 **Architecture:** New `understand.py` (prompt, call, JSON validation, reply filter). `answer.py`
 gets keyword-only `queries` / `services` / `answer_language` on `retrieve()` and `answer()`, the
@@ -65,7 +65,7 @@ installed.
 | `answer.py` (modify) | `retrieve()`/`answer()` keyword args; `handle_turn_registry` (renamed); new `handle_turn` |
 | `test_turn_routing.py` (create) | Unit tests for the new dispatch and the retrieval/answer kwargs |
 | `test_multiturn.py` (modify) | Point at `handle_turn_registry` |
-| `conversation_cases.json` (create) | The 41-turn suite with machine-checkable expectations |
+| `conversation_cases.json` (create) | The 40-turn suite with machine-checkable expectations |
 | `eval_conversations.py` (create) | Runs a route over the suite, scores it, prototype fact check |
 | `test_eval_conversations.py` (create) | Unit tests for the scoring and fact-check functions |
 
@@ -259,7 +259,7 @@ git commit -m "feat(routing): dispatch turns on the LLM understanding with regis
   - `score_turn(case: dict, resp: dict) -> list[str]` — problems; empty = pass.
   - `factcheck(answer: str, hit_ids: list[str], question: str, records: dict[str, str]) -> list[str]` — unsourced numbers/URLs (logic of the prototype: Bengali→Western digits, ignore list markers `^\s*\d+[.)]\s`, ignore numbers with one digit, URL compare without scheme/`www.`/trailing punctuation).
   - `load_records(chunks_dir: Path) -> dict[str, str]` — record id → all string fields joined.
-  - CLI: `python eval_conversations.py --route llm|registry [--env-bat FILE] [--out FILE.jsonl]`. `--env-bat` applies `set NAME=VALUE` lines to the environment and prints only the names. Prints per turn `PASS/FAIL` with problems, then the scorecard: `followup x/11`, `random x/13`, `other x/17`, `factcheck_flagged x/<answers>`, median seconds per turn. Exit code 0 always (it is a measurement, not a gate).
+  - CLI: `python eval_conversations.py --route llm|registry [--env-bat FILE] [--out FILE.jsonl]`. `--env-bat` applies `set NAME=VALUE` lines to the environment and prints only the names. Prints per turn `PASS/FAIL` with problems, then the scorecard: `followup x/11`, `random x/13`, `other x/16`, `factcheck_flagged x/<answers>`, median seconds per turn. Exit code 0 always (it is a measurement, not a gate).
 
 `score_turn` rules:
 - all tags: `resp["kind"]` in `case["kind"]`; if `case["services"]` is a list and the response kind is `answer`, `resp["services"]` must be non-empty and a subset of it; at least one of `must_contain_any` present (when non-empty); none of `must_not_contain` present.
@@ -331,7 +331,7 @@ check("unsourced number flagged", factcheck("fee 9,999", ["r1"], "q", REC) == ["
 check("unsourced url flagged", factcheck("see https://brta.gov.bd", ["r1"], "q", REC) == ["https://brta.gov.bd"])
 check("number from the question allowed", factcheck("age 18", ["r1"], "under 18?", REC) == [])
 check("list markers ignored", factcheck("1. step\n2. step", ["r1"], "q", REC) == [])
-check("suite has 41 turns: 11 followup, 13 random", counts(json.load(open("conversation_cases.json", encoding="utf-8"))) == (41, 11, 13))
+check("suite has 40 turns: 11 followup, 13 random", counts(json.load(open("conversation_cases.json", encoding="utf-8"))) == (40, 11, 13))
 ```
 
 - [ ] **Step 2: Run to verify failure** — `python test_eval_conversations.py` → fails (module missing).
@@ -341,7 +341,7 @@ check("suite has 41 turns: 11 followup, 13 random", counts(json.load(open("conve
 
 ```bash
 git add conversation_cases.json eval_conversations.py test_eval_conversations.py
-git commit -m "test(routing): 41-turn conversation suite with scorer and prototype fact check"
+git commit -m "test(routing): 40-turn conversation suite with scorer and prototype fact check"
 ```
 
 ---

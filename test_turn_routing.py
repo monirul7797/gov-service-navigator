@@ -21,10 +21,16 @@ PROTECTS:
   5. retrieve()/answer() new keyword arguments (queries, services, answer_language) work, and
      calling them WITHOUT those arguments is unchanged (normalize() still runs, all collections
      searched, language from the normalizer's kind).
+  6. The registry fallback is VISIBLE: it logs a WARNING on the `answer` logger naming the
+     exception class (none on a successful llm-route turn), and the CLI prints a route line.
 """
 from __future__ import annotations
 
+import builtins
+import contextlib
 import dataclasses
+import io
+import logging
 import sys
 import types
 
@@ -42,6 +48,7 @@ from normalize_query import NormalizedQuery  # noqa: E402
 from understand import Understanding  # noqa: E402
 
 FAILS = []
+logging.getLogger("answer").addHandler(logging.NullHandler())   # keep expected fallback warnings off stderr
 
 
 def check(name, cond, detail=""):
@@ -116,6 +123,29 @@ def turn(u=None, *, raw="hello", raises=None, state=None, colls=None):
     A.understand, A.answer, A.handle_turn_registry = fake_understand, fake_answer, fake_registry
     return A.handle_turn(raw, state if state is not None else fresh_state(), None, None,
                          colls if colls is not None else COLLS, REG)
+
+
+class _Records(logging.Handler):
+    """Collects the log records emitted while it is attached."""
+
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+def turn_logged(*a, **kw):
+    """turn() with everything the `answer` logger emits captured. Returns (response, state, records)."""
+    h = _Records()
+    lg = logging.getLogger("answer")
+    lg.addHandler(h)
+    try:
+        r, s = turn(*a, **kw)
+    finally:
+        lg.removeHandler(h)
+    return r, s, h.records
 
 
 def run_n_small_talk_turns(n):
@@ -274,6 +304,32 @@ def test_5_fallback():
     r, _ = turn(raises=RecursionError())
     check("RecursionError (pathological JSON) falls back with a non-empty error text",
           r["route"] == "registry" and r["understanding"]["error"] == "RecursionError")
+
+
+def test_5b_fallback_is_logged():
+    print("[5b] the registry fallback is visible in the log")
+    r, _, recs = turn_logged(raises=A.UnderstandingError("bad json"))
+    warns = [x for x in recs if x.levelno == logging.WARNING]
+    msg = warns[0].getMessage() if warns else ""
+    check("fallback emits exactly one WARNING on the `answer` logger", len(warns) == 1, str(len(warns)))
+    check("warning says 'registry fallback' and names the exception class and text",
+          "registry fallback" in msg and "UnderstandingError" in msg and "bad json" in msg, msg)
+    check("logging does not change the response", r["route"] == "registry"
+          and r["understanding"] == {"error": "bad json"})
+    _, _, recs = turn_logged(raises=RecursionError())
+    msg = " ".join(x.getMessage() for x in recs if x.levelno == logging.WARNING)
+    check("empty-message exception: the class name is still logged",
+          "registry fallback" in msg and "RecursionError" in msg, msg)
+    _, _, recs = turn_logged(raises=KeyError("services"))
+    msg = " ".join(x.getMessage() for x in recs if x.levelno == logging.WARNING)
+    check("non-UnderstandingError: its class name is logged", "KeyError" in msg, msg)
+    for label, uu in (("small_talk", U(type="small_talk", reply="Hi there!")),
+                      ("unclear", U(type="unclear", clarify="Which service?")),
+                      ("service_question", U(type="service_question", services=["nid"]))):
+        r, _, recs = turn_logged(uu)
+        check(f"successful llm-route {label} turn: no warning logged",
+              r["route"] == "llm" and not any(x.levelno >= logging.WARNING for x in recs),
+              "; ".join(x.getMessage() for x in recs))
 
 
 # ---------------------------------------------------------------- retrieve() / answer() kwargs
@@ -435,13 +491,67 @@ def test_8_answer():
     check("answer() without kwargs still works", res["answer"] == A.DECLINE)
 
 
+class _CountColl:
+    def count(self):
+        return 1
+
+
+def run_cli(responses):
+    """Drive the real answer.main() with fakes: one question per entry of `responses`, handle_turn
+    replaced by a stub returning them in order. Returns what was printed."""
+    saved = {n: getattr(A, n) for n in ("get_backend", "SentenceTransformer", "chromadb",
+                                         "load_collections", "handle_turn")}
+    saved_input = builtins.input
+    queue = iter(responses)
+    typed = iter(["a question"] * len(responses))
+
+    def fake_input(prompt=""):
+        return next(typed, "")                         # blank line ends the loop
+
+    A.get_backend = lambda *a, **k: types.SimpleNamespace(name="fake")
+    A.SentenceTransformer = lambda name: None
+    A.chromadb = types.SimpleNamespace(PersistentClient=lambda path: None)
+    A.load_collections = lambda client: {"nid": _CountColl()}
+    A.handle_turn = lambda raw, state, backend, model, colls, reg: (next(queue), state)
+    builtins.input = fake_input
+    out = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out):
+            A.main()
+    finally:
+        builtins.input = saved_input
+        for n, f in saved.items():
+            setattr(A, n, f)
+    return out.getvalue()
+
+
+def test_9_cli_route_line():
+    print("[9] CLI prints a route line only on the registry fallback")
+    base = {"kind": "answer", "answer": "THE ANSWER", "sources": [], "hits": [],
+            "normalized": None, "services": [], "scoped": None}
+    line = "(route: registry fallback \u2014 the understanding call failed)"
+    out = run_cli([{**base, "route": "registry", "normalized": "norm q", "scoped": "nid"}])
+    check("registry route -> the fallback line is printed", "  " + line in out, out)
+    pos = {s: out.find(s) for s in ("(normalized: norm q)", "(scoped to: nid)", line, "THE ANSWER")}
+    check("fallback line sits with the (normalized: ...) / (scoped to: ...) lines, above the answer",
+          all(v >= 0 for v in pos.values())
+          and pos["(normalized: norm q)"] < pos[line] < pos["THE ANSWER"]
+          and pos["(scoped to: nid)"] < pos["THE ANSWER"], out)
+    check("fallback line is printed exactly once", out.count("registry fallback") == 1, out)
+    out = run_cli([{**base, "route": "llm"}])
+    check("llm route -> no fallback line", "registry fallback" not in out and "THE ANSWER" in out, out)
+    out = run_cli([dict(base)])
+    check("no route key -> no fallback line", "registry fallback" not in out, out)
+
+
 def main():
     print("=" * 74)
     print("handle_turn LLM dispatch + retrieve()/answer() keyword arguments")
     print("=" * 74)
     for t in (test_1_small_talk_and_off_topic, test_2_unclear, test_3_service_question,
               test_4_understand_inputs_and_response_fields, test_5_fallback,
-              test_6_retrieve, test_7_retrieve_unchanged_without_kwargs, test_8_answer):
+              test_5b_fallback_is_logged, test_6_retrieve, test_7_retrieve_unchanged_without_kwargs,
+              test_8_answer, test_9_cli_route_line):
         t()
     reset()
     print("=" * 74)

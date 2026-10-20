@@ -1,7 +1,7 @@
 # LLM Query Understanding — Design
 
 - **Date:** 2026-10-21
-- **Status:** Draft for owner review
+- **Status:** Adopted 2026-10-21 (evidence: `docs/reports/2026-10-21-llm-and-conversation-test.md` §9)
 - **Approved direction (owner, 2026-10-21):** "LLM understands the question, code checks the
   answer", kept only if it beats the current routing on the test suite.
 - **Evidence:** `docs/reports/2026-10-21-llm-and-conversation-test.md`
@@ -24,7 +24,7 @@ Replace the routing decisions with **one LLM "understanding" call per turn** tha
 conversation, while code keeps every hard boundary on facts. The change is kept only if, on the
 same model (`deepseek-flash`, thinking off):
 
-1. The 41-turn conversation suite scores **strictly better** than the current routing on
+1. The 40-turn conversation suite scores **strictly better** than the current routing on
    follow-ups resolved, and **no worse** on random turns handled cleanly, invented facts and
    answers flagged by the fact check.
 2. `eval_nid.py`, `eval_epassport.py`, `eval_ereturn.py`, `eval_bdris.py` results are unchanged
@@ -133,7 +133,7 @@ transliteration). Unchanged: `MAX_CONTEXT`, per-service k, `GROUNDING_FLOOR`,
 | `test_understand.py` (new) | No (fake backend) | JSON parsing incl. fenced output; invalid/unknown → failure; non-live services dropped; empty query → raw message; language fallback |
 | `test_turn_routing.py` (new) | No (fake backend + fake retrieval) | Each `type` takes the right branch; `services` reach `retrieve()`; failure → registry path; reply filter strips links/figures → template; history grows on every branch |
 | `test_multiturn.py` (existing) | No | Fallback path unchanged |
-| `eval_conversations.py` + `conversation_cases.json` (new, from the test harness) | Yes (~US$0.05/run) | The 41-turn suite with per-turn expectations: expected kind, expected service set, forbidden content (e.g. "thanks" must not contain fee figures), plus the prototype fact check. Prints a scorecard; `--route registry` runs the old path for comparison |
+| `eval_conversations.py` + `conversation_cases.json` (new, from the test harness) | Yes (~US$0.05/run) | The 40-turn suite with per-turn expectations: expected kind, expected service set, forbidden content (e.g. "thanks" must not contain fee figures), plus the prototype fact check. Prints a scorecard; `--route registry` runs the old path for comparison |
 | `eval_*.py` (existing) | No | Retrieval unchanged |
 
 The suite's expectations are written as checkable fields per turn (`kind`, `services`,

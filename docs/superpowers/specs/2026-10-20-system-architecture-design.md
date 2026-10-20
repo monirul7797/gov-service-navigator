@@ -215,7 +215,7 @@ Response: a Server-Sent Events stream.
 | `options` | For `clarify`: offered services (rendered as buttons) |
 | `citations` | `[{record_id, version_id, url, url_kind, verified_at}]` |
 | `verification` | `{status: passed \| retried_passed \| failed \| not_applicable, problems: [...]}` |
-| `llm` | `{provider, model, calls, tokens_in, tokens_out}` (all LLM calls in the turn, including the continuation check) |
+| `llm` | `{provider, model, calls, tokens_in, tokens_out}` (all LLM calls in the turn, including the understanding call) |
 | `release_id` | Release the answer was produced from |
 | `timings` | Per stage, ms |
 | `new_state` | State to send with the next turn |

@@ -146,8 +146,9 @@ git push origin codex/tracker-g0-p02b
 - **Routing change adopted (2026-10-21):** "LLM understands the question, code checks the answer"
   replaces deterministic routing; the registry router stays as fallback. Measured on
   `deepseek-flash` (thinking off): follow-ups 11/11 vs 5/11, random questions 13/13 vs 6–7/13,
-  fact-check flags 0/39 vs 7/35, held-out set 7/7 vs 4/7; retrieval evals unchanged. Built on
-  branch `feat/llm-understanding` (merge pending owner OK). Evidence: report §9.
+  fact-check flags 0–1 per run (1/40, 1/39, 0/39) vs 7/35, held-out set 7/7 vs 4/7; retrieval
+  evals unchanged. Built on branch `feat/llm-understanding` (merge pending owner OK). Evidence:
+  report §9.
 - **Dev machine:** Rust 1.99.1 installed; Docker Desktop installed on `G:\Docker` (C: has ~4 GB
   free). No MSVC Build Tools: Rust compiles and tests inside Docker.
 

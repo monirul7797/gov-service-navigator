@@ -63,8 +63,9 @@ you go, and ask before anything hard to reverse.
 ## Environment and commands
 
 - Windows; Python 3.12.10. Run `setenv_deepseek.bat` (DeepSeek `deepseek-flash`, thinking
-  disabled) before `answer.py` / `app.py` (LLM needed); not needed for `embed_*.py`, `eval_*.py`,
-  `build_*.py`.
+  disabled) before `answer.py` / `app.py` (LLM needed); not needed for `embed_*.py`, the four
+  retrieval evals (`eval_nid.py`, `eval_epassport.py`, `eval_ereturn.py`, `eval_bdris.py`) or
+  `build_*.py`; `eval_conversations.py` calls the LLM.
 - Chatbot: `python answer.py` (CLI), `streamlit run app.py` (web UI).
 - Routing tests (no DB/LLM): `python test_understand.py`, `python test_turn_routing.py`,
   `python test_multiturn.py` (fallback router), `python test_eval_conversations.py`.

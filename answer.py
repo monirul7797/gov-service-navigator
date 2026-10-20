@@ -27,6 +27,7 @@ env vars set (LLM_PROVIDER / LLM_BASE_URL / LLM_MODEL / LLM_API_KEY, LLM_DISABLE
 from __future__ import annotations
 
 import dataclasses
+import logging
 
 import chromadb
 from sentence_transformers import SentenceTransformer
@@ -37,6 +38,8 @@ from disambiguate import (load_registry, decide, match_reply_to_service, named_s
                           candidate_services, clarify_question)
 from understand import (understand, UnderstandingError,  # noqa: F401 (UnderstandingError re-exported)
                         filter_reply, is_safe_text)
+
+logger = logging.getLogger(__name__)
 
 MODEL_NAME = "BAAI/bge-m3"
 DB_DIR = "data/vectordb"
@@ -345,6 +348,7 @@ def handle_turn(raw, state, backend, model, colls, reg):
     try:
         u = understand(raw, history, backend, reg, live)
     except Exception as e:     # not just UnderstandingError: e.g. RecursionError on hostile JSON
+        logger.warning("understanding failed -> registry fallback: %s: %s", type(e).__name__, e)
         result, new_state = handle_turn_registry(raw, state, backend, model, colls, reg)
         result["route"] = "registry"
         result["understanding"] = {"error": str(e) or type(e).__name__}
@@ -419,6 +423,8 @@ def main():
             print(f"  (normalized: {resp['normalized']})")
         if resp["scoped"]:
             print(f"  (scoped to: {resp['scoped']})")
+        if resp.get("route") == "registry":
+            print("  (route: registry fallback — the understanding call failed)")
         print(f"\n{resp['answer']}\n")
         if resp["sources"]:
             print("Sources:")

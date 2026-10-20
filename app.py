@@ -1,11 +1,11 @@
 """
 app.py — Streamlit web UI for the Government Service Navigator chatbot.
 
-Run it (set your LLM env vars first — run setenv.bat in the SAME terminal, then):
+Run it (set your LLM env vars first — run setenv_deepseek.bat in the SAME terminal, then):
     streamlit run app.py
 
 A browser tab opens with a chat interface. All the real work is reused from the existing
-modules: answer.handle_turn() runs normalize → disambiguate → retrieve → grounded answer
+modules: answer.handle_turn() runs understand → retrieve → grounded answer (registry router as fallback)
 → cite, exactly like the command-line version. The embedding model and vector database
 load once and are cached across interactions.
 """
@@ -52,7 +52,7 @@ st.caption(
 if load_error is not None:
     st.error(
         "Couldn't start up. Two common causes:\n\n"
-        "1. **LLM key not set** — run `setenv.bat` in the same terminal *before* "
+        "1. **LLM key not set** — run `setenv_deepseek.bat` in the same terminal *before* "
         "`streamlit run app.py`, so the API key is available to the app.\n"
         "2. **Vector database missing** — run the `embed_*.py` scripts to build `data/vectordb/`.\n\n"
         f"Technical detail: `{load_error}`"

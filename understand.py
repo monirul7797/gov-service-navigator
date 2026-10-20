@@ -229,8 +229,8 @@ _TEMPLATES = {
     ("small_talk", "bn"): "আমি {services} বিষয়ে সাহায্য করতে পারি। কী জানতে চান?",
 }
 
-_LINK = re.compile(r"https?://|www\.", re.I)
-_DIGIT = re.compile("[0-9০-৯]")     # Western 0-9 and Bengali ০-৯
+_LINK = re.compile(r"https?://|www\.|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:bd|com|org|net|gov|edu|info|io)\b", re.I)
+_DIGIT = re.compile(r"\d")           # any Unicode decimal digit: Western, Bengali, fullwidth, ...
 
 
 def template_reply(kind: str, language: str, reg: dict, live_services: set[str]) -> str:
@@ -245,8 +245,9 @@ def template_reply(kind: str, language: str, reg: dict, live_services: set[str])
 
 def is_safe_text(text) -> bool:
     """True iff model-written text may be shown to a user: a non-empty string (after strip) of
-    at most REPLY_MAX_CHARS with no link and no digit (Western or Bengali), so it cannot state a
-    fee, date or URL the corpus never verified. One definition shared by every model-text path."""
+    at most REPLY_MAX_CHARS with no link (scheme, www. or a bare domain such as brta.gov.bd) and no
+    digit in any script, so it cannot state a fee, date or URL the corpus never verified. One
+    definition shared by every model-text path."""
     if not isinstance(text, str):
         return False
     t = text.strip()
