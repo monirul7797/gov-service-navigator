@@ -1,0 +1,20 @@
+@import 'tailwindcss';
+
+/*
+ * SvelteKit's route announcer (a visually hidden live region it adds after hydration) carries its
+ * hiding rules as an inline style attribute. The strict policy `style-src 'self'` blocks inline
+ * styles, so the same rules are repeated here, in a stylesheet the policy allows. Without this the
+ * announcer's text would become visible after the first client-side navigation. The browser still
+ * logs one harmless CSP message for the blocked attribute.
+ */
+#svelte-announcer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	overflow: hidden;
+	white-space: nowrap;
+	width: 1px;
+	height: 1px;
+}

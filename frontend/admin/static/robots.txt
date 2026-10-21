@@ -1,0 +1,3 @@
+# the admin panel is private: never index it
+User-agent: *
+Disallow: /
