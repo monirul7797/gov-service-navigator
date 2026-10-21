@@ -161,8 +161,14 @@ git push origin codex/tracker-g0-p02b
   tests, full-tree `npm audit`), stack smoke + exposure check + 32 integration tests, legacy
   `test_multiturn.py`; first GitHub CI run green (run 39668870062 on `d797683`, all 5 jobs).
   Follow-ups by milestone are in the M0 ledger (`.superpowers/sdd/2026-10-20-m0-foundations/`,
-  local): first M1 task = Dependabot tuning (pip/docker ignore rules, docker-compose ecosystem,
-  push trigger on `master` only) before its first update PRs break the CI install.
+  local).
+- **Dependabot tuning DONE, 2026-10-22** (`aa667da`): ignore rules for deliberate toolchain
+  majors (Python, Node, Rust, `@types/node`, Postgres, Caddy), grouped minor/patch updates,
+  `docker-compose` ecosystem, CI push trigger on `master` only, `requirements-dev.txt` as the
+  single locked dev install. Unwanted PRs #1, #2, #4, #6 closed by Dependabot; merged #3/#5
+  (vitest 5.0.5), #7 (Python image 3.12.14), #8 (Node image 24.21.0). CI on `master` green
+  (run 39673504417 on `01136fd`). CI's setup steps still pin Python 3.12.10 / Node 24.20.0 to
+  match the dev PC; the Stack job tests the image versions.
 - **Off-topic reply guardrail (2026-10-21):** owner decided model-written off-topic replies stay
   (no fixed template), with a prompt rule (name the responsible office, never describe another
   service's procedures/fees/documents) and a `declined` scorer check: suite 40/40, declined 9/9,
