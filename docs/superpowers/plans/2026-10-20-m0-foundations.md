@@ -484,7 +484,7 @@ Compose (`compose.yaml`), all images pinned exactly:
 | `postgres` | `pgvector/pgvector:0.8.x-pg17` (exact tag verified on Docker Hub) | `POSTGRES_PASSWORD`, the four `GSN_DB_*_PASSWORD`; volume `pgdata`; `./db/init:/docker-entrypoint-initdb.d:ro`; healthcheck `pg_isready -U postgres -d gsn`; no ports |
 | `engine` | build `./engine`, target `runtime`, image `gsn-engine:dev` | cmd `uvicorn gsn.engine.app:app --host 0.0.0.0 --port 8000`; healthcheck via `python -c` urllib on `/healthz`, `start_period: 120s`; no ports |
 | `worker` | image `gsn-engine:dev` | cmd `gsn worker`; `GSN_DB_USER=gsn_worker`, its password; depends on postgres healthy; `restart: unless-stopped` |
-| `web` | build context `.`, `web/Dockerfile`, image `gsn-web:dev` | `GSN_DB_USER=gsn_web`, its password; `GSN_PUBLIC_BIND=0.0.0.0:8080`; `GSN_ADMIN_BIND=0.0.0.0:8081`; ports `"${GSN_ADMIN_PUBLISH:-127.0.0.1:8081}:8081"` only; healthcheck `["CMD", "/app/gsn-web", "healthcheck"]`; depends on postgres healthy, engine healthy |
+| `web` | build context `.`, `web/Dockerfile`, image `gsn-web:dev` | `GSN_DB_USER=gsn_web`, its password; `GSN_PUBLIC_BIND=0.0.0.0:8080`; `GSN_ADMIN_BIND=0.0.0.0:8081`; ports `"${GSN_ADMIN_PUBLISH:-127.0.0.1:8081}:8081"` only; healthcheck `["CMD", "/app/gsn-web", "healthcheck"]`; depends on postgres healthy, engine **started** (as built: web must serve a degraded site when the engine is slow or failing) |
 | `caddy` | `caddy:2.x.y` exact | ports `"80:80"`; `./deploy/Caddyfile:/etc/caddy/Caddyfile:ro`; `GSN_SITE_ADDRESS`; depends on web healthy |
 
 `deploy/Caddyfile`: site address `{$GSN_SITE_ADDRESS::80}`; `encode zstd gzip`; headers
