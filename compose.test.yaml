@@ -1,0 +1,47 @@
+# Stack-level integration tests, run as a one-shot job next to the normal stack:
+#
+#   docker compose -f compose.yaml -f compose.test.yaml run --rm itest
+#
+# (`run` enables the "test" profile that itest belongs to, so a plain `docker compose up` never starts it.)
+#
+# `itest` joins the same compose network as the services (same project name), so it reaches them by
+# service name: caddy:80, web:8080, engine:8000 and postgres:5432. It uses the `test` target of the
+# engine Dockerfile (pytest, httpx2 and psycopg installed); the tests themselves are mounted
+# read-only from ./tests/integration, so they are never baked into an image.
+#
+# It receives the four database role passwords because it checks what each role may and may not do.
+# These are throw-away local secrets; never run this against a server that holds real data.
+
+services:
+  itest:
+    build:
+      context: ./engine
+      target: test
+    image: gsn-engine-test:dev
+    restart: "no"
+    # Only started by an explicit `run itest` (or --profile test), never by a plain `up`.
+    profiles: ["test"]
+    # -p no:cacheprovider: /itests is read-only, so pytest cannot keep its .pytest_cache there.
+    # --tb=short: pytest's long traceback prints function arguments, which for a failed database
+    # login includes psycopg's connection string with the password (see test_connection_errors.py).
+    command: ["python", "-m", "pytest", "/itests", "-q", "-p", "no:cacheprovider", "--tb=short"]
+    volumes:
+      - ./tests/integration:/itests:ro
+    environment:
+      GSN_DB_HOST: postgres
+      GSN_DB_PORT: "5432"
+      GSN_DB_NAME: gsn
+      GSN_DB_MIGRATE_PASSWORD: ${GSN_DB_MIGRATE_PASSWORD:?run python deploy/make_env.py first}
+      GSN_DB_WEB_PASSWORD: ${GSN_DB_WEB_PASSWORD:?run python deploy/make_env.py first}
+      GSN_DB_ENGINE_PASSWORD: ${GSN_DB_ENGINE_PASSWORD:?run python deploy/make_env.py first}
+      GSN_DB_WORKER_PASSWORD: ${GSN_DB_WORKER_PASSWORD:?run python deploy/make_env.py first}
+    # `run` starts only the dependencies listed here, and waits for them. A test job may wait for a
+    # healthy engine (unlike web, which must come up even when the engine does not).
+    depends_on:
+      web:
+        condition: service_healthy
+      engine:
+        condition: service_healthy
+      # Some tests go through Caddy (no healthcheck, so "started" is the strongest condition).
+      caddy:
+        condition: service_started

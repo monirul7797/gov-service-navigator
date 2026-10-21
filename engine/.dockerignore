@@ -1,0 +1,10 @@
+# Build context of the engine image is ./engine. Only pyproject.toml, constraints.txt and src/ are
+# needed; tests are never copied into an image (integration tests are mounted at run time).
+.pytest_cache
+**/.pytest_cache
+*.egg-info
+**/*.egg-info
+__pycache__
+**/__pycache__
+**/*.pyc
+tests

@@ -1,0 +1,35 @@
+# The web build context is the repository root, so everything not listed here is sent to the Docker daemon.
+# Secrets (the root-only patterns plus "**/" forms for nested copies)
+.env
+.env.*
+**/.env
+**/.env.*
+setenv*.bat
+**/setenv*.bat
+
+# VCS, tooling, editor state
+.git
+.venv
+.venv-constraints
+constraints.raw
+.superpowers
+.claude
+.pytest_cache
+
+# Bulk datasets and review material (not needed inside images)
+data
+conv_*.jsonl
+heldout_*.jsonl
+*_review_bundle*
+freshness_v21_final_review*
+*.zip
+
+# Build output and caches
+**/node_modules
+**/target
+**/.svelte-kit
+**/build
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+**/.pytest_cache

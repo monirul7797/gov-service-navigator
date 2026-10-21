@@ -1,0 +1,171 @@
+# Government Service Navigator: local / test-server stack (Milestone 0).
+#
+# First run:  python deploy/make_env.py   (creates .env with random secrets; never commit it)
+#             docker compose build
+#             docker compose up -d
+#             python deploy/smoke.py --url http://localhost/readyz --timeout 300
+#
+# Exposure rules (checked by deploy/tests/test_compose_exposure.py):
+#   * only `caddy` publishes a port on all interfaces (80:80);
+#   * the `web` admin listener is published only on the address in GSN_ADMIN_PUBLISH
+#     (default 127.0.0.1:8081, i.e. this machine only; on a server reach it over Tailscale);
+#   * nothing else has `ports:`.
+# Each service receives only its own database password. Images pulled from a registry are pinned
+# to an exact version; gsn-web:dev and gsn-engine:dev are built from this repository.
+
+name: gsn
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.7-pg17-bookworm
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run python deploy/make_env.py first}
+      # Read only by db/init/10-roles.sh, which creates the four login roles on a new volume.
+      GSN_DB_MIGRATE_PASSWORD: ${GSN_DB_MIGRATE_PASSWORD:?run python deploy/make_env.py first}
+      GSN_DB_WEB_PASSWORD: ${GSN_DB_WEB_PASSWORD:?run python deploy/make_env.py first}
+      GSN_DB_ENGINE_PASSWORD: ${GSN_DB_ENGINE_PASSWORD:?run python deploy/make_env.py first}
+      GSN_DB_WORKER_PASSWORD: ${GSN_DB_WORKER_PASSWORD:?run python deploy/make_env.py first}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # TCP (-h 127.0.0.1), not the unix socket: while the init scripts run, the entrypoint's
+      # temporary server listens on the socket only, so a socket check would say "healthy" too early.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d gsn"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  # One-shot job: applies db/migrations/ (compiled into the gsn-web binary) as the schema owner and
+  # exits. web and worker wait for it to finish successfully; it never restarts. Apart from postgres
+  # (which creates the roles) it is the only service that receives gsn_migrate's password.
+  migrate:
+    image: gsn-web:dev  # built by the web service below
+    pull_policy: never
+    restart: "no"
+    logging: *default-logging
+    command: ["migrate"]
+    environment:
+      GSN_VERSION: ${GSN_VERSION:-dev}
+      GSN_DB_HOST: postgres
+      GSN_DB_PORT: "5432"
+      GSN_DB_NAME: gsn
+      GSN_DB_USER: gsn_migrate
+      GSN_DB_PASSWORD: ${GSN_DB_MIGRATE_PASSWORD:?run python deploy/make_env.py first}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  engine:
+    build:
+      context: ./engine
+      target: runtime
+    image: gsn-engine:dev
+    restart: unless-stopped
+    logging: *default-logging
+    # No database settings in M0: the engine does not touch the database yet (gsn_engine has no
+    # table grants). M2 adds GSN_DB_USER=gsn_engine and its own password here.
+    environment:
+      GSN_VERSION: ${GSN_VERSION:-dev}
+    command: ["gsn", "engine", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).status == 200 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s  # M2 loads a ~2 GB embedding model before the engine answers
+
+  worker:
+    image: gsn-engine:dev  # built by the engine service above
+    pull_policy: never
+    # The worker exits non-zero on any error after it reported "worker ready" (see gsn.cli), so the
+    # restart policy is what keeps it running.
+    restart: unless-stopped
+    logging: *default-logging
+    command: ["gsn", "worker"]
+    environment:
+      GSN_VERSION: ${GSN_VERSION:-dev}
+      GSN_DB_HOST: postgres
+      GSN_DB_PORT: "5432"
+      GSN_DB_NAME: gsn
+      GSN_DB_USER: gsn_worker
+      GSN_DB_PASSWORD: ${GSN_DB_WORKER_PASSWORD:?run python deploy/make_env.py first}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    image: gsn-web:dev
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      GSN_VERSION: ${GSN_VERSION:-dev}
+      GSN_PUBLIC_BIND: 0.0.0.0:8080
+      # Inside the container the admin listener must bind 0.0.0.0 to be reachable through the
+      # published port; the published address below is what limits who can connect.
+      GSN_ADMIN_BIND: 0.0.0.0:8081
+      GSN_ENGINE_URL: http://engine:8000
+      GSN_DB_HOST: postgres
+      GSN_DB_PORT: "5432"
+      GSN_DB_NAME: gsn
+      GSN_DB_USER: gsn_web
+      GSN_DB_PASSWORD: ${GSN_DB_WEB_PASSWORD:?run python deploy/make_env.py first}
+    ports:
+      - "${GSN_ADMIN_PUBLISH:-127.0.0.1:8081}:8081"
+    healthcheck:
+      # /healthz (process is up), not /readyz: the container must stay "healthy" while a dependency
+      # is briefly down so it is not restarted for something it cannot fix.
+      test: ["CMD", "/app/gsn-web", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # web waits for the database and for the migrations, but only for the engine to have STARTED, not
+    # to be healthy: a slow or failing model load in the engine (M2) must leave the site up and
+    # degraded (/readyz answers 503 with engine "fail"), not keep web and caddy from starting at all.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      engine:
+        condition: service_started
+
+  caddy:
+    image: caddy:2.11.7
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "80:80"
+    environment:
+      GSN_SITE_ADDRESS: ${GSN_SITE_ADDRESS:-:80}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

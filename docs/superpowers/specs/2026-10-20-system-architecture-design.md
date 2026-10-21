@@ -284,9 +284,13 @@ After generation, before anything is shown:
 | `admin_users`, `admin_credentials`, `admin_sessions` | Argon2id password hash, passkeys (WebAuthn), TOTP secret, hashed recovery codes, sessions. |
 | `notifications` | Outbox: severity, channels, payload, per-channel status, attempts, next attempt, dedup key. |
 
-Database roles: `web` (read/write on its own tables, insert-only on `audit_log`), `engine`
-(read-only on published data), `worker` (release and notification tables, insert-only on
-`audit_log`), and a migration role used only by the deploy step.
+Database roles: `web` (read/write on its own tables; on `audit_log` SELECT for the admin panel and
+INSERT of `actor, action, target, details` only — `id` and `at` are set by the database), `engine`
+(read-only on published data), `worker` (release and notification tables; column-level INSERT on
+`audit_log`, no SELECT), and a migration role used only by the deploy step. `audit_log` rejects
+UPDATE, DELETE and TRUNCATE for every role including its owner (as built in M0, migration
+`0001_audit_log.sql`); M1 adds protection against the owner dropping or replacing those triggers
+(superuser-owned event trigger) and a hash chain for tamper evidence.
 
 ### 6.2 Source of truth, by phase
 

@@ -13,7 +13,9 @@ neutral JSON examples), `db/` (init script + SQL migrations), `deploy/` (Caddyfi
 Docker Compose wires them; GitHub Actions runs every gate.
 
 **Tech Stack:** Rust stable (edition 2024) + axum 0.8, tokio, sqlx 0.8 (postgres, migrate),
-reqwest 0.12 (rustls), tower-http 0.6, tracing (JSON); Python 3.12.10 + FastAPI, uvicorn,
+reqwest 0.12 (rustls), tower-http 0.6, tracing (JSON) *(as built: sqlx 0.9.0, reqwest 0.13.5 with
+default features off and no TLS (it only calls the engine over the internal network), tower-http
+0.7.1; axum 0.8.9 and tokio 1.54.0; Rust 1.99.1, all `=`-pinned in `web/Cargo.toml`)*; Python 3.12.10 + FastAPI, uvicorn,
 psycopg 3, pytest; SvelteKit + Svelte 5 + TypeScript + Tailwind CSS 4 + adapter-static, Vitest,
 ESLint; PostgreSQL 17 + pgvector; Caddy 2; Docker Compose; GitHub Actions.
 
@@ -23,7 +25,17 @@ ESLint; PostgreSQL 17 + pgvector; Caddy 2; Docker Compose; GitHub Actions.
 ## Global Constraints
 
 - Stage explicit paths only — never `git add .` / `git add -A`. Never stage `acquisition/*`,
-  `setenv.bat`, `.env`, review bundles or zips.
+  `setenv*.bat`, `.env`, `.superpowers/`, review bundles or zips. Never open or print `setenv*.bat`.
+- Work on branch `feat/m0-foundations` in the main checkout. `acquisition/*` holds the owner's
+  uncommitted edits: never touch, stage or discard them.
+- Local machine (updated 2026-10-21): Windows; Rust 1.99.1 is installed but there are **no MSVC
+  Build Tools**, so Rust is compiled and tested **only inside Docker** via
+  `python tools/cargo_docker.py <cargo args>` (Task 3). Docker Desktop 29.9.1 / Compose v5.6.0 lives
+  on `G:\Docker`; if `docker` is not found in a shell, prepend `G:\Docker\DockerDesktop\resources\bin`
+  to `PATH` (it also holds `docker-credential-desktop`). C: has only ~4 GB free: run npm with
+  `--cache G:/gsn-cache/npm`. All new Python tooling and tests run in one project virtual
+  environment `.venv` at the repo root (gitignored; created in Task 1), never the global Python;
+  legacy root scripts such as `test_multiturn.py` keep using the global Python.
 - Legacy root code (`*.py` at root, `src/`, `acquisition/`, `freshness/`, `data/`) is not modified.
   `python test_multiturn.py` must keep passing (set `PYTHONIOENCODING=utf-8` on Windows).
 - Long-running services: exactly `caddy`, `web`, `engine`, `worker`, `postgres`. One-shot jobs
@@ -45,10 +57,14 @@ ESLint; PostgreSQL 17 + pgvector; Caddy 2; Docker Compose; GitHub Actions.
 - Svelte 5 in runes mode (`compilerOptions.runes = true`); SvelteKit CSP `mode: 'hash'`, no
   `'unsafe-inline'` in `script-src`. Public app `<html lang="bn">`; admin app `<html lang="en">`.
 - Logs: one JSON object per line on stdout.
-- Pinned toolchains: Python 3.12.10, Node 24 (`engines.node: ">=24 <25"`), Rust version from Task 0
-  in `rust-toolchain.toml`. Dependencies pinned exactly; lockfiles (`Cargo.lock`,
+- Pinned toolchains: Python 3.12.10, Node 24 (`engines.node: ">=24 <25"`), Rust **1.99.1** in
+  `rust-toolchain.toml` and the `rust:1.99.1-bookworm` image (verify the tag with `docker pull`;
+  if it does not exist, use the newest `1.99.x` tag and pin that exact value everywhere). Dependencies pinned exactly; lockfiles (`Cargo.lock`,
   `package-lock.json`) committed; Python deps pinned with `==` in `engine/pyproject.toml`.
 - Shell scripts, Dockerfiles, `Caddyfile` and SQL use LF line endings.
+- Every host-side `python -m pytest …` command in this plan means `.venv/Scripts/python -m pytest …`
+  (on CI: the job's installed Python). Stdlib-only scripts (`deploy/*.py`, `tools/*.py`) may run on
+  any Python 3.12.
 
 ## Review Focus
 
@@ -82,6 +98,7 @@ ESLint; PostgreSQL 17 + pgvector; Caddy 2; Docker Compose; GitHub Actions.
 | `engine/pyproject.toml`, `engine/Dockerfile`, `engine/src/gsn/…`, `engine/tests/` | Python package: logging, DB config, engine app, worker, CLI |
 | `web/Cargo.toml`, `web/rust-toolchain.toml`, `web/src/…`, `web/tests/` | Rust service: config, routers, readiness, CLI (serve/migrate/healthcheck) |
 | `web/Dockerfile` | Builds both frontends + Rust binary into one image |
+| `tools/cargo_docker.py`, `tools/tests/test_cargo_docker.py` | Runs cargo inside the pinned Rust image (no local MSVC needed) |
 | `frontend/public/`, `frontend/admin/` | SvelteKit static skeletons |
 | `db/init/10-roles.sh`, `db/migrations/0001_audit_log.sql` | Roles/extension bootstrap; first migration |
 | `compose.yaml`, `compose.test.yaml`, `deploy/Caddyfile` | Stack definition; integration-test job; proxy |
@@ -91,14 +108,15 @@ ESLint; PostgreSQL 17 + pgvector; Caddy 2; Docker Compose; GitHub Actions.
 
 ---
 
-### Task 0: Owner installs prerequisites (owner action — not a subagent task)
+### Task 0: Owner installs prerequisites — DONE 2026-10-21
 
-**Files:** none (records the Rust version for Task 3).
+Installed: Rust 1.99.1 (rustup, no MSVC Build Tools — the install failed for lack of disk space and
+is not needed because Rust runs in Docker); Docker Desktop on `G:\Docker` (Docker 29.9.1, Compose
+v5.6.0, data root `G:\Docker\wsl`); `docker run --rm hello-world` printed "Hello from Docker!".
 
-- [ ] **Step 1:** Install Rust with `rustup` from https://rustup.rs (default stable, MSVC
-  toolchain; accept the Visual Studio Build Tools prompt).
-- [ ] **Step 2:** Install Docker Desktop for Windows (WSL 2 backend). Reboot if asked.
-- [ ] **Step 3: Verify**
+- [x] **Step 1:** Install Rust with `rustup` from https://rustup.rs.
+- [x] **Step 2:** Install Docker Desktop for Windows (WSL 2 backend).
+- [x] **Step 3: Verify**
 
 Run (PowerShell, new window):
 ```
@@ -118,8 +136,11 @@ Expected: versions print; `hello-world` prints "Hello from Docker!". Report the 
 **Files:**
 - Create: `.gitattributes`, `.dockerignore`, `.env.example`, `deploy/make_env.py`,
   `deploy/check_exposure.py`, `deploy/tests/test_repo_hygiene.py`,
-  `deploy/tests/test_make_env.py`, `deploy/tests/test_check_exposure.py`
+  `deploy/tests/test_make_env.py`, `deploy/tests/test_check_exposure.py`,
+  `requirements-dev.txt` (exact pins: `pytest`, `pyyaml`)
 - Modify: `.gitignore` (append only)
+- Setup (first step, before writing tests): `python -m venv .venv` then
+  `.venv/Scripts/python -m pip install -r requirements-dev.txt`. `.venv/` is gitignored.
 
 **Interfaces:**
 - Produces: `deploy/make_env.py` — `make_env(example: Path, target: Path, token: Callable[[], str] = lambda: secrets.token_urlsafe(24)) -> None`; CLI `python deploy/make_env.py` (writes `.env` from `.env.example`).
@@ -144,14 +165,14 @@ def test_gitattributes_forces_lf():
 
 def test_dockerignore_excludes_secrets_and_bulk():
     lines = set((ROOT / ".dockerignore").read_text().split())
-    for entry in [".git", ".env", "setenv.bat", "data", "*_review_bundle*", "*.zip",
+    for entry in [".git", ".env", "setenv*.bat", ".venv", ".superpowers", "data", "*_review_bundle*", "*.zip",
                   "freshness_v21_final_review*", "**/node_modules", "**/target",
                   "**/.svelte-kit", "**/build", "**/__pycache__"]:
         assert entry in lines
 
 def test_gitignore_covers_new_artifacts():
     text = (ROOT / ".gitignore").read_text()
-    for entry in [".env", "target/", "node_modules/", ".svelte-kit/", "frontend/*/build/"]:
+    for entry in [".env", "target/", "node_modules/", ".svelte-kit/", "frontend/*/build/", ".venv/"]:
         assert entry in text
     assert "setenv.bat" in text                  # existing rule kept
 
@@ -194,7 +215,7 @@ Expected: all pass. Also run `git ls-files --eol deploy` and confirm `i/lf w/lf`
 - [ ] **Step 6: Commit**
 
 ```bash
-git add .gitattributes .gitignore .dockerignore .env.example deploy/make_env.py deploy/check_exposure.py deploy/tests
+git add .gitattributes .gitignore .dockerignore .env.example requirements-dev.txt deploy/make_env.py deploy/check_exposure.py deploy/tests
 git commit -m "chore(m0): repo hygiene, env generation and exposure check"
 ```
 
@@ -262,7 +283,7 @@ def test_error_after_ready_propagates():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `python -m pip install -e "engine[dev]"` then `python -m pytest engine/tests -q`
+Run: `.venv/Scripts/python -m pip install -e "engine[dev]"` then `.venv/Scripts/python -m pytest engine/tests -q`
 Expected: FAIL (ImportError).
 
 - [ ] **Step 3: Implement the modules per the Interfaces block**
@@ -292,6 +313,7 @@ git commit -m "feat(m0): gsn python package with engine health app, worker loop 
 **Files:**
 - Create: `web/Cargo.toml`, `web/Cargo.lock`, `web/rust-toolchain.toml`, `web/src/main.rs`,
   `web/src/lib.rs`, `web/src/config.rs`, `web/src/routes.rs`, `web/src/readiness.rs`
+- Create: `tools/cargo_docker.py`, `tools/tests/test_cargo_docker.py`
 - Test: `web/tests/http.rs` (integration tests over the routers); unit tests in `config.rs`
 
 **Interfaces:**
@@ -305,7 +327,31 @@ git commit -m "feat(m0): gsn python package with engine health app, worker loop 
   - `routes::admin_router(state: AppState, static_dir: &Path) -> axum::Router` — `GET /healthz` (`service: "web-admin"`), static files from `static_dir`.
   - `/readyz` body: `{"status":"ok"|"degraded","checks":{"database":"ok"|"fail","engine":"ok"|"fail"}}`; 200 when both ok, else 503.
   - CLI: `gsn-web serve` (default; pool via `PgPoolOptions::connect_lazy_with`, both listeners), `gsn-web migrate` (`sqlx::migrate!("../db/migrations")` run with the configured DB user — used with `gsn_migrate` credentials), `gsn-web healthcheck` (GET `http://127.0.0.1:<public port>/healthz`, exit 0 iff 200).
-- `rust-toolchain.toml`: `channel = "<exact version from Task 0>"`, components `rustfmt`, `clippy`.
+- `rust-toolchain.toml`: `channel = "1.99.1"`, components `rustfmt`, `clippy`.
+- `tools/cargo_docker.py` (stdlib only; no local MSVC exists, so every cargo command in this plan
+  runs through it): `image_from_toolchain(toolchain_file: Path) -> str` → `rust:<channel>-bookworm`;
+  `build_command(repo_root: Path, cargo_args: list[str], image: str) -> list[str]` →
+  `["docker", "run", "--rm",
+  "--mount", "type=bind,src=<repo_root/web>,dst=/work/web",
+  "--mount", "type=bind,src=<repo_root/db>,dst=/work/db,readonly",
+  "--mount", "type=bind,src=<repo_root/contracts>,dst=/work/contracts,readonly",
+  "-v", "gsn-cargo-registry:/usr/local/cargo/registry", "-v", "gsn-rustup:/usr/local/rustup",
+  "-v", "gsn-cargo-target:/work/web/target", "-w", "/work/web", image, "cargo", *cargo_args]`.
+  **The repo root is never mounted**: crate build scripts and proc-macros run as root with network
+  access, so the container must not see `setenv*.bat`, `.env`, `data/` or `.git/` (hooks). Only
+  `web/` (read-write), `db/` and `contracts/` (read-only; `web/` reads `../db/migrations` and
+  `../contracts`) are bind-mounted. `--mount type=bind` is used instead of `-v` because it fails
+  when a source is missing instead of silently creating an empty directory. Docker parses a
+  `--mount` value as one CSV record, so a source path containing a comma or a double quote is
+  CSV-quoted (`"src=...,..."`, inner quotes doubled); spaces need nothing and each whole `--mount`
+  value stays one argv element. Named volumes keep downloads, components and build output between
+  runs on the Docker disk on G:. CLI `python tools/cargo_docker.py <cargo args…>` exits with cargo's exit
+  code, and if `docker` is not on PATH it retries with `G:\Docker\DockerDesktop\resources\bin\docker.exe`
+  before failing with a clear message. Tests (`.venv` pytest): image name from a toolchain file;
+  exact argv for `["test"]`; the bind set is exactly {web rw, db readonly, contracts readonly} and no
+  bind source or destination is the repo root; a repo path containing spaces stays one argv element
+  per mount and a path with a comma or quote round-trips through a CSV parse; exit code passthrough
+  with a fake runner.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -328,13 +374,15 @@ git commit -m "feat(m0): gsn python package with engine health app, worker loop 
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cargo test` (in `web/`)
+Run: `python tools/cargo_docker.py test`
 Expected: compile errors (items not defined).
 
 - [ ] **Step 3: Implement config, readiness, routes, main per the Interfaces block**
 
 Dependencies via `cargo add` (axum, tokio[full], sqlx[runtime-tokio,postgres,migrate,macros],
-reqwest[json,rustls-tls] with default features off, tower-http[fs,trace], tracing,
+reqwest with default features off and no extra features (M0 makes only plain-http calls to
+the engine and loopback, so no TLS stack is compiled; add one when an https call is introduced),
+tower-http[fs,trace], tracing,
 tracing-subscriber[json,env-filter], serde[derive], serde_json, async-trait, thiserror; dev:
 tower[util], http-body-util, tempfile). Logging: JSON to stdout. `sqlx::migrate!` needs the
 `db/migrations/` directory to exist at compile time; until Task 6 adds the first migration, it
@@ -342,13 +390,14 @@ holds only `db/migrations/.gitkeep`.
 
 - [ ] **Step 4: Run tests and lints to verify they pass**
 
-Run: `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test`
-Expected: no warnings; all tests pass.
+Run: `python tools/cargo_docker.py fmt --check`, `python tools/cargo_docker.py clippy --all-targets -- -D warnings`,
+`python tools/cargo_docker.py test`
+Expected: no warnings; all tests pass. (`cargo add` also runs through the wrapper.)
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add web/Cargo.toml web/Cargo.lock web/rust-toolchain.toml web/src web/tests db/migrations/.gitkeep
+git add web/Cargo.toml web/Cargo.lock web/rust-toolchain.toml web/src web/tests db/migrations/.gitkeep tools/cargo_docker.py tools/tests/test_cargo_docker.py
 git commit -m "feat(m0): rust web service skeleton with public/admin routers and readiness"
 ```
 
@@ -358,7 +407,7 @@ git commit -m "feat(m0): rust web service skeleton with public/admin routers and
 
 **Files:**
 - Create: `frontend/public/` and `frontend/admin/` — each a SvelteKit project (`package.json`,
-  `package-lock.json`, `svelte.config.js`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`,
+  `package-lock.json`, `kit.config.js`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`,
   `src/app.html`, `src/app.css`, `src/routes/+layout.ts`, `src/routes/+layout.svelte`,
   `src/routes/+page.svelte`, `tests/config.test.ts`, `tests/build.test.ts`)
 
@@ -366,7 +415,9 @@ git commit -m "feat(m0): rust web service skeleton with public/admin routers and
 - Produces: `npm run build` → `build/index.html` (adapter-static, `prerender = true` in `+layout.ts`). Task 5 copies `frontend/public/build` → `/app/static/public` and `frontend/admin/build` → `/app/static/admin`.
 - Scripts in each `package.json`: `build`, `check` (svelte-check), `lint` (eslint), `test:build` (`npm run build && vitest run`).
 - Both apps: Svelte 5, TypeScript, Tailwind CSS 4 via `@tailwindcss/vite`, exact versions (`--save-exact`), `engines.node: ">=24 <25"`.
-- `svelte.config.js`: `compilerOptions: { runes: true }`; `kit.csp = { mode: 'hash', directives: { 'default-src': ['self'], 'script-src': ['self'], 'style-src': ['self'], 'img-src': ['self', 'data:'], 'font-src': ['self'], 'connect-src': ['self'], 'object-src': ['none'], 'base-uri': ['self'], 'form-action': ['self'] } }`.
+- As built (2026-10-21, SvelteKit 3.1.0 — Kit 3 rejects `svelte.config.js` and uses flat options): the
+  config lives in `kit.config.js`, passed to `sveltekit()` in `vite.config.ts` and imported by the tests;
+  `compilerOptions: { runes: true }`; `csp = { mode: 'hash', directives: { 'default-src': ['self'], 'script-src': ['self'], 'style-src': ['self'], 'img-src': ['self', 'data:'], 'font-src': ['self'], 'connect-src': ['self'], 'object-src': ['none'], 'base-uri': ['self'], 'form-action': ['self'] } }`.
 - Placeholder copy — public (`lang="bn"`): heading "Government Service Navigator", line "শীঘ্রই আসছে"; admin (`lang="en"`): heading "GSN Admin", line "Coming soon".
 
 - [ ] **Step 1: Scaffold** each app with the official `sv` CLI (minimal template, TypeScript), then add adapter-static, Tailwind 4, ESLint (`eslint-plugin-svelte`), Vitest. Commit nothing yet.
@@ -374,15 +425,15 @@ git commit -m "feat(m0): rust web service skeleton with public/admin routers and
 
 ```ts
 // tests/config.test.ts
-import config from '../svelte.config.js';
+import config from '../kit.config.js';   // as built; originally svelte.config.js (Kit 2)
 import { compile } from 'svelte/compiler';
 test('runes mode is enforced', () => { expect(config.compilerOptions?.runes).toBe(true); });
 test('legacy props syntax fails to compile in runes mode', () => {
   expect(() => compile('<script>export let x;</script>{x}', { runes: true })).toThrow();
 });
 test('csp uses hashes, never unsafe-inline scripts', () => {
-  expect(config.kit?.csp?.mode).toBe('hash');
-  expect(config.kit?.csp?.directives?.['script-src']).toEqual(['self']);
+  expect(config.csp?.mode).toBe('hash');
+  expect(config.csp?.directives?.['script-src']).toEqual(['self']);
 });
 // tests/build.test.ts (runs after build)
 test('index.html has language and a hash-based CSP meta', () => {
@@ -403,6 +454,7 @@ Expected: FAIL until config, `app.html` lang and pages are set.
 - [ ] **Step 5: Verify**
 
 Run (each app): `npm run lint && npm run check && npm run test:build && npm audit --omit=dev --audit-level=high`
+*(as built: `npm audit --audit-level=high` over the full tree, no `--omit=dev`: every package in both apps is a devDependency, so `--omit=dev` audited an empty set while Svelte/SvelteKit runtime code still ships to browsers)*
 Expected: all pass, zero high/critical advisories.
 
 - [ ] **Step 6: Commit** (explicit paths; `node_modules`, `build`, `.svelte-kit` must be ignored)
@@ -433,9 +485,9 @@ Compose (`compose.yaml`), all images pinned exactly:
 | Service | Image / build | Key settings |
 |---|---|---|
 | `postgres` | `pgvector/pgvector:0.8.x-pg17` (exact tag verified on Docker Hub) | `POSTGRES_PASSWORD`, the four `GSN_DB_*_PASSWORD`; volume `pgdata`; `./db/init:/docker-entrypoint-initdb.d:ro`; healthcheck `pg_isready -U postgres -d gsn`; no ports |
-| `engine` | build `./engine`, target `runtime`, image `gsn-engine:dev` | cmd `uvicorn gsn.engine.app:app --host 0.0.0.0 --port 8000`; healthcheck via `python -c` urllib on `/healthz`, `start_period: 120s`; no ports |
+| `engine` | build `./engine`, target `runtime`, image `gsn-engine:dev` | cmd `uvicorn gsn.engine.app:app --host 0.0.0.0 --port 8000` *(as built: `gsn engine --host 0.0.0.0 --port 8000`, which runs uvicorn with its own log config disabled and the access log off, so every line goes through the JSON logger and request lines never reach the logs)*; healthcheck via `python -c` urllib on `/healthz`, `start_period: 120s`; no ports |
 | `worker` | image `gsn-engine:dev` | cmd `gsn worker`; `GSN_DB_USER=gsn_worker`, its password; depends on postgres healthy; `restart: unless-stopped` |
-| `web` | build context `.`, `web/Dockerfile`, image `gsn-web:dev` | `GSN_DB_USER=gsn_web`, its password; `GSN_PUBLIC_BIND=0.0.0.0:8080`; `GSN_ADMIN_BIND=0.0.0.0:8081`; ports `"${GSN_ADMIN_PUBLISH:-127.0.0.1:8081}:8081"` only; healthcheck `["CMD", "/app/gsn-web", "healthcheck"]`; depends on postgres healthy, engine healthy |
+| `web` | build context `.`, `web/Dockerfile`, image `gsn-web:dev` | `GSN_DB_USER=gsn_web`, its password; `GSN_PUBLIC_BIND=0.0.0.0:8080`; `GSN_ADMIN_BIND=0.0.0.0:8081`; ports `"${GSN_ADMIN_PUBLISH:-127.0.0.1:8081}:8081"` only; healthcheck `["CMD", "/app/gsn-web", "healthcheck"]`; depends on postgres healthy, engine **started** (as built: web must serve a degraded site when the engine is slow or failing) |
 | `caddy` | `caddy:2.x.y` exact | ports `"80:80"`; `./deploy/Caddyfile:/etc/caddy/Caddyfile:ro`; `GSN_SITE_ADDRESS`; depends on web healthy |
 
 `deploy/Caddyfile`: site address `{$GSN_SITE_ADDRESS::80}`; `encode zstd gzip`; headers
@@ -444,7 +496,7 @@ Compose (`compose.yaml`), all images pinned exactly:
 `Server`; `reverse_proxy web:8080`. (HSTS and port 443 arrive in M4.)
 
 `web/Dockerfile`: stage `node:24.x.y-bookworm-slim` builds both frontends (`npm ci && npm run build`);
-stage `rust:<Task 0 version>-bookworm` builds `gsn-web --release --locked` (copies `web/` and
+stage `rust:1.99.1-bookworm` builds `gsn-web --release --locked` (copies `web/` and
 `db/migrations/`); final `gcr.io/distroless/cc-debian12:nonroot` with binary at `/app/gsn-web` and
 static files at `/app/static/{public,admin}`. `engine/Dockerfile`: `python:3.12.10-slim-bookworm`,
 non-root user, `pip install --no-cache-dir .`; `test` target adds `.[dev]`.
@@ -572,9 +624,9 @@ git commit -m "feat(m0): append-only audit_log migration, migrate job and stack 
 **Interfaces:**
 - Consumes: every command from Tasks 1–6.
 - CI triggers: `push` and `pull_request`. Jobs:
-  - `python`: setup-python `3.12.10`; `pip install -e "engine[dev]"`; `pytest engine/tests deploy/tests -q`; `pip-audit` on the installed engine deps; legacy guard `python test_multiturn.py` (repo root, no extra deps).
-  - `rust` (working dir `web/`): toolchain from `rust-toolchain.toml`; cache; `cargo fmt --check`; `cargo clippy --all-targets -- -D warnings`; `cargo test`; `cargo audit`.
-  - `frontend` (matrix `public`, `admin`): setup-node `24`, npm cache; `npm ci`; `npm run lint`; `npm run check`; `npm run test:build`; `npm audit --omit=dev --audit-level=high`.
+  - `python`: setup-python `3.12.10`; `pip install -r requirements-dev.txt -e "engine[dev]"` *(as built: `pip install -r requirements-dev.txt -c engine/constraints.txt -e "engine[dev]"`, so CI installs the locked versions the Docker image gets)*; `pytest engine/tests deploy/tests tools/tests -q`; `pip-audit` on the installed engine deps *(as built: `python -m pip_audit -r engine/constraints.txt --no-deps --disable-pip --progress-spinner off`, i.e. the locked set rather than the runner's environment)*; legacy guard `python test_multiturn.py` (repo root, no extra deps).
+  - `rust` (working dir `web/`): toolchain from `rust-toolchain.toml`; cache; `cargo fmt --check`; `cargo clippy --all-targets -- -D warnings`; `cargo test`; `cargo audit` *(as built: clippy and test with `--locked`; cargo-audit 0.22.2 installed through a SHA-pinned `taiki-e/install-action`)*.
+  - `frontend` (matrix `public`, `admin`): setup-node `24` *(as built: `24.20.0`, matching `web/Dockerfile`)*, npm cache; `npm ci`; `npm run lint`; `npm run check`; `npm run test:build`; `npm audit --omit=dev --audit-level=high` *(as built: `npm audit --audit-level=high`, full tree, no `--omit=dev`; see Task 4 Step 5)*.
   - `stack` (needs the three above; ubuntu runner): `python deploy/make_env.py`; `docker compose build`; `docker compose up -d`; smoke (300 s); exposure check (`--expect-open 80 --expect-closed 5432,8000,8080`); `itest`; on failure `docker compose logs`; always `docker compose down -v`.
 - Dependabot: weekly for `cargo` (`/web`), `pip` (`/engine`), `npm` (`/frontend/public`, `/frontend/admin`), `docker` (`/web`, `/engine`), `github-actions` (`/`).
 - Third-party actions pinned to a full commit SHA with the version in a comment.

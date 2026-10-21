@@ -50,6 +50,11 @@ you go, and ask before anything hard to reverse.
 - Never push, merge, rebase shared history or delete branches without the owner's explicit OK.
 - `setenv.bat` (GLM, legacy) and `setenv_deepseek.bat` (primary) are gitignored (`setenv_*.bat`)
   and hold LLM API keys: never commit, print, open or overwrite them.
+- `.env` (made by `deploy/make_env.py`) holds the stack's database passwords and is gitignored:
+  never commit, print or overwrite it (`.env.example` holds placeholders only).
+- Published ports: only `caddy` (`80:80`) and the `web` admin listener (`${GSN_ADMIN_PUBLISH}`,
+  always written `<ip>:8081`; a bare `8081` would expose the admin panel publicly) may have
+  `ports:`. `deploy/tests/test_compose_exposure.py` enforces this; keep it passing.
 - `data/vectordb/` is generated; write to it only through `embed_*.py` scripts. If corrupted,
   delete and re-embed.
 - Do not run the legacy `freshness/reembed.py` executor on the working project (audited as unsafe).
@@ -83,3 +88,34 @@ you go, and ask before anything hard to reverse.
   `python -B tools/run_offline_checks.py --legacy --pattern "test_p*.py"`.
 - Embeddings: BAAI/bge-m3; vector store: ChromaDB, one collection per service; live collections
   are allowlisted in `answer.py::ALLOWED_COLLECTIONS` (Visa is NOT live yet).
+
+### New system (milestone M0, branch `feat/m0-foundations`)
+
+The legacy Python above stays at the repo root. The public-site system lives in new folders; the
+full PowerShell guide is `docs/DEVELOPMENT.md`.
+
+| Folder | Holds |
+|---|---|
+| `web/` | Rust `gsn-web`: public site, admin listener, API edge (`rust-toolchain.toml` pins 1.99.1) |
+| `engine/` | Python package `gsn` (engine app, worker, CLI); `constraints.txt` pins the whole tree |
+| `frontend/` | SvelteKit apps `public/` (Bangla) and `admin/` (English) |
+| `db/` | `init/` (roles, first start only) and `migrations/` (numbered SQL, never edit applied ones) |
+| `deploy/` | `Caddyfile`, `make_env.py`, `smoke.py`, `check_exposure.py` and their tests |
+| `tools/` | `cargo_docker.py` (runs cargo in Docker) |
+| `contracts/` | shared JSON API examples that every implementation's tests assert against |
+| `tests/integration/` | tests that run inside the stack (the `itest` job) |
+
+- Stack (`compose.yaml`: `caddy`, `web`, `engine`, `worker`, `postgres`, plus one-shot `migrate`):
+  `python deploy/make_env.py` once, then `docker compose build`, `docker compose up -d`,
+  `python deploy/smoke.py --url http://localhost/readyz --timeout 300`, `docker compose down`
+  (`-v` also wipes the local database).
+- Tests: Python in `.venv` (never the global Python):
+  `.venv\Scripts\python -m pytest engine/tests deploy/tests tools/tests -q`; Rust, only via Docker:
+  `python tools/cargo_docker.py test` (also `fmt --check`, `clippy --all-targets --locked -- -D
+  warnings`); frontend, in each of `frontend/public` and `frontend/admin`: `npm ci --cache
+  G:/gsn-cache/npm`, `npm run lint`, `npm run check`, `npm run test:build`; stack:
+  `docker compose -f compose.yaml -f compose.test.yaml run --rm itest` (local stack only; it adds
+  `audit_log` rows). `.github/workflows/ci.yml` runs all of this on every push and pull request.
+- Rust is compiled only inside Docker on this machine (no MSVC): never run host `cargo`. If `docker`
+  is not on PATH, add `G:\Docker\DockerDesktop\resources\bin`. Keep at least 10 GB free on the
+  Docker drive (`G:`); `docker builder prune -f` reclaims the build cache.

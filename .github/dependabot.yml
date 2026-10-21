@@ -1,0 +1,42 @@
+# Dependabot version updates (weekly). Each update arrives as a pull request that must pass CI
+# (.github/workflows/ci.yml) before it is merged; nothing is merged automatically.
+#
+# Note for Python: the engine's exact pins live in engine/pyproject.toml AND engine/constraints.txt
+# (whole dependency tree). After accepting a pyproject.toml bump, regenerate constraints.txt as
+# described in docs/DEVELOPMENT.md ("Python constraints"); CI's test_constraints.py checks they agree.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /web
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: pip
+    directory: /engine
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /frontend/public
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /frontend/admin
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /web
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /engine
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
