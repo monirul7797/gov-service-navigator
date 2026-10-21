@@ -405,7 +405,7 @@ git commit -m "feat(m0): rust web service skeleton with public/admin routers and
 
 **Files:**
 - Create: `frontend/public/` and `frontend/admin/` — each a SvelteKit project (`package.json`,
-  `package-lock.json`, `svelte.config.js`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`,
+  `package-lock.json`, `kit.config.js`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`,
   `src/app.html`, `src/app.css`, `src/routes/+layout.ts`, `src/routes/+layout.svelte`,
   `src/routes/+page.svelte`, `tests/config.test.ts`, `tests/build.test.ts`)
 
@@ -413,7 +413,9 @@ git commit -m "feat(m0): rust web service skeleton with public/admin routers and
 - Produces: `npm run build` → `build/index.html` (adapter-static, `prerender = true` in `+layout.ts`). Task 5 copies `frontend/public/build` → `/app/static/public` and `frontend/admin/build` → `/app/static/admin`.
 - Scripts in each `package.json`: `build`, `check` (svelte-check), `lint` (eslint), `test:build` (`npm run build && vitest run`).
 - Both apps: Svelte 5, TypeScript, Tailwind CSS 4 via `@tailwindcss/vite`, exact versions (`--save-exact`), `engines.node: ">=24 <25"`.
-- `svelte.config.js`: `compilerOptions: { runes: true }`; `kit.csp = { mode: 'hash', directives: { 'default-src': ['self'], 'script-src': ['self'], 'style-src': ['self'], 'img-src': ['self', 'data:'], 'font-src': ['self'], 'connect-src': ['self'], 'object-src': ['none'], 'base-uri': ['self'], 'form-action': ['self'] } }`.
+- As built (2026-10-21, SvelteKit 3.1.0 — Kit 3 rejects `svelte.config.js` and uses flat options): the
+  config lives in `kit.config.js`, passed to `sveltekit()` in `vite.config.ts` and imported by the tests;
+  `compilerOptions: { runes: true }`; `csp = { mode: 'hash', directives: { 'default-src': ['self'], 'script-src': ['self'], 'style-src': ['self'], 'img-src': ['self', 'data:'], 'font-src': ['self'], 'connect-src': ['self'], 'object-src': ['none'], 'base-uri': ['self'], 'form-action': ['self'] } }`.
 - Placeholder copy — public (`lang="bn"`): heading "Government Service Navigator", line "শীঘ্রই আসছে"; admin (`lang="en"`): heading "GSN Admin", line "Coming soon".
 
 - [ ] **Step 1: Scaffold** each app with the official `sv` CLI (minimal template, TypeScript), then add adapter-static, Tailwind 4, ESLint (`eslint-plugin-svelte`), Vitest. Commit nothing yet.
@@ -421,15 +423,15 @@ git commit -m "feat(m0): rust web service skeleton with public/admin routers and
 
 ```ts
 // tests/config.test.ts
-import config from '../svelte.config.js';
+import config from '../kit.config.js';   // as built; originally svelte.config.js (Kit 2)
 import { compile } from 'svelte/compiler';
 test('runes mode is enforced', () => { expect(config.compilerOptions?.runes).toBe(true); });
 test('legacy props syntax fails to compile in runes mode', () => {
   expect(() => compile('<script>export let x;</script>{x}', { runes: true })).toThrow();
 });
 test('csp uses hashes, never unsafe-inline scripts', () => {
-  expect(config.kit?.csp?.mode).toBe('hash');
-  expect(config.kit?.csp?.directives?.['script-src']).toEqual(['self']);
+  expect(config.csp?.mode).toBe('hash');
+  expect(config.csp?.directives?.['script-src']).toEqual(['self']);
 });
 // tests/build.test.ts (runs after build)
 test('index.html has language and a hash-based CSP meta', () => {
