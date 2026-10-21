@@ -22,9 +22,12 @@ a FAIL with the error text and the run goes on; conversation state is reset for 
 
 Per turn the scorer checks (score_turn): the response kind, that answers come only from the
 expected service(s), words that must / must not appear, for "random" (off-topic) turns a short,
-link-free, figure-free reply, and, where a turn sets `lang` ("bn" | "en"), that the text the user
-reads is in that language (share of Bangla-script letters >= 0.30 for bn, < 0.10 for en; a turn
-with `lang: null` is not checked). Separately every answer is fact-checked (factcheck, the
+link-free, figure-free reply, where a turn sets `"declined": true` (off-topic turns) that the
+reply contains no procedure / fee / document marker (PROCEDURE_RE: the model may refer the user to
+the right office but must not explain that service), and, where a turn sets `lang` ("bn" | "en"),
+that the text the user reads is in that language (share of Bangla-script letters >= 0.30 for bn,
+< 0.10 for en; a turn with `lang: null` is not checked). The scorecard prints `declined x/N` only
+when a loaded case sets `declined`. Separately every answer is fact-checked (factcheck, the
 prototype of spec §5.3): each number and URL in it must appear in the records it was built from
 or in the question. The fact check catches invented numbers and links, NOT a real number attached
 to the wrong item.
@@ -65,6 +68,36 @@ LIST_MARKER_RE = re.compile(r"(?m)^\s*[0-9]+[.)]\s")
 BIG_NUMBER_RE = re.compile(r"[0-9]{3,}")
 URL_TRAILING = ".,;:!?-_"
 
+# Procedural-content markers for a `declined` turn (see declined_problem). A hit anywhere in the
+# reply means the model described HOW to do something for a service we do not cover. Matching is
+# case-insensitive and word-bounded, so "information" / "documentary" / "feed" / "stepped" and,
+# in Bangla, "ফিফা" (FIFA) / "ফিরে" (return) / "ধাপ্পা" (deceit) / "লাগেজ" (luggage) / "ঢাকা" (Dhaka)
+# are NOT hits. The list is deliberately short: every word on it is one a plain referral
+# ("outside my scope, contact BRTA") has no reason to use.
+#   English:  apply / applying / applied / application(s), document(s), documentation, paperwork,
+#             fee(s), step(s), procedure(s), requirement(s), required, eligible / eligibility,
+#             deadline(s), timeline(s), submit / submitting / submitted, taka
+#   Bangla:   আবেদন (application), কাগজ (paper -> কাগজপত্র documents), ডকুমেন্ট (document),
+#             নথিপত্র (documents), যোগ্যতা (eligibility), ধাপ (step), টাকা (taka), ফি (fee; also
+#             ফির, ফি-এর, as a whole word only), লাগবে / লাগে (is needed; whole word only)
+#   Banglish: abedon (application), kagoj / kagojpotro (documents), lagbe (will be needed),
+#             dhap / dhape / dhapgulo (step)
+# Not on the list on purpose (a decline that restates the question would trip them): price, cost,
+# charge, process, form, পদ্ধতি, প্রক্রিয়া, প্রয়োজন. Figures need no keyword: is_safe_text already
+# rejects every digit in model-written replies. A keyword check cannot prove a reply is free of
+# procedure - it catches the obvious leaks and lets the owner count them.
+_NOT_EN = r"(?<![A-Za-z])"          # "word start" for Latin text (re's \b mishandles Bangla marks)
+_END_EN = r"(?![A-Za-z])"
+_NOT_BN = r"(?<![ঀ-৿])"   # the Bengali Unicode block, vowel signs and virama included
+_END_BN = r"(?![ঀ-৿])"
+PROCEDURE_RE = re.compile(
+    _NOT_EN + r"(?:appl(?:y|ies|ying|ied|ication|ications)|documents?|documentation|paperwork|fees?"
+    r"|steps?|procedures?|requirements?|required|eligib(?:le|ility)|deadlines?|timelines?"
+    r"|submit(?:ting|ted)?|taka|abedon|kagoj(?:potro)?|lagbe|dhap(?:e|gulo)?)" + _END_EN
+    + "|" + _NOT_BN + r"(?:আবেদন|কাগজ|ডকুমেন্ট|নথিপত্র|যোগ্যতা|ধাপ(?!্)|টাকা)"
+    + "|" + _NOT_BN + r"(?:ফি(?:র|-?এর)?|লাগবে|লাগে)" + _END_BN,
+    re.IGNORECASE)
+
 
 # ------------------------------------------------------------------ scoring
 
@@ -96,6 +129,18 @@ def language_problem(case: dict, text: str) -> str | None:
         return None
     got = measured_language(text)
     return None if got == expected else f"answer language '{got}' expected '{expected}'"
+
+
+def declined_problem(case: dict, text: str) -> str | None:
+    """None if the turn does not expect a decline (`declined` absent / false) or `text` has no
+    procedural content; otherwise the problem message naming the first marker found (lower-cased).
+    `declined: true` goes on off-topic turns, where the model may refer the user to the right
+    office but must not explain that service (understand.py, off_topic guardrail). The marker
+    list and its limits are documented at PROCEDURE_RE."""
+    if not case.get("declined"):
+        return None
+    m = PROCEDURE_RE.search(text)
+    return f"declined reply contains procedural content ({m.group().lower()!r})" if m else None
 
 
 def score_turn(case: dict, resp: dict) -> list[str]:
@@ -132,6 +177,10 @@ def score_turn(case: dict, resp: dict) -> list[str]:
         m = BIG_NUMBER_RE.search(text.translate(BN_DIGITS).replace(",", ""))
         if m:
             problems.append(f"random reply contains a number of 3+ digits ({m.group()})")
+
+    declined = declined_problem(case, text)
+    if declined:
+        problems.append(declined)
 
     lang_problem = language_problem(case, text)
     if lang_problem:
@@ -248,14 +297,17 @@ def apply_env_bat(path) -> list[str]:
 def _make_row(conv_id, idx, case, resp, err, wall, route, records) -> dict:
     kind = resp.get("kind")
     has_lang = case.get("lang") in ("bn", "en")
+    has_declined = bool(case.get("declined"))
     if err is not None:
         text, problems, flags = err, [f"error: {err}"], []
         services, hit_ids, understanding, kind = [], [], None, "error"
         lang_ok = False if has_lang else None            # no reply was produced: a language miss
+        declined_ok = False if has_declined else None    # ... and an unmeasured decline counts as a miss
     else:
         text = _response_text(resp)
         problems = score_turn(case, resp)
         lang_ok = (language_problem(case, text) is None) if has_lang else None
+        declined_ok = (declined_problem(case, text) is None) if has_declined else None
         services = list(resp.get("services") or [])
         hit_ids = [h["id"] for h in resp.get("hits") or [] if isinstance(h, dict) and h.get("id") is not None]
         understanding = resp.get("understanding")
@@ -263,7 +315,7 @@ def _make_row(conv_id, idx, case, resp, err, wall, route, records) -> dict:
     return {"conv": conv_id, "turn": idx, "tag": case["tag"], "question": case["q"],
             "requested_route": route, "route": resp.get("route", route), "kind": kind, "text": text,
             "services": services, "hit_ids": hit_ids, "problems": problems, "passed": not problems,
-            "lang": case.get("lang"), "lang_ok": lang_ok,
+            "lang": case.get("lang"), "lang_ok": lang_ok, "declined_ok": declined_ok,
             "factcheck": flags, "wall_s": wall, "understanding": understanding}
 
 
@@ -290,7 +342,8 @@ def run_suite(cases, handle, records, *, route, on_row=None, clock=time.perf_cou
 
 def scorecard(rows: list[dict]) -> list[str]:
     """The summary lines: passes per tag, replies in the expected language (of the turns that
-    set `lang`), answers flagged by the fact check, median seconds."""
+    set `lang`), declines free of procedural content (of the turns that set `declined`; no line
+    when none do), answers flagged by the fact check, median seconds."""
     lines = [f"total {sum(r['passed'] for r in rows)}/{len(rows)}"]
     for tag in TAGS:
         sel = [r for r in rows if r["tag"] == tag]
@@ -298,6 +351,9 @@ def scorecard(rows: list[dict]) -> list[str]:
             lines.append(f"{tag} {sum(r['passed'] for r in sel)}/{len(sel)}")
     lang_rows = [r for r in rows if r.get("lang_ok") is not None]
     lines.append(f"language {sum(bool(r['lang_ok']) for r in lang_rows)}/{len(lang_rows)}")
+    declined_rows = [r for r in rows if r.get("declined_ok") is not None]
+    if declined_rows:                                     # only when a loaded case sets `declined`
+        lines.append(f"declined {sum(bool(r['declined_ok']) for r in declined_rows)}/{len(declined_rows)}")
     answers = [r for r in rows if r["kind"] == "answer" and (r["text"] or "").strip()]
     lines.append(f"factcheck_flagged {sum(bool(r['factcheck']) for r in answers)}/{len(answers)}")
     median = statistics.median(r["wall_s"] for r in rows) if rows else 0.0

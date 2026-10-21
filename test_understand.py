@@ -20,8 +20,10 @@ PROTECTS (spec 2026-10-21-llm-query-understanding-design.md §4.1-4.2):
   3. build_system_prompt(): lists live services from the registry, the four types, the
      driving-licence-is-off-topic rule, the JSON-only / no-answering rules, the ambiguity rule
      (more than one possible service -> unclear; a message that names its services is not
-     unclear), the Banglish -> bn language rule, and examples that appear in neither
-     conversation suite.
+     unclear), the off_topic reply guardrail (may name the responsible office, must not
+     describe its procedures / fees / documents / timelines / eligibility or state other
+     general-knowledge facts), the Banglish -> bn language rule, and examples that appear in
+     neither conversation suite.
   4. is_safe_text() / filter_reply(): model text with a link, a digit, >300 chars or nothing is
      rejected / replaced by the fixed template.
   5. LLM_TIMEOUT_S sets the OpenAI client timeout (default 60 s).
@@ -209,6 +211,18 @@ def test_system_prompt():
     check("no suite / held-out question (3+ words) appears in the system prompt", not leaked, str(leaked))
     check("the prompt's example questions are in neither suite", not any(
         ex.lower() == q.lower() for ex in ("fee koto?", "birth registration ar passport er fee ki?") for q in suite_qs))
+    # off_topic reply guardrail: may name the responsible office, must not describe its procedure
+    guard = [ln for ln in p.split("\n") if ln.startswith("- ") and "off_topic" in ln and "must not describe" in ln]
+    check("prompt has exactly one off_topic reply guardrail rule", len(guard) == 1, str(guard))
+    g = guard[0] if guard else ""
+    check("guardrail lets the reply say the question is outside the covered services", "outside" in g, g)
+    check("guardrail lets the reply NAME the responsible authority / office, with the BRTA example",
+          "may name" in g and ("authority" in g or "office" in g) and "BRTA" in g, g)
+    check("guardrail forbids procedures, fees, documents, timelines and eligibility",
+          all(w in g for w in ("procedures", "fees", "documents", "timelines", "eligibility")), g)
+    check("guardrail forbids other general-knowledge facts", "general-knowledge" in g, g)
+    check("the BRTA example is in neither suite", not any("brta" in q.lower() for q in suite_qs))
+    check("the guardrail did not weaken the no-links / no-figures rule", "contain no links and no figures" in p)
     language = [ln for ln in p.split("\n") if "Banglish" in ln and "romanized" in ln]
     check("prompt defines Banglish as romanized Bangla -> answer_language bn", bool(language) and "answer_language" in language[0] and "bn" in language[0], str(language))
     check("language rule lists example Banglish words", bool(language) and all(w in language[0] for w in ("koto", "lagbe", "korte", "kivabe", "amar")))
