@@ -169,6 +169,15 @@ git push origin codex/tracker-g0-p02b
   (vitest 5.0.5), #7 (Python image 3.12.14), #8 (Node image 24.21.0). CI on `master` green
   (run 39673504417 on `01136fd`). CI's setup steps still pin Python 3.12.10 / Node 24.20.0 to
   match the dev PC; the Stack job tests the image versions.
+- **M1 (data in PostgreSQL) designed and planned, 2026-10-22:** design
+  `docs/superpowers/specs/2026-10-22-m1-data-in-postgres-design.md` (owner decisions: approach A —
+  `gsn` modules in a one-off `release` container; `verified_at` ← NID `fetched_at`, e-Passport
+  `last_crawled`, none for e-Return/BDRIS; Visa stays out of releases until it has a gold set).
+  Independently reviewed by DeepSeek V4.1 Flash at max reasoning: 26 findings, 24 accepted (fully
+  or in part), 1 rejected after checking (the e-Passport flag), 1 checked and hardened; triage in
+  `docs/superpowers/reports/2026-10-22-m1-design-review-deepseek.md`. Plan:
+  `docs/superpowers/plans/2026-10-22-m1-data-in-postgres.md` (stages A schema + release core,
+  B tamper protection, C real model, D baseline + parity + release 1). Not started.
 - **Off-topic reply guardrail (2026-10-21):** owner decided model-written off-topic replies stay
   (no fixed template), with a prompt rule (name the responsible office, never describe another
   service's procedures/fees/documents) and a `declined` scorer check: suite 40/40, declined 9/9,
