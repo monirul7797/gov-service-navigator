@@ -1,4 +1,5 @@
-# Continuous integration (milestone M0): every job below mirrors a command from docs/DEVELOPMENT.md.
+# Continuous integration (milestone M0): the jobs below run the commands documented in
+# docs/DEVELOPMENT.md ("Running the tests"), with the few differences noted next to them.
 # CI only builds and tests. Publishing images and deploying arrive in milestone M4.
 #
 # Supply-chain rules for this file:
@@ -122,7 +123,7 @@ jobs:
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "24"
+          node-version: "24.20.0"
           cache: npm
           cache-dependency-path: frontend/${{ matrix.app }}/package-lock.json
 
@@ -138,8 +139,10 @@ jobs:
       - name: Build and tests
         run: npm run test:build
 
-      - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
+      # Full tree, not --omit=dev: every package in both apps is a devDependency (Svelte and
+      # SvelteKit runtime code is bundled into what browsers download), so --omit=dev audits nothing.
+      - name: Audit dependencies (full tree)
+        run: npm audit --audit-level=high
 
   stack:
     name: Stack (compose build, smoke, exposure, integration tests)
@@ -169,6 +172,8 @@ jobs:
       - name: Smoke test (waits up to 300 s for /readyz)
         run: python deploy/smoke.py --url http://localhost/readyz --timeout 300
 
+      # Unlike DEVELOPMENT.md, 8081 is not listed: the runner is the stack's own host, where the
+      # admin port is deliberately published on loopback (127.0.0.1:8081).
       - name: Exposure check (only Caddy on port 80 is reachable)
         run: python deploy/check_exposure.py --host localhost --expect-open 80 --expect-closed 5432,8000,8080
 

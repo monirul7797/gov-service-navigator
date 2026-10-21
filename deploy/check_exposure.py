@@ -5,7 +5,7 @@ while PostgreSQL (5432) and the internal service ports (8000, 8080) do not. For 
 result run it from a different machine than the one hosting the stack; a probe from the host
 itself says nothing about what the internet can reach.
 
-    python deploy/check_exposure.py --host H --expect-open 80 --expect-closed 5432,8000,8080
+    python deploy/check_exposure.py --host H --expect-open 80 --expect-closed 8081,5432,8000,8080
 
 Exit code: 0 = every expectation holds, 1 = at least one mismatch (details on stdout),
 2 = invalid arguments.

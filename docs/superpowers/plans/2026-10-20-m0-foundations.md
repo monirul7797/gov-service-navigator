@@ -13,7 +13,9 @@ neutral JSON examples), `db/` (init script + SQL migrations), `deploy/` (Caddyfi
 Docker Compose wires them; GitHub Actions runs every gate.
 
 **Tech Stack:** Rust stable (edition 2024) + axum 0.8, tokio, sqlx 0.8 (postgres, migrate),
-reqwest 0.12 (rustls), tower-http 0.6, tracing (JSON); Python 3.12.10 + FastAPI, uvicorn,
+reqwest 0.12 (rustls), tower-http 0.6, tracing (JSON) *(as built: sqlx 0.9.0, reqwest 0.13.5 with
+default features off and no TLS (it only calls the engine over the internal network), tower-http
+0.7.1; axum 0.8.9 and tokio 1.54.0; Rust 1.99.1, all `=`-pinned in `web/Cargo.toml`)*; Python 3.12.10 + FastAPI, uvicorn,
 psycopg 3, pytest; SvelteKit + Svelte 5 + TypeScript + Tailwind CSS 4 + adapter-static, Vitest,
 ESLint; PostgreSQL 17 + pgvector; Caddy 2; Docker Compose; GitHub Actions.
 
@@ -452,6 +454,7 @@ Expected: FAIL until config, `app.html` lang and pages are set.
 - [ ] **Step 5: Verify**
 
 Run (each app): `npm run lint && npm run check && npm run test:build && npm audit --omit=dev --audit-level=high`
+*(as built: `npm audit --audit-level=high` over the full tree, no `--omit=dev`: every package in both apps is a devDependency, so `--omit=dev` audited an empty set while Svelte/SvelteKit runtime code still ships to browsers)*
 Expected: all pass, zero high/critical advisories.
 
 - [ ] **Step 6: Commit** (explicit paths; `node_modules`, `build`, `.svelte-kit` must be ignored)
@@ -482,7 +485,7 @@ Compose (`compose.yaml`), all images pinned exactly:
 | Service | Image / build | Key settings |
 |---|---|---|
 | `postgres` | `pgvector/pgvector:0.8.x-pg17` (exact tag verified on Docker Hub) | `POSTGRES_PASSWORD`, the four `GSN_DB_*_PASSWORD`; volume `pgdata`; `./db/init:/docker-entrypoint-initdb.d:ro`; healthcheck `pg_isready -U postgres -d gsn`; no ports |
-| `engine` | build `./engine`, target `runtime`, image `gsn-engine:dev` | cmd `uvicorn gsn.engine.app:app --host 0.0.0.0 --port 8000`; healthcheck via `python -c` urllib on `/healthz`, `start_period: 120s`; no ports |
+| `engine` | build `./engine`, target `runtime`, image `gsn-engine:dev` | cmd `uvicorn gsn.engine.app:app --host 0.0.0.0 --port 8000` *(as built: `gsn engine --host 0.0.0.0 --port 8000`, which runs uvicorn with its own log config disabled and the access log off, so every line goes through the JSON logger and request lines never reach the logs)*; healthcheck via `python -c` urllib on `/healthz`, `start_period: 120s`; no ports |
 | `worker` | image `gsn-engine:dev` | cmd `gsn worker`; `GSN_DB_USER=gsn_worker`, its password; depends on postgres healthy; `restart: unless-stopped` |
 | `web` | build context `.`, `web/Dockerfile`, image `gsn-web:dev` | `GSN_DB_USER=gsn_web`, its password; `GSN_PUBLIC_BIND=0.0.0.0:8080`; `GSN_ADMIN_BIND=0.0.0.0:8081`; ports `"${GSN_ADMIN_PUBLISH:-127.0.0.1:8081}:8081"` only; healthcheck `["CMD", "/app/gsn-web", "healthcheck"]`; depends on postgres healthy, engine **started** (as built: web must serve a degraded site when the engine is slow or failing) |
 | `caddy` | `caddy:2.x.y` exact | ports `"80:80"`; `./deploy/Caddyfile:/etc/caddy/Caddyfile:ro`; `GSN_SITE_ADDRESS`; depends on web healthy |
@@ -621,9 +624,9 @@ git commit -m "feat(m0): append-only audit_log migration, migrate job and stack 
 **Interfaces:**
 - Consumes: every command from Tasks 1–6.
 - CI triggers: `push` and `pull_request`. Jobs:
-  - `python`: setup-python `3.12.10`; `pip install -r requirements-dev.txt -e "engine[dev]"`; `pytest engine/tests deploy/tests tools/tests -q`; `pip-audit` on the installed engine deps; legacy guard `python test_multiturn.py` (repo root, no extra deps).
-  - `rust` (working dir `web/`): toolchain from `rust-toolchain.toml`; cache; `cargo fmt --check`; `cargo clippy --all-targets -- -D warnings`; `cargo test`; `cargo audit`.
-  - `frontend` (matrix `public`, `admin`): setup-node `24`, npm cache; `npm ci`; `npm run lint`; `npm run check`; `npm run test:build`; `npm audit --omit=dev --audit-level=high`.
+  - `python`: setup-python `3.12.10`; `pip install -r requirements-dev.txt -e "engine[dev]"` *(as built: `pip install -r requirements-dev.txt -c engine/constraints.txt -e "engine[dev]"`, so CI installs the locked versions the Docker image gets)*; `pytest engine/tests deploy/tests tools/tests -q`; `pip-audit` on the installed engine deps *(as built: `python -m pip_audit -r engine/constraints.txt --no-deps --disable-pip --progress-spinner off`, i.e. the locked set rather than the runner's environment)*; legacy guard `python test_multiturn.py` (repo root, no extra deps).
+  - `rust` (working dir `web/`): toolchain from `rust-toolchain.toml`; cache; `cargo fmt --check`; `cargo clippy --all-targets -- -D warnings`; `cargo test`; `cargo audit` *(as built: clippy and test with `--locked`; cargo-audit 0.22.2 installed through a SHA-pinned `taiki-e/install-action`)*.
+  - `frontend` (matrix `public`, `admin`): setup-node `24` *(as built: `24.20.0`, matching `web/Dockerfile`)*, npm cache; `npm ci`; `npm run lint`; `npm run check`; `npm run test:build`; `npm audit --omit=dev --audit-level=high` *(as built: `npm audit --audit-level=high`, full tree, no `--omit=dev`; see Task 4 Step 5)*.
   - `stack` (needs the three above; ubuntu runner): `python deploy/make_env.py`; `docker compose build`; `docker compose up -d`; smoke (300 s); exposure check (`--expect-open 80 --expect-closed 5432,8000,8080`); `itest`; on failure `docker compose logs`; always `docker compose down -v`.
 - Dependabot: weekly for `cargo` (`/web`), `pip` (`/engine`), `npm` (`/frontend/public`, `/frontend/admin`), `docker` (`/web`, `/engine`), `github-actions` (`/`).
 - Third-party actions pinned to a full commit SHA with the version in a comment.

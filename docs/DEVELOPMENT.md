@@ -28,10 +28,12 @@ Set up once (the M0 plan calls this "Task 0"):
 
   ```powershell
   python -m venv .venv
-  .\.venv\Scripts\python -m pip install -e ".\engine[dev]"
+  .\.venv\Scripts\python -m pip install -r requirements-dev.txt -c engine\constraints.txt -e ".\engine[dev]"
   ```
 
-  All new Python tooling and tests run in `.venv`, never in the global Python.
+  The `-c engine\constraints.txt` part pins every package to the versions in the lock file, so your
+  `.venv` matches what CI and the Docker image install (see "Python constraints"). All new Python
+  tooling and tests run in `.venv`, never in the global Python.
 - **Node 24** (`>=24 <25`) for the two frontends. Run host-side npm with `--cache G:/gsn-cache/npm`
   (drive `C:` is small).
 - **Rust 1.99.1** is pinned in `web/rust-toolchain.toml`, but there is no C++ build toolchain on this
@@ -162,8 +164,9 @@ volume. All data in the database is lost.
 | Suite | Command |
 |---|---|
 | Python: deploy scripts, compose rules, engine, worker, tools | `.\.venv\Scripts\python -m pytest deploy/tests engine/tests tools/tests -q` |
-| Rust (inside Docker) | `python tools/cargo_docker.py test` |
-| Rust lint (inside Docker) | `python tools/cargo_docker.py clippy --all-targets -- -D warnings` |
+| Rust (inside Docker) | `python tools/cargo_docker.py test --locked` |
+| Rust format check (inside Docker) | `python tools/cargo_docker.py fmt --check` |
+| Rust lint (inside Docker) | `python tools/cargo_docker.py clippy --all-targets --locked -- -D warnings` |
 | Stack integration tests (running stack) | `docker compose -f compose.yaml -f compose.test.yaml run --rm itest` |
 | Routing regression (legacy code; no database or LLM; global Python) | `$env:PYTHONIOENCODING = "utf-8"; python test_multiturn.py` |
 
@@ -175,8 +178,42 @@ npm ci --cache G:/gsn-cache/npm
 npm run check
 npm run lint
 npm run test:build
+npm audit --audit-level=high
 cd ..\..
 ```
+
+### Dependency audits (CI runs these too)
+
+Each one needs internet access, because it asks a public database of known vulnerabilities. A new
+advisory can make a check fail without any change in this repository.
+
+| Audit | Command |
+|---|---|
+| Python (the locked set in `engine/constraints.txt`) | `.\.venv\Scripts\python -m pip_audit -r engine/constraints.txt --no-deps --disable-pip --progress-spinner off` |
+| Frontend, in each of `frontend\public` and `frontend\admin` | `npm audit --audit-level=high` |
+| Rust (`web/Cargo.lock`) | `cargo audit` in CI; see below for running it by hand |
+
+Notes:
+
+- **Python:** the audit reads the lock file, not the packages installed in `.venv`, so it does not
+  report the `pip` that ships with Python.
+- **npm:** audit the full tree, without `--omit=dev`. Every package in both apps is listed as a
+  development dependency (the build tools), yet the Svelte and SvelteKit code they contain ends up in
+  the JavaScript that browsers download, so leaving development packages out would audit nothing. The
+  expected result is `found 0 vulnerabilities`. The `--audit-level=high` part only makes the command
+  fail (exit code 1) for high or critical findings; lower ones are still printed.
+- **Rust:** `cargo-audit` is not installed in the Rust image behind `tools/cargo_docker.py`, so
+  `python tools/cargo_docker.py audit` does not work (cargo answers "no such command: `audit`"). CI
+  installs `cargo-audit` 0.22.2 and runs `cargo audit`. To run the same check by hand, build the tool
+  inside a throw-away container (several minutes, because it compiles `cargo-audit`; `web\` is
+  mounted read-only and nothing is kept afterwards):
+
+  ```powershell
+  docker run --rm --mount "type=bind,src=$PWD\web,dst=/work/web,readonly" -w /work/web rust:1.99.1-bookworm sh -c "cargo install cargo-audit --version 0.22.2 --locked && cargo audit"
+  ```
+
+  The image tag follows `channel` in `web/rust-toolchain.toml`. A clean run ends with a line such as
+  `Scanning Cargo.lock for vulnerabilities (199 crate dependencies)` and no warnings or errors.
 
 `deploy/tests/test_compose_exposure.py` reads `compose.yaml`, `compose.test.yaml` and the Dockerfiles
 and fails if a new port is published, a service other than the five plus the one-shot `migrate` job
@@ -248,8 +285,12 @@ harmless in the Linux image. (`.venv-constraints` and `constraints.raw` are in `
 
 - **`required variable ... is missing a value: run python deploy/make_env.py first`** - there is no
   `.env`; run `python deploy/make_env.py`.
-- **The database role or password seems wrong after editing `.env`** - the roles are created only on
-  an empty volume; run `docker compose down -v` and start again.
+- **`password authentication failed for user "gsn_..."` in the logs of `migrate`, `web` or `worker`
+  (or the database role or password seems wrong after editing `.env`)** - the database roles are
+  created, with the passwords from `.env`, only when the `pgdata` volume is empty. If `.env` was
+  recreated or edited while the volume survived (for example after `docker compose down` without
+  `-v`), the database still holds the old passwords and rejects the new ones. Run
+  `docker compose down -v` (this deletes the local database) and start again.
 - **`migrate` fails with "migration 1 was previously applied but has been modified"** - your local
   database was created from an older version of `0001_audit_log.sql`. Reset it with
   `docker compose down -v` (this deletes the local database) and start again.
