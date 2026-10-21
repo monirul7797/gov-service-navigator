@@ -154,14 +154,19 @@ git push origin codex/tracker-g0-p02b
 
 - **Architecture spec:** `docs/superpowers/specs/2026-10-20-system-architecture-design.md`
   (draft for owner review). Phase 1 milestones M0–M7; each milestone gets its own plan.
-- **M0 (foundations) status, 2026-10-22:** implemented on branch `feat/m0-foundations` (repo
+- **M0 (foundations) DONE, 2026-10-22:** merged to `master` (merge commit `2815adf`). Repo
   hygiene, `gsn` Python package, Rust `web`, SvelteKit public/admin apps, Compose stack with
-  `migrate` and `itest`, append-only `audit_log`, CI and Dependabot, `docs/DEVELOPMENT.md`). All
-  local gates are green: 181 Python tests, Rust fmt/clippy/26 tests/`cargo audit`, both frontends
-  (lint, check, build, tests, `npm audit`), stack smoke + exposure check + 32 integration tests, and
-  the legacy `test_multiturn.py`. **CI has not run yet:** the branch is not pushed (the push needs
-  the owner's OK) and the workflow is checked only by `actionlint` and by re-running each job's
-  commands locally. Merging to `master` is a separate owner decision.
+  `migrate` and `itest`, append-only `audit_log`, CI and Dependabot, `docs/DEVELOPMENT.md`. Gates:
+  181 Python tests, Rust fmt/clippy/26 tests/`cargo audit`, both frontends (lint, check, build,
+  tests, full-tree `npm audit`), stack smoke + exposure check + 32 integration tests, legacy
+  `test_multiturn.py`; first GitHub CI run green (run 39668870062 on `d797683`, all 5 jobs).
+  Follow-ups by milestone are in the M0 ledger (`.superpowers/sdd/2026-10-20-m0-foundations/`,
+  local): first M1 task = Dependabot tuning (pip/docker ignore rules, docker-compose ecosystem,
+  push trigger on `master` only) before its first update PRs break the CI install.
+- **Off-topic reply guardrail (2026-10-21):** owner decided model-written off-topic replies stay
+  (no fixed template), with a prompt rule (name the responsible office, never describe another
+  service's procedures/fees/documents) and a `declined` scorer check: suite 40/40, declined 9/9,
+  held-out 7/7.
 
 ### Information needed from the owner
 
