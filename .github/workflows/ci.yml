@@ -9,17 +9,21 @@
 #   * Python, Rust, Node and tool versions are pinned exactly, like everywhere else in the project.
 name: CI
 
+# Pushes are built only on master; every other branch is built through its pull request, so a
+# branch with an open pull request is not tested twice (once for the push, once for the pull request).
 on:
   push:
+    branches: [master]
   pull_request:
 
 permissions:
   contents: read
 
-# A newer push to the same branch (or pull request) cancels the run that is still going.
+# A newer push to the same branch (or pull request) cancels the run that is still going, except on
+# master, where every run is kept to completion.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
@@ -43,10 +47,11 @@ jobs:
             engine/pyproject.toml
             engine/constraints.txt
 
-      # engine/constraints.txt pins the whole dependency tree, so CI installs exactly the versions
-      # the Docker image gets. requirements-dev.txt (pytest, pyyaml) agrees with those pins.
+      # requirements-dev.txt holds no pins of its own: it installs the engine with its [dev] extra
+      # under engine/constraints.txt, which pins the whole dependency tree, so CI installs exactly
+      # the versions the Docker image gets.
       - name: Install dependencies (locked)
-        run: python -m pip install -r requirements-dev.txt -c engine/constraints.txt -e "engine[dev]"
+        run: python -m pip install -r requirements-dev.txt
 
       - name: Tests (engine, deploy scripts and compose rules, tools)
         run: python -m pytest engine/tests deploy/tests tools/tests -q

@@ -28,12 +28,13 @@ Set up once (the M0 plan calls this "Task 0"):
 
   ```powershell
   python -m venv .venv
-  .\.venv\Scripts\python -m pip install -r requirements-dev.txt -c engine\constraints.txt -e ".\engine[dev]"
+  .\.venv\Scripts\python -m pip install -r requirements-dev.txt
   ```
 
-  The `-c engine\constraints.txt` part pins every package to the versions in the lock file, so your
-  `.venv` matches what CI and the Docker image install (see "Python constraints"). All new Python
-  tooling and tests run in `.venv`, never in the global Python.
+  Run it from the repository root. `requirements-dev.txt` contains no pins of its own: it installs
+  the engine with its `[dev]` extra (pytest, pyyaml, ...) and pins every package to the versions in
+  `engine/constraints.txt`, so your `.venv` matches what CI and the Docker image install (see
+  "Python constraints"). All new Python tooling and tests run in `.venv`, never in the global Python.
 - **Node 24** (`>=24 <25`) for the two frontends. Run host-side npm with `--cache G:/gsn-cache/npm`
   (drive `C:` is small).
 - **Rust 1.99.1** is pinned in `web/rust-toolchain.toml`, but there is no C++ build toolchain on this
@@ -280,6 +281,27 @@ Then run `.\.venv\Scripts\python -m pytest engine/tests/test_constraints.py -q` 
 `git diff engine/constraints.txt`. The entries `colorama` and `tzdata` only matter on Windows and are
 harmless in the Linux image. (`.venv-constraints` and `constraints.raw` are in `.gitignore` and
 `.dockerignore` in case a step is interrupted.)
+
+## Dependency updates (Dependabot)
+
+Once a week GitHub's Dependabot (configured in `.github/dependabot.yml`) looks for newer versions of
+the libraries and base images this project uses and opens a pull request for each; the small
+(minor and patch) updates of one app or of the engine arrive together as one grouped pull request,
+while major updates come one at a time. These are ordinary pull requests: nothing merges by itself,
+and one is merged only after CI is green and you have approved it. Some updates are ignored on
+purpose, because the toolchains are pinned deliberately and a robot bumping them would either break
+CI or quietly change what runs on the server: new Python minor/major versions (we stay on 3.12;
+patch releases such as 3.12.11 are still proposed), new Node majors (we run 24), any `rust` image
+update, Postgres (pgvector) and Caddy majors (a Postgres major needs a dump and restore of the
+data), and `@types/node` majors (they must match the Node major we actually run). A deliberate
+toolchain upgrade is done by you, by hand, as one pull request that changes every place together:
+the toolchain file (`web/rust-toolchain.toml`, `requires-python` in `engine/pyproject.toml`, or
+`engines.node` in both `package.json` files), the image tags in `engine/Dockerfile`,
+`web/Dockerfile` and `compose.yaml`, the versions in `.github/workflows/ci.yml`, the tests that
+tie them together, and `engine/constraints.txt` regenerated (see "Python constraints"). The
+same regeneration is needed after you accept a Dependabot pull request for a Python package:
+Dependabot edits only `engine/pyproject.toml`, so check out that branch, regenerate
+`engine/constraints.txt`, and push it to the pull request before merging.
 
 ## Troubleshooting
 

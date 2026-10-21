@@ -1,9 +1,26 @@
 # Dependabot version updates (weekly). Each update arrives as a pull request that must pass CI
-# (.github/workflows/ci.yml) before it is merged; nothing is merged automatically.
+# (.github/workflows/ci.yml) before it is merged; nothing is merged automatically, and the owner
+# approves every one.
+#
+# What is deliberately NOT updated here (see "Dependency updates (Dependabot)" in docs/DEVELOPMENT.md):
+#   * the toolchains - Python 3.12, Node 24, Rust 1.99.1 - and Postgres majors. These are pinned
+#     on purpose (python/node image tags, engines.node, requires-python, web/rust-toolchain.toml)
+#     and are upgraded by hand, in one pull request that changes every place together;
+#   * @types/node major versions: they must follow the Node major we actually run (24).
+# That is what the `ignore:` blocks below say. Patch releases of the same toolchain (for example
+# Python 3.12.11) are still proposed.
+#
+# `groups:` makes Dependabot send all minor + patch updates of one app as a single pull request
+# instead of one per package. Major updates are never grouped: each gets its own pull request so
+# it gets individual attention.
 #
 # Note for Python: the engine's exact pins live in engine/pyproject.toml AND engine/constraints.txt
-# (whole dependency tree). After accepting a pyproject.toml bump, regenerate constraints.txt as
-# described in docs/DEVELOPMENT.md ("Python constraints"); CI's test_constraints.py checks they agree.
+# (whole dependency tree). Dependabot edits only pyproject.toml, so after accepting a pip pull
+# request, constraints.txt must be regenerated as described in docs/DEVELOPMENT.md ("Python
+# constraints") and committed to that pull request's branch. Until then the Python job in CI fails:
+# pip cannot satisfy pyproject.toml and constraints.txt together, and test_constraints.py checks that
+# they agree. requirements-dev.txt no longer pins anything itself (it points at the engine's
+# [dev] extra and the constraints file), so there is nothing else to change.
 version: 2
 updates:
   - package-ecosystem: cargo
@@ -15,26 +32,84 @@ updates:
     directory: /engine
     schedule:
       interval: weekly
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: npm
     directory: /frontend/public
     schedule:
       interval: weekly
+    ignore:
+      # Types for the Node API; the major version must match the Node major we run (24).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: npm
     directory: /frontend/admin
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
 
+  # web/Dockerfile: the node build images, the rust build image and the distroless runtime image.
+  # The distroless image is pinned by digest and is not mentioned below, so its updates stay allowed.
   - package-ecosystem: docker
     directory: /web
     schedule:
       interval: weekly
+    ignore:
+      # Node 24 is the version we run and test; a new major is a deliberate upgrade.
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+      # Rust is upgraded by hand: web/rust-toolchain.toml + web/Dockerfile + the test that ties the
+      # image tag to the toolchain file, all in one pull request. So no rust image updates at all.
+      - dependency-name: "rust"
 
+  # engine/Dockerfile: the python base image.
   - package-ecosystem: docker
     directory: /engine
     schedule:
       interval: weekly
+    ignore:
+      # Python stays on 3.12 (requires-python is ==3.12.*). Patch updates such as 3.12.11 are allowed.
+      - dependency-name: "python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+
+  # compose.yaml: the images pulled from a registry (pgvector/pgvector, caddy).
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      # The Postgres major (pg17 in the tag) needs a dump and restore of the data, so it is a
+      # deliberate upgrade; Dependabot normally keeps the same tag shape and should not propose a
+      # new Postgres major anyway. This also stops a major release of pgvector itself.
+      - dependency-name: "pgvector/pgvector"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "caddy"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

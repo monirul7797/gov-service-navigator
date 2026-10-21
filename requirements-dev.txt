@@ -1,2 +1,7 @@
-pytest==9.1.1
-pyyaml==6.0.3
+# Developer / CI install for the Python side: the locked engine environment.
+#   python -m pip install -r requirements-dev.txt        (run from the repository root)
+# Nothing is pinned here on purpose. pytest, pyyaml and everything else are pinned once, in
+# engine/pyproject.toml (direct dependencies) and engine/constraints.txt (whole tree, see
+# docs/DEVELOPMENT.md "Python constraints"). The path in -e is relative to the folder you run pip from.
+-c engine/constraints.txt
+-e ./engine[dev]
