@@ -1,9 +1,11 @@
 # The web build context is the repository root, so everything not listed here is sent to the Docker daemon.
-# Secrets
+# Secrets (the root-only patterns plus "**/" forms for nested copies)
 .env
 .env.*
 **/.env
+**/.env.*
 setenv*.bat
+**/setenv*.bat
 
 # VCS, tooling, editor state
 .git

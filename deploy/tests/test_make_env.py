@@ -82,3 +82,55 @@ def test_cli_writes_target_and_never_prints_secrets(tmp_path, capsys):
     # second run must refuse and keep the secret
     assert main(["--example", str(example), "--target", str(target)]) == 1
     assert target.read_text().strip().split("=", 1)[1] == secret
+
+
+def test_bom_in_example_is_stripped(tmp_path):
+    example = tmp_path / ".env.example"
+    target = tmp_path / ".env"
+    example.write_bytes(b"\xef\xbb\xbfGSN_VERSION=dev\nA=change-me-a\n")
+    make_env(example, target, token=lambda: "tok")
+    assert target.read_bytes() == b"GSN_VERSION=dev\nA=tok\n"
+
+
+def test_bom_before_a_placeholder_first_line_is_still_replaced(tmp_path):
+    example = tmp_path / ".env.example"
+    target = tmp_path / ".env"
+    example.write_bytes(b"\xef\xbb\xbfA=change-me-a\n")
+    make_env(example, target, token=lambda: "tok")
+    assert target.read_bytes() == b"A=tok\n"
+
+
+def test_quoted_placeholders_are_replaced_and_written_unquoted(tmp_path):
+    example = tmp_path / ".env.example"
+    target = tmp_path / ".env"
+    _write(example, 'A="change-me-a"\nB=\'change-me-b\'\nC=" change-me-c "\nKEEP="plain value"\n')
+    make_env(example, target, token=iter(["tok1", "tok2", "tok3"]).__next__)
+    assert target.read_text() == 'A=tok1\nB=tok2\nC=tok3\nKEEP="plain value"\n'
+
+
+def test_refuses_and_creates_no_file_if_a_placeholder_would_survive(tmp_path):
+    example = tmp_path / ".env.example"
+    target = tmp_path / ".env"
+    # "change-me" inside a URL is not at the start of the value, so it is not replaced
+    _write(example, "A=change-me-a\nURL=postgres://user:change-me-b@db/app\n")
+    with pytest.raises(ValueError, match="line"):
+        make_env(example, target, token=lambda: "tok")
+    assert not target.exists()
+
+
+def test_refuses_for_placeholder_text_without_a_key(tmp_path):
+    example = tmp_path / ".env.example"
+    target = tmp_path / ".env"
+    _write(example, "A=ok\nchange-me\n")
+    with pytest.raises(ValueError):
+        make_env(example, target, token=lambda: "tok")
+    assert not target.exists()
+
+
+def test_cli_reports_surviving_placeholder_without_creating_file(tmp_path, capsys):
+    example = tmp_path / ".env.example"
+    target = tmp_path / ".env"
+    _write(example, "URL=x://change-me@host\n")
+    assert main(["--example", str(example), "--target", str(target)]) == 1
+    assert not target.exists()
+    assert "placeholder" in capsys.readouterr().err

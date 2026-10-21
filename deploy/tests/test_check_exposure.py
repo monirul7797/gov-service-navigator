@@ -20,7 +20,7 @@ def _free_port():
 def _listener():
     s = socket.socket()
     s.bind(("127.0.0.1", 0))
-    s.listen(1)
+    s.listen(8)
     return s, s.getsockname()[1]
 
 

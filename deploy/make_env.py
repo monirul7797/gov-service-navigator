@@ -3,7 +3,17 @@
 Every value that starts with ``change-me`` is replaced by a fresh random token; comments,
 blank lines and all other values are copied unchanged. The output always uses LF line
 endings and is created with owner-only permissions where the OS supports them. An existing
-``.env`` is never overwritten. Secret values are never printed.
+``.env`` is never overwritten, and nothing is written if a ``change-me`` placeholder would
+survive. Secret values are never printed.
+
+Details:
+* The example is read as ``utf-8-sig``, so a byte-order mark added by a Windows editor is dropped.
+* A placeholder may be quoted (``A="change-me-a"`` or ``A='change-me-a'``). The replacement is
+  written UNQUOTED, which is safe because the default tokens are URL-safe
+  (``[A-Za-z0-9_-]``) and compose reads the bare value as-is.
+* A ``change-me`` that is not at the start of a value (for example inside a URL) is not replaced;
+  because that would leave a known placeholder in the secrets file, ``make_env`` raises
+  ``ValueError`` instead of writing.
 
 Usage (from anywhere)::
 
@@ -22,6 +32,14 @@ PLACEHOLDER_PREFIX = "change-me"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+def _is_placeholder(value: str) -> bool:
+    """True for ``change-me*``, optionally wrapped in one pair of matching quotes."""
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        value = value[1:-1].strip()
+    return value.startswith(PLACEHOLDER_PREFIX)
+
+
 def make_env(
     example: Path,
     target: Path,
@@ -29,7 +47,8 @@ def make_env(
 ) -> None:
     """Write ``target`` from ``example``, replacing each ``change-me*`` value with ``token()``.
 
-    Raises ``FileExistsError`` (leaving ``target`` untouched) if ``target`` already exists.
+    Raises ``FileExistsError`` (leaving ``target`` untouched) if ``target`` already exists, and
+    ``ValueError`` (creating no file) if a non-comment line would still contain ``change-me``.
     ``secrets.token_urlsafe(24)`` yields 32 characters from ``[A-Za-z0-9_-]``, so the values are
     safe in a URL, a shell word and a compose ``.env`` file without quoting.
     """
@@ -39,13 +58,24 @@ def make_env(
         raise FileExistsError(f"{target} already exists; refusing to overwrite it")
 
     out_lines: list[str] = []
-    for line in example.read_text(encoding="utf-8").splitlines():
+    for line in example.read_text(encoding="utf-8-sig").splitlines():
         stripped = line.strip()
         if stripped and not stripped.startswith("#") and "=" in line:
             key, _, value = line.partition("=")
-            if value.strip().startswith(PLACEHOLDER_PREFIX):
+            if _is_placeholder(value):
                 line = f"{key}={token()}"
         out_lines.append(line)
+
+    leftovers = [
+        number
+        for number, line in enumerate(out_lines, start=1)
+        if line.strip() and not line.lstrip().startswith("#") and PLACEHOLDER_PREFIX in line
+    ]
+    if leftovers:
+        raise ValueError(
+            f"{example} line(s) {leftovers} would still contain a {PLACEHOLDER_PREFIX!r} placeholder "
+            "after replacement; refusing to write the env file"
+        )
     content = "\n".join(out_lines) + "\n"
 
     # O_EXCL makes "create only if absent" atomic; 0o600 keeps the secrets owner-only on POSIX
@@ -62,10 +92,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         make_env(args.example, args.target)
-    except FileExistsError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
-    except FileNotFoundError as exc:
+    except (FileExistsError, FileNotFoundError, ValueError) as exc:
+        # messages name paths and line numbers only, never secret values
         print(f"error: {exc}", file=sys.stderr)
         return 1
     print(f"wrote {args.target} (secrets generated, not shown)")
