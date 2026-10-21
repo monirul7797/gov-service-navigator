@@ -1,9 +1,10 @@
 """Static checks on ``compose.yaml`` and the Dockerfiles (no Docker needed).
 
 They guard the review-focus items for the container stack: nothing but Caddy and the admin
-listener is published, the long-running service set is fixed, every image pulled from a registry
-and every Dockerfile ``FROM`` is pinned to an exact version, secrets are never written into the
-compose file, and each service only receives its own database password.
+listener is published, the long-running service set is fixed (plus the one-shot ``migrate`` job),
+every image pulled from a registry and every Dockerfile ``FROM`` is pinned to an exact version,
+secrets are never written into the compose file, and each service only receives its own database
+password. ``compose.test.yaml`` (the ``itest`` job) gets its own checks at the end.
 """
 import re
 from pathlib import Path
@@ -13,10 +14,13 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "compose.yaml"
+COMPOSE_TEST = ROOT / "compose.test.yaml"
 DOCKERFILES = [ROOT / "web" / "Dockerfile", ROOT / "engine" / "Dockerfile"]
 
 ALLOWED_PORTS = {"caddy": ["80:80"], "web": ["${GSN_ADMIN_PUBLISH:-127.0.0.1:8081}:8081"]}
-EXPECTED_SERVICES = {"caddy", "web", "engine", "worker", "postgres"}
+LONG_RUNNING_SERVICES = {"caddy", "web", "engine", "worker", "postgres"}
+ONE_SHOT_SERVICES = {"migrate"}  # run to completion and exit (restart "no")
+EXPECTED_SERVICES = LONG_RUNNING_SERVICES | ONE_SHOT_SERVICES
 
 # Which database password variable each service may receive (spec section 6.1). The engine has no
 # database access in M0, so it gets none. Postgres receives all of them to create the roles.
@@ -28,6 +32,7 @@ DB_PASSWORD_VARS = {
 }
 ALLOWED_DB_PASSWORDS = {
     "caddy": set(),
+    "migrate": {"GSN_DB_MIGRATE_PASSWORD"},
     "web": {"GSN_DB_WEB_PASSWORD"},
     "engine": set(),
     "worker": {"GSN_DB_WORKER_PASSWORD"},
@@ -39,6 +44,10 @@ EXACT_VERSION = re.compile(r"\d+\.\d+\.\d+")
 
 def _compose():
     return yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
+
+
+def _compose_test():
+    return yaml.safe_load(COMPOSE_TEST.read_text(encoding="utf-8"))
 
 
 def _services():
@@ -116,8 +125,26 @@ def test_web_admin_listener_is_reachable_through_the_published_port():
 # --- service set -----------------------------------------------------------------------------
 
 
-def test_long_running_services_are_exactly_five():
-    assert set(_services()) == EXPECTED_SERVICES
+def test_long_running_services_are_exactly_five_plus_the_one_shot_migrate_job():
+    services = _services()
+    assert set(services) == EXPECTED_SERVICES
+    long_running = {name for name, svc in services.items() if svc.get("restart") != "no"}
+    assert long_running == LONG_RUNNING_SERVICES
+    for name in LONG_RUNNING_SERVICES:
+        assert services[name]["restart"] == "unless-stopped", name
+
+
+def test_migrate_is_a_one_shot_job_on_the_web_image():
+    migrate = _services()["migrate"]
+    assert migrate["restart"] == "no"  # it must exit and stay stopped, never be restarted
+    assert not migrate.get("ports")
+    assert migrate["image"] == "gsn-web:dev"
+    assert "build" not in migrate  # reuses the image the web service builds
+    assert migrate["command"] == ["migrate"]
+    env = _env(migrate)
+    assert env["GSN_DB_USER"] == "gsn_migrate"
+    assert env["GSN_DB_PASSWORD"].startswith("${GSN_DB_MIGRATE_PASSWORD")
+    assert migrate["depends_on"] == {"postgres": {"condition": "service_healthy"}}
 
 
 def test_web_and_engine_and_postgres_have_healthchecks_with_the_documented_settings():
@@ -135,11 +162,16 @@ def test_dependencies_wait_for_healthy_services():
     services = _services()
     # web must NOT wait for a healthy engine: a slow or failing model load (M2) would otherwise keep
     # web and caddy from starting at all, where the aim is a degraded site (/readyz 503, engine "fail").
+    # It does wait for the database and for the migrations to have been applied.
     assert services["web"]["depends_on"] == {
         "postgres": {"condition": "service_healthy"},
+        "migrate": {"condition": "service_completed_successfully"},
         "engine": {"condition": "service_started"},
     }
-    assert services["worker"]["depends_on"]["postgres"]["condition"] == "service_healthy"
+    assert services["worker"]["depends_on"] == {
+        "postgres": {"condition": "service_healthy"},
+        "migrate": {"condition": "service_completed_successfully"},
+    }
     assert services["caddy"]["depends_on"]["web"]["condition"] == "service_healthy"
 
 
@@ -234,6 +266,7 @@ def test_every_secret_value_comes_from_the_environment_file():
 
 def test_services_use_their_own_database_roles():
     services = _services()
+    assert _env(services["migrate"])["GSN_DB_USER"] == "gsn_migrate"
     assert _env(services["web"])["GSN_DB_USER"] == "gsn_web"
     assert _env(services["worker"])["GSN_DB_USER"] == "gsn_worker"
     assert "GSN_DB_USER" not in _env(services["engine"])
@@ -305,6 +338,18 @@ def _web_waits_for_healthy_engine(services):
     services["web"]["depends_on"]["engine"]["condition"] = "service_healthy"
 
 
+def _web_skips_migrate(services):
+    del services["web"]["depends_on"]["migrate"]
+
+
+def _migrate_restarts(services):
+    services["migrate"]["restart"] = "unless-stopped"
+
+
+def _publish_migrate(services):
+    services["migrate"]["ports"] = ["8082:8082"]
+
+
 def _publish_postgres(services):
     services["postgres"]["ports"] = ["5432:5432"]
 
@@ -319,13 +364,53 @@ def _publish_admin_on_all_interfaces(services):
         (test_no_service_loads_an_env_file, _add_env_file),
         (test_superuser_password_reaches_only_the_postgres_service, _leak_superuser_password),
         (test_dependencies_wait_for_healthy_services, _web_waits_for_healthy_engine),
+        (test_dependencies_wait_for_healthy_services, _web_skips_migrate),
+        (test_long_running_services_are_exactly_five_plus_the_one_shot_migrate_job, _migrate_restarts),
+        (test_only_caddy_and_admin_listener_are_published, _publish_migrate),
         (test_only_caddy_and_admin_listener_are_published, _publish_postgres),
         (test_only_caddy_and_admin_listener_are_published, _publish_admin_on_all_interfaces),
     ],
-    ids=["env_file", "superuser_password", "web_waits_for_engine", "postgres_port", "admin_on_all_interfaces"],
+    ids=[
+        "env_file",
+        "superuser_password",
+        "web_waits_for_engine",
+        "web_skips_migrate",
+        "migrate_restarts",
+        "migrate_port",
+        "postgres_port",
+        "admin_on_all_interfaces",
+    ],
 )
 def test_guard_fails_on_a_violating_compose_file(tmp_path, monkeypatch, guard, mutate):
     guard()  # passes on the real file
     _mutated_compose(tmp_path, monkeypatch, mutate)
     with pytest.raises(AssertionError):
         guard()
+
+
+# --- compose.test.yaml: the one-shot integration-test job ------------------------------------
+
+
+def test_compose_test_file_adds_only_the_itest_job():
+    services = _compose_test()["services"]
+    assert set(services) == {"itest"}
+    itest = services["itest"]
+    assert not itest.get("ports")
+    assert "env_file" not in itest
+    assert itest["restart"] == "no"
+    assert itest["build"] == {"context": "./engine", "target": "test"}
+    # The tests are mounted read-only, never copied into an image.
+    assert itest["volumes"] == ["./tests/integration:/itests:ro"]
+    assert itest["command"][:4] == ["python", "-m", "pytest", "/itests"]
+    assert itest["depends_on"]["web"]["condition"] == "service_healthy"
+    assert _env(itest)["GSN_DB_HOST"] == "postgres"
+
+
+def test_itest_secrets_come_from_the_environment_file():
+    # itest checks what each role may do, so it receives all four role passwords (and no others).
+    env = _env(_compose_test()["services"]["itest"])
+    passwords = {key: value for key, value in env.items() if "PASSWORD" in key}
+    assert set(passwords) == DB_PASSWORD_VARS
+    for key, value in passwords.items():
+        assert re.fullmatch(r"\$\{" + key + r":\?[^}]*\}", value), key
+    assert "POSTGRES_PASSWORD" not in yaml.safe_dump(_compose_test())

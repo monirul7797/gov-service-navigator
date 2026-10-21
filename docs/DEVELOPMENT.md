@@ -3,7 +3,8 @@
 How to run the Government Service Navigator stack on your own machine (Windows) and how to run
 each test suite. The stack is five containers: `caddy` (front door), `web` (Rust: public site, admin
 panel, API edge), `engine` (Python: the answer service), `worker` (Python: background jobs) and
-`postgres` (PostgreSQL 17 with pgvector).
+`postgres` (PostgreSQL 17 with pgvector). A sixth container, `migrate`, is a one-shot job: it applies
+the database migrations and exits (see "Database migrations").
 
 **Shell: every command below is for Windows PowerShell (5.1)**, run from the repository root unless a
 step says otherwise. Paths use backslashes where PowerShell needs them.
@@ -90,6 +91,7 @@ A probe from the server itself says nothing about what others can reach.
 
 ```powershell
 docker compose ps                    # state and health of the five services
+docker compose ps -a                 # also shows the one-shot migrate job ("Exited (0)" is correct)
 docker compose logs -f web           # follow one service (also: engine, worker, postgres, caddy)
 docker compose logs --tail 50        # recent lines of everything
 docker compose restart worker        # restart one service
@@ -116,6 +118,27 @@ docker compose exec postgres bash -c 'PGPASSWORD=$GSN_DB_WEB_PASSWORD psql -h po
 A connection to `127.0.0.1` from inside the PostgreSQL container is trusted without a password by the
 image, so it proves nothing about passwords.
 
+### Database migrations
+
+The database schema lives in numbered SQL files in `db/migrations/` (`0001_audit_log.sql`, ...). The
+one-shot `migrate` service runs `gsn-web migrate` as the schema-owner role `gsn_migrate`; it applies
+every file that has not been applied yet, records it in the `_sqlx_migrations` table and exits.
+`web` and `worker` start only after `migrate` has finished successfully, so a failing migration stops
+the stack from coming up instead of leaving it half-updated. Running `migrate` again is harmless.
+
+The migration files are compiled into the `gsn-web` binary (`sqlx::migrate!`), so after adding or
+editing one, rebuild the image before starting the stack:
+
+```powershell
+docker compose build web
+docker compose up -d
+docker compose logs migrate          # "migrations applied"
+```
+
+Never edit a migration that has already been applied anywhere (the recorded checksum would no longer
+match and `migrate` refuses to run); add a new numbered file instead. The `audit_log` table is
+append-only: UPDATE, DELETE and TRUNCATE are rejected by triggers for every role, including its owner.
+
 ### Full reset, including the database
 
 ```powershell
@@ -138,6 +161,7 @@ volume. All data in the database is lost.
 | Python: deploy scripts, compose rules, engine, worker, tools | `.\.venv\Scripts\python -m pytest deploy/tests engine/tests tools/tests -q` |
 | Rust (inside Docker) | `python tools/cargo_docker.py test` |
 | Rust lint (inside Docker) | `python tools/cargo_docker.py clippy --all-targets -- -D warnings` |
+| Stack integration tests (running stack) | `docker compose -f compose.yaml -f compose.test.yaml run --rm itest` |
 | Routing regression (legacy code; no database or LLM; global Python) | `$env:PYTHONIOENCODING = "utf-8"; python test_multiturn.py` |
 
 Frontend, once per app (`frontend\public` and `frontend\admin`); `npm ci` always comes first:
@@ -151,11 +175,36 @@ npm run test:build
 cd ..\..
 ```
 
-`deploy/tests/test_compose_exposure.py` reads `compose.yaml` and the Dockerfiles and fails if a new
-port is published, a sixth service appears, an image is not pinned to an exact version, a service
-loads an `env_file`, or a service receives another service's database password (or the superuser
-password). It also checks that `web` waits for a healthy database but only for the engine to have
-started, so a slow engine leaves the site up and degraded instead of down.
+`deploy/tests/test_compose_exposure.py` reads `compose.yaml`, `compose.test.yaml` and the Dockerfiles
+and fails if a new port is published, a service other than the five plus the one-shot `migrate` job
+appears, `migrate` gets a restart policy or a port, an image is not pinned to an exact version, a
+service loads an `env_file`, or a service receives another service's database password (or the
+superuser password). It also checks that `web` waits for a healthy database and the finished
+migrations but only for the engine to have started, so a slow engine leaves the site up and degraded
+instead of down.
+
+### Integration tests (the running stack)
+
+`tests/integration/` holds tests that talk to the real containers. They run inside the stack's
+network as the one-shot `itest` job (`compose.test.yaml`), which uses the `test` image of the engine
+(pytest and psycopg installed) and mounts the test files read-only:
+
+```powershell
+docker compose up -d
+python deploy/smoke.py --url http://localhost/readyz --timeout 300
+docker compose -f compose.yaml -f compose.test.yaml run --rm itest
+```
+
+They check that each of the four database roles can log in and has exactly the rights it should
+(`gsn_web` reads and appends `audit_log`, `gsn_worker` only appends, `gsn_engine` has no access, no
+role except the owner can create tables), that `audit_log` rejects UPDATE, DELETE and TRUNCATE even
+for its owner, and that the stack answers correctly over HTTP (health and readiness, no admin routes
+on the public side, security headers through Caddy). The build of the `itest` image is slow the first
+time and quick afterwards.
+
+`itest` receives all four role passwords, and every run adds a few rows to `audit_log` (rows can
+never be deleted). Run it only against this local development stack; `docker compose down -v`
+resets the database. Never run it against a server that holds real data.
 
 ## Python constraints (`engine/constraints.txt`)
 

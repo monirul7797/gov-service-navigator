@@ -45,6 +45,26 @@ services:
       retries: 20
       start_period: 20s
 
+  # One-shot job: applies db/migrations/ (compiled into the gsn-web binary) as the schema owner and
+  # exits. web and worker wait for it to finish successfully; it never restarts. Apart from postgres
+  # (which creates the roles) it is the only service that receives gsn_migrate's password.
+  migrate:
+    image: gsn-web:dev  # built by the web service below
+    pull_policy: never
+    restart: "no"
+    logging: *default-logging
+    command: ["migrate"]
+    environment:
+      GSN_VERSION: ${GSN_VERSION:-dev}
+      GSN_DB_HOST: postgres
+      GSN_DB_PORT: "5432"
+      GSN_DB_NAME: gsn
+      GSN_DB_USER: gsn_migrate
+      GSN_DB_PASSWORD: ${GSN_DB_MIGRATE_PASSWORD:?run python deploy/make_env.py first}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   engine:
     build:
       context: ./engine
@@ -86,6 +106,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   web:
     build:
@@ -116,12 +138,14 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    # web waits for the database but only for the engine to have STARTED, not to be healthy: a slow or
-    # failing model load in the engine (M2) must leave the site up and degraded (/readyz answers 503
-    # with engine "fail"), not keep web and caddy from starting at all.
+    # web waits for the database and for the migrations, but only for the engine to have STARTED, not
+    # to be healthy: a slow or failing model load in the engine (M2) must leave the site up and
+    # degraded (/readyz answers 503 with engine "fail"), not keep web and caddy from starting at all.
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       engine:
         condition: service_started
 

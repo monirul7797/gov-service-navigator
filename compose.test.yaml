@@ -1,0 +1,37 @@
+# Stack-level integration tests, run as a one-shot job next to the normal stack:
+#
+#   docker compose -f compose.yaml -f compose.test.yaml run --rm itest
+#
+# `itest` joins the same compose network as the services (same project name), so it reaches them by
+# service name: caddy:80, web:8080, engine:8000 and postgres:5432. It uses the `test` target of the
+# engine Dockerfile (pytest, httpx2 and psycopg installed); the tests themselves are mounted
+# read-only from ./tests/integration, so they are never baked into an image.
+#
+# It receives the four database role passwords because it checks what each role may and may not do.
+# These are throw-away local secrets; never run this against a server that holds real data.
+
+services:
+  itest:
+    build:
+      context: ./engine
+      target: test
+    image: gsn-engine-test:dev
+    restart: "no"
+    # -p no:cacheprovider: /itests is read-only, so pytest cannot keep its .pytest_cache there.
+    command: ["python", "-m", "pytest", "/itests", "-q", "-p", "no:cacheprovider"]
+    volumes:
+      - ./tests/integration:/itests:ro
+    environment:
+      GSN_DB_HOST: postgres
+      GSN_DB_PORT: "5432"
+      GSN_DB_NAME: gsn
+      GSN_DB_MIGRATE_PASSWORD: ${GSN_DB_MIGRATE_PASSWORD:?run python deploy/make_env.py first}
+      GSN_DB_WEB_PASSWORD: ${GSN_DB_WEB_PASSWORD:?run python deploy/make_env.py first}
+      GSN_DB_ENGINE_PASSWORD: ${GSN_DB_ENGINE_PASSWORD:?run python deploy/make_env.py first}
+      GSN_DB_WORKER_PASSWORD: ${GSN_DB_WORKER_PASSWORD:?run python deploy/make_env.py first}
+    depends_on:
+      web:
+        condition: service_healthy
+      # Some tests go through Caddy; `run` only starts the dependencies listed here.
+      caddy:
+        condition: service_started
