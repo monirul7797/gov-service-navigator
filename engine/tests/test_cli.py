@@ -1,5 +1,11 @@
 import json
 import logging
+import os
+import socket
+import subprocess
+import sys
+import time
+import urllib.request
 
 import psycopg
 import pytest
@@ -94,3 +100,66 @@ def test_sigterm_exit_is_not_reported_as_a_crash(monkeypatch, capsys):
         cli.main(["worker"])
     assert exc.value.code == 0
     assert capsys.readouterr().out.strip() == ""
+
+
+def test_engine_subcommand_logs_json_and_runs_uvicorn_without_its_own_log_config(monkeypatch, capsys):
+    import uvicorn
+
+    seen = {}
+
+    def fake_run(app, **kwargs):
+        seen["app"] = app
+        seen.update(kwargs)
+        # what uvicorn itself logs while serving must come out as JSON through our root handler
+        logging.getLogger("uvicorn.error").info("Uvicorn running on http://%s:%d", kwargs["host"], kwargs["port"])
+
+    monkeypatch.setattr(uvicorn, "run", fake_run)
+
+    assert cli.main(["engine", "--host", "0.0.0.0", "--port", "8123"]) == 0
+    assert seen["host"] == "0.0.0.0" and seen["port"] == 8123
+    assert seen["log_config"] is None  # uvicorn's default config would print plain-text lines
+    assert seen["access_log"] is False  # request lines carry query strings; /healthz would be noise
+    assert seen["app"].title == "GSN engine"
+    rec = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert rec["service"] == "engine" and rec["msg"] == "Uvicorn running on http://0.0.0.0:8123"
+
+
+def test_engine_subcommand_defaults_to_loopback(monkeypatch):
+    import uvicorn
+
+    seen = {}
+    monkeypatch.setattr(uvicorn, "run", lambda app, **kwargs: seen.update(kwargs))
+    assert cli.main(["engine"]) == 0
+    assert seen["host"] == "127.0.0.1" and seen["port"] == 8000
+
+
+def test_engine_process_prints_only_json_lines_and_serves_healthz():
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    env = {**os.environ, "GSN_VERSION": "itest", "PYTHONIOENCODING": "utf-8"}
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "gsn.cli", "engine", "--port", str(port)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env=env,
+    )
+    body = None
+    try:
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline and body is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/healthz", timeout=2) as response:
+                    body = json.loads(response.read())
+            except OSError:
+                time.sleep(0.2)
+    finally:
+        proc.terminate()
+        output, _ = proc.communicate(timeout=30)
+    assert body == {"status": "ok", "service": "engine", "version": "itest"}
+    lines = [ln for ln in output.decode("utf-8").splitlines() if ln.strip()]
+    records = [json.loads(ln) for ln in lines]  # raises on any plain-text line
+    assert records and all(rec["service"] == "engine" for rec in records)
+    assert any("Uvicorn running on" in rec["msg"] for rec in records)
+    assert "" not in output.decode("utf-8")
+    assert not any("GET /healthz" in rec["msg"] for rec in records)

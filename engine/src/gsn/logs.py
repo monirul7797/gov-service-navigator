@@ -15,6 +15,9 @@ _STANDARD_ATTRS = frozenset(
     logging.LogRecord("", logging.INFO, "", 0, "", (), None).__dict__
 ) | {"message", "asctime"}
 _CORE_KEYS = ("ts", "level", "service", "msg")
+# Terminal decoration that libraries attach to records: uvicorn passes an ANSI-coloured copy of its
+# messages as ``extra={"color_message": ...}``. It would only add escape codes to the JSON line.
+_DECORATION_KEYS = frozenset({"color_message"})
 
 
 class JsonFormatter(logging.Formatter):
@@ -30,7 +33,7 @@ class JsonFormatter(logging.Formatter):
             "msg": record.getMessage(),
         }
         for key, value in record.__dict__.items():
-            if key in _STANDARD_ATTRS or key.startswith("_"):
+            if key in _STANDARD_ATTRS or key in _DECORATION_KEYS or key.startswith("_"):
                 continue
             # An extra field must not overwrite a core field; keep it under a prefixed name instead.
             payload[f"extra_{key}" if key in _CORE_KEYS else key] = value

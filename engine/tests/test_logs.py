@@ -66,3 +66,16 @@ def test_unserialisable_extra_does_not_crash(capsys):
     configure("engine")
     logging.getLogger("x").info("m", extra={"obj": object()})
     assert _last_record(capsys)["msg"] == "m"
+
+
+def test_uvicorn_color_message_extra_is_not_logged(capsys):
+    # uvicorn passes an ANSI-coloured copy of its message as extra={"color_message": ...}; it is
+    # terminal decoration and must not leak into the JSON line.
+    configure("engine")
+    logging.getLogger("uvicorn.error").info(
+        "Started server process [%d]", 7, extra={"color_message": "Started server process [\x1b[36m%d\x1b[0m]"}
+    )
+    rec = _last_record(capsys)
+    assert rec["msg"] == "Started server process [7]"
+    assert "color_message" not in rec
+    assert rec["service"] == "engine"
