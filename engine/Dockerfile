@@ -4,7 +4,7 @@
 #                                             integration tests are mounted at run time)
 # Every dependency version comes from constraints.txt, so rebuilds are reproducible.
 
-FROM python:3.12.10-slim-bookworm AS base
+FROM python:3.12.14-slim-bookworm AS base
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
