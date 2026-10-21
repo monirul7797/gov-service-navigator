@@ -37,6 +37,8 @@ CREATE TRIGGER audit_log_no_truncate
     FOR EACH STATEMENT EXECUTE FUNCTION audit_log_reject_change();
 
 REVOKE ALL ON audit_log FROM PUBLIC;
-GRANT SELECT, INSERT ON audit_log TO gsn_web;
-GRANT INSERT ON audit_log TO gsn_worker;
+-- INSERT is granted per column, and not on id or at: callers cannot choose an id (not even with
+-- OVERRIDING SYSTEM VALUE) or backdate a row; both always come from their defaults.
+GRANT SELECT ON audit_log TO gsn_web;
+GRANT INSERT (actor, action, target, details) ON audit_log TO gsn_web, gsn_worker;
 GRANT USAGE ON SEQUENCE audit_log_id_seq TO gsn_web, gsn_worker;

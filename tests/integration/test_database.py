@@ -72,6 +72,33 @@ def test_web_cannot_update_or_delete_audit_log(connect):
         assert cur.fetchall() == [("itest.immutable",)]
 
 
+@pytest.mark.parametrize("role", ["web", "worker"])
+def test_callers_cannot_backdate_a_row_or_choose_its_id(connect, role):
+    # INSERT is granted on (actor, action, target, details) only, so `at` and `id` always come from
+    # their defaults (now() and the identity sequence).
+    with connect(role).cursor() as cur:
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            cur.execute(
+                "INSERT INTO audit_log (at, actor, action) VALUES (%s, %s, %s)",
+                ("2001-01-01T00:00:00Z", _actor(), "itest.backdated"),
+            )
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            cur.execute(
+                "INSERT INTO audit_log (id, actor, action) OVERRIDING SYSTEM VALUE VALUES (%s, %s, %s)",
+                (1, _actor(), "itest.chosen_id"),
+            )
+        # Without OVERRIDING SYSTEM VALUE a GENERATED ALWAYS column refuses an explicit id anyway.
+        with pytest.raises(psycopg.errors.GeneratedAlways):
+            cur.execute("INSERT INTO audit_log (id, actor, action) VALUES (%s, %s, %s)", (1, _actor(), "itest.id"))
+        # A normal insert still works, and the row got an id and a timestamp from the defaults.
+        actor = _actor()
+        cur.execute("INSERT INTO audit_log (actor, action) VALUES (%s, %s)", (actor, "itest.normal"))
+    with connect("web").cursor() as cur:
+        cur.execute("SELECT id, at > now() - interval '1 minute' FROM audit_log WHERE actor = %s", (actor,))
+        (row_id, recent), = cur.fetchall()
+        assert row_id > 0 and recent
+
+
 def test_engine_cannot_touch_audit_log(connect):
     with connect("engine").cursor() as cur:
         with pytest.raises(psycopg.errors.InsufficientPrivilege):
@@ -86,11 +113,11 @@ def test_owner_update_delete_truncate_blocked(connect):
     actor = _actor()
     with connect("migrate").cursor() as cur:
         cur.execute("INSERT INTO audit_log (actor, action) VALUES (%s, %s)", (actor, "itest.owner"))
-        with pytest.raises(psycopg.Error, match=APPEND_ONLY):
+        with pytest.raises(psycopg.errors.RaiseException, match=APPEND_ONLY):
             cur.execute("UPDATE audit_log SET action = 'tampered' WHERE actor = %s", (actor,))
-        with pytest.raises(psycopg.Error, match=APPEND_ONLY):
+        with pytest.raises(psycopg.errors.RaiseException, match=APPEND_ONLY):
             cur.execute("DELETE FROM audit_log WHERE actor = %s", (actor,))
-        with pytest.raises(psycopg.Error, match=APPEND_ONLY):
+        with pytest.raises(psycopg.errors.RaiseException, match=APPEND_ONLY):
             cur.execute("TRUNCATE audit_log")
         cur.execute("SELECT action FROM audit_log WHERE actor = %s", (actor,))
         assert cur.fetchall() == [("itest.owner",)]

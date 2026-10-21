@@ -136,7 +136,10 @@ docker compose logs migrate          # "migrations applied"
 ```
 
 Never edit a migration that has already been applied anywhere (the recorded checksum would no longer
-match and `migrate` refuses to run); add a new numbered file instead. The `audit_log` table is
+match and `migrate` refuses to run); add a new numbered file instead. (`0001_audit_log.sql` was edited
+once in place, before it existed anywhere but on local development stacks; if `migrate` says that
+migration 1 was "previously applied but has been modified", reset your local database with
+`docker compose down -v`.) The `audit_log` table is
 append-only: UPDATE, DELETE and TRUNCATE are rejected by triggers for every role, including its owner.
 
 ### Full reset, including the database
@@ -197,10 +200,20 @@ docker compose -f compose.yaml -f compose.test.yaml run --rm itest
 
 They check that each of the four database roles can log in and has exactly the rights it should
 (`gsn_web` reads and appends `audit_log`, `gsn_worker` only appends, `gsn_engine` has no access, no
-role except the owner can create tables), that `audit_log` rejects UPDATE, DELETE and TRUNCATE even
-for its owner, and that the stack answers correctly over HTTP (health and readiness, no admin routes
-on the public side, security headers through Caddy). The build of the `itest` image is slow the first
-time and quick afterwards.
+role except the owner can create tables; `tests/integration/test_grants.py` compares the complete
+privilege matrix read from the database catalog), that callers can insert only `actor`, `action`,
+`target` and `details` (they cannot backdate `at` or choose `id`), that `audit_log` rejects UPDATE,
+DELETE and TRUNCATE even for its owner, and that the stack answers correctly over HTTP (health and
+readiness, no admin routes on the public side, security headers through Caddy). The build of the
+`itest` image is slow the first time and quick afterwards.
+
+`itest` belongs to the compose profile `test`, so a plain `docker compose up` never starts it;
+`run itest` enables the profile by itself. The job waits for `web` and `engine` to be healthy
+(`run` starts and waits for them). If a test cannot log in to the database, the output says
+`cannot connect as gsn_<role>` without the password: the tests convert connection errors, and the
+job runs with `--tb=short`, because pytest's long traceback would otherwise print psycopg's
+connection string including the password. `tests/integration/test_connection_errors.py` proves this
+with a random canary value.
 
 `itest` receives all four role passwords, and every run adds a few rows to `audit_log` (rows can
 never be deleted). Run it only against this local development stack; `docker compose down -v`
@@ -237,6 +250,9 @@ harmless in the Linux image. (`.venv-constraints` and `constraints.raw` are in `
   `.env`; run `python deploy/make_env.py`.
 - **The database role or password seems wrong after editing `.env`** - the roles are created only on
   an empty volume; run `docker compose down -v` and start again.
+- **`migrate` fails with "migration 1 was previously applied but has been modified"** - your local
+  database was created from an older version of `0001_audit_log.sql`. Reset it with
+  `docker compose down -v` (this deletes the local database) and start again.
 - **Port 80 is already in use** - another program holds it (IIS, Skype, another web server). Stop
   that program; the compose file deliberately does not move Caddy to another port.
 - **`docker` errors such as "read-only file system" or "input/output error"** - Docker's virtual disk

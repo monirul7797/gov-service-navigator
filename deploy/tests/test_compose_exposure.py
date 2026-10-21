@@ -402,7 +402,17 @@ def test_compose_test_file_adds_only_the_itest_job():
     # The tests are mounted read-only, never copied into an image.
     assert itest["volumes"] == ["./tests/integration:/itests:ro"]
     assert itest["command"][:4] == ["python", "-m", "pytest", "/itests"]
-    assert itest["depends_on"]["web"]["condition"] == "service_healthy"
+    # pytest's long traceback prints function arguments, which for a failed database login includes
+    # the connection string with the password: short tracebacks are required.
+    assert "--tb=short" in itest["command"]
+    # A plain `docker compose up` must never start the job (it only runs on request, via its profile).
+    assert itest["profiles"] == ["test"]
+    # `run` starts and waits for exactly these dependencies; the tests also go through Caddy.
+    assert itest["depends_on"] == {
+        "web": {"condition": "service_healthy"},
+        "engine": {"condition": "service_healthy"},
+        "caddy": {"condition": "service_started"},
+    }
     assert _env(itest)["GSN_DB_HOST"] == "postgres"
 
 

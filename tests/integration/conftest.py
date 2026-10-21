@@ -18,6 +18,9 @@ ROLES = ("migrate", "web", "engine", "worker")
 def connect():
     """``connect(role)`` opens an autocommit connection as ``gsn_<role>``; all are closed afterwards.
 
+    A failed connection raises ``ConnectionError`` with no password in the message or traceback
+    (see ``test_connection_errors.py``).
+
     Autocommit means a statement that PostgreSQL refuses does not leave the session in an aborted
     transaction, so one test can try several forbidden statements on one connection.
     """
@@ -27,15 +30,22 @@ def connect():
         assert role in ROLES, role
         password = os.environ.get(f"GSN_DB_{role.upper()}_PASSWORD")
         assert password, f"GSN_DB_{role.upper()}_PASSWORD is not set"
-        connection = psycopg.connect(
-            host=os.environ.get("GSN_DB_HOST") or "postgres",
-            port=int(os.environ.get("GSN_DB_PORT") or "5432"),
-            dbname=os.environ.get("GSN_DB_NAME") or "gsn",
-            user=f"gsn_{role}",
-            password=password,
-            connect_timeout=10,
-            autocommit=True,
-        )
+        try:
+            connection = psycopg.connect(
+                host=os.environ.get("GSN_DB_HOST") or "postgres",
+                port=int(os.environ.get("GSN_DB_PORT") or "5432"),
+                dbname=os.environ.get("GSN_DB_NAME") or "gsn",
+                user=f"gsn_{role}",
+                password=password,
+                connect_timeout=10,
+                autocommit=True,
+            )
+        except psycopg.Error as exc:
+            # Never let the original exception reach pytest: its traceback shows psycopg's own
+            # `Connection.connect` frame, whose `conninfo` argument contains `password=<the real
+            # password>` and would be printed in the test log. psycopg's message itself has no
+            # password. `from None` also drops the chained exception (and its traceback).
+            raise ConnectionError(f"cannot connect as gsn_{role}: {exc}") from None
         opened.append(connection)
         return connection
 
