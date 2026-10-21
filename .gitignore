@@ -10,3 +10,14 @@ freshness/backup_v1/
 setenv_*.bat
 conv_*.jsonl
 heldout_*.jsonl
+
+# --- M0 foundations: secrets, virtualenv and build output ---
+.env
+.env.*
+!.env.example
+.venv/
+.pytest_cache/
+target/
+node_modules/
+.svelte-kit/
+frontend/*/build/

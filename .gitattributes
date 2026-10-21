@@ -1,0 +1,10 @@
+# Normalise text line endings in the repository (index is always LF).
+* text=auto
+
+# Files that run inside Linux containers must be checked out with LF on every OS.
+# A CRLF in db/init/10-roles.sh makes PostgreSQL initialisation fail.
+*.sh text eol=lf
+*.sql text eol=lf
+Dockerfile text eol=lf
+Caddyfile text eol=lf
+.env.example text eol=lf
