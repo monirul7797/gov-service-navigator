@@ -1,6 +1,7 @@
 import json
 import logging
 
+import psycopg
 import pytest
 
 import gsn.cli as cli
@@ -59,3 +60,37 @@ def test_subcommand_is_required():
     with pytest.raises(SystemExit) as exc:
         cli.main([])
     assert exc.value.code == 2
+
+
+def test_crash_after_ready_is_logged_as_one_json_line_and_exits_1(monkeypatch, capsys):
+    _env(monkeypatch, GSN_DB_USER="gsn_worker", GSN_DB_PASSWORD="top-secret-value")
+
+    def crashing_run_worker(connect):
+        raise psycopg.OperationalError("connection lost")
+
+    monkeypatch.setattr(cli, "run_worker", crashing_run_worker)
+    monkeypatch.setattr(cli.signal, "signal", lambda *_a: None)
+
+    assert cli.main(["worker"]) == 1
+    out = capsys.readouterr().out
+    lines = [ln for ln in out.splitlines() if ln.strip()]
+    assert len(lines) == 1
+    rec = json.loads(lines[0])
+    assert rec["level"] == "ERROR" and rec["service"] == "worker" and rec["msg"] == "worker stopped"
+    assert "OperationalError: connection lost" in rec["exc"]
+    assert "top-secret-value" not in out
+
+
+def test_sigterm_exit_is_not_reported_as_a_crash(monkeypatch, capsys):
+    _env(monkeypatch, GSN_DB_USER="gsn_worker", GSN_DB_PASSWORD="p")
+
+    def stopped_run_worker(connect):
+        raise SystemExit(0)
+
+    monkeypatch.setattr(cli, "run_worker", stopped_run_worker)
+    monkeypatch.setattr(cli.signal, "signal", lambda *_a: None)
+
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["worker"])
+    assert exc.value.code == 0
+    assert capsys.readouterr().out.strip() == ""

@@ -29,3 +29,5 @@ freshness_v21_final_review*
 **/build
 **/__pycache__
 **/*.pyc
+**/*.egg-info
+**/.pytest_cache

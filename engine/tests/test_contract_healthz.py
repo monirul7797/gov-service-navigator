@@ -2,12 +2,13 @@
 import json
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from gsn.engine.app import create_app
 
 CONTRACT = json.loads(
-    (Path(__file__).resolve().parents[2] / "contracts/healthz/response.example.json").read_text()
+    (Path(__file__).resolve().parents[2] / "contracts/healthz/response.example.json").read_text(encoding="utf-8")
 )
 
 
@@ -31,3 +32,8 @@ def test_module_level_app_defaults_to_dev_version(monkeypatch):
 
     mod = importlib.reload(mod)
     assert TestClient(mod.app).get("/healthz").json()["version"] == "dev"
+
+
+@pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
+def test_docs_and_schema_endpoints_are_disabled(path):
+    assert TestClient(create_app("abc123")).get(path).status_code == 404

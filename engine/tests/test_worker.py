@@ -75,4 +75,7 @@ def test_logs_ready_and_numbered_heartbeats(caplog):
 def test_connection_failures_are_logged(caplog):
     caplog.set_level(logging.INFO)
     run_worker(_connector(1, FakeConn()), sleep=lambda _s: None, max_beats=1)
-    assert any(r.levelno == logging.WARNING for r in caplog.records)
+    retries = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(retries) == 1
+    assert retries[0].retry_in_seconds == 1.0
+    assert "db not ready" in retries[0].error

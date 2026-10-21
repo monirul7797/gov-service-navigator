@@ -46,6 +46,8 @@ DOCKERIGNORE_REQUIRED = [
     "**/.svelte-kit",
     "**/build",
     "**/__pycache__",
+    "**/*.egg-info",
+    "**/.pytest_cache",
 ]
 GITIGNORE_REQUIRED = [
     "setenv.bat",  # existing rule kept
@@ -55,6 +57,7 @@ GITIGNORE_REQUIRED = [
     ".svelte-kit/",
     "frontend/*/build/",
     ".venv/",
+    "*.egg-info/",
 ]
 GITATTRIBUTES_REQUIRED = [
     "* text=auto",

@@ -38,9 +38,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
         signal.signal(signal.SIGTERM, _exit_on_sigterm)
         # autocommit: the heartbeat must not leave a transaction open between beats.
-        run_worker(
-            lambda: psycopg.connect(**kwargs, autocommit=True, connect_timeout=CONNECT_TIMEOUT_SECONDS)
-        )
+        try:
+            run_worker(
+                lambda: psycopg.connect(**kwargs, autocommit=True, connect_timeout=CONNECT_TIMEOUT_SECONDS)
+            )
+        except Exception:
+            # One JSON line (with an "exc" field) instead of a raw traceback; non-zero so Docker restarts us.
+            logging.getLogger("gsn.cli").exception("worker stopped")
+            return 1
     return 0
 
 

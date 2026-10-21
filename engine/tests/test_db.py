@@ -1,4 +1,5 @@
 import pytest
+from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from gsn.db import connect_kwargs
 
@@ -60,3 +61,13 @@ def test_error_message_does_not_leak_other_secret():
     with pytest.raises(ValueError) as exc:
         connect_kwargs({"GSN_DB_PASSWORD": "super-secret"})
     assert "super-secret" not in str(exc.value)
+
+
+def test_password_survives_a_libpq_conninfo_round_trip():
+    # Offline: build the conninfo string libpq would parse, then parse it back.
+    password = "p@ss/w:rd#%?'\\ ="  # contains @ / : # % ? ' backslash, space and =
+    kwargs = connect_kwargs({"GSN_DB_USER": "u", "GSN_DB_PASSWORD": password})
+    parsed = conninfo_to_dict(make_conninfo(**kwargs))
+    assert parsed["password"] == password
+    assert parsed["user"] == "u" and parsed["host"] == "postgres" and parsed["dbname"] == "gsn"
+    assert int(parsed["port"]) == 5432

@@ -9,7 +9,8 @@ SERVICE_NAME = "engine"
 
 
 def create_app(version: str) -> FastAPI:
-    app = FastAPI(title="GSN engine", version=version)
+    # Internal service behind the web service: no interactive docs or OpenAPI schema endpoints.
+    app = FastAPI(title="GSN engine", version=version, docs_url=None, redoc_url=None, openapi_url=None)
 
     # async on purpose: the health check must not wait for a free worker thread.
     @app.get("/healthz")
