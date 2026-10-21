@@ -161,5 +161,5 @@ def test_engine_process_prints_only_json_lines_and_serves_healthz():
     records = [json.loads(ln) for ln in lines]  # raises on any plain-text line
     assert records and all(rec["service"] == "engine" for rec in records)
     assert any("Uvicorn running on" in rec["msg"] for rec in records)
-    assert "" not in output.decode("utf-8")
+    assert "\x1b" not in output.decode("utf-8")
     assert not any("GET /healthz" in rec["msg"] for rec in records)

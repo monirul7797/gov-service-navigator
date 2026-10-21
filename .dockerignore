@@ -10,6 +10,8 @@ setenv*.bat
 # VCS, tooling, editor state
 .git
 .venv
+.venv-constraints
+constraints.raw
 .superpowers
 .claude
 .pytest_cache

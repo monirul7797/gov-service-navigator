@@ -10,11 +10,19 @@ import smoke  # deploy/ is on sys.path via conftest.py
 @pytest.fixture
 def server():
     """Serve /ready: 503 for the first ``fail_first`` requests, then 200 with a JSON body."""
-    state = {"calls": 0, "fail_first": 2}
+    state = {"calls": 0, "fail_first": 2, "truncate_first": 0}
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
             state["calls"] += 1
+            if state["calls"] <= state["truncate_first"]:
+                # promise 100 bytes, send 5 and hang up: the client sees http.client.IncompleteRead
+                self.send_response(200)
+                self.send_header("Content-Length", "100")
+                self.end_headers()
+                self.wfile.write(b"short")
+                self.close_connection = True
+                return
             ok = self.path == "/ready" and state["calls"] > state["fail_first"]
             body = b'{"status":"ok"}' if ok else b'{"status":"degraded"}'
             self.send_response(200 if ok else 503)
@@ -69,3 +77,39 @@ def test_wait_for_ok_uses_the_injected_clock():
     )
     assert result is None
     assert calls == [1]
+
+
+def test_a_truncated_response_is_retried_not_raised(server, capsys):
+    # http.client.IncompleteRead is an HTTPException, not an OSError; a stack that is still starting
+    # can drop a connection mid-answer and smoke.py must keep polling.
+    server["truncate_first"] = 2
+    server["fail_first"] = 2
+    assert smoke.main(["--url", server["url"], "--timeout", "30", "--interval", "0.05"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out.strip() == '{"status":"ok"}'
+    assert "no answer" in captured.err
+
+
+def test_fetch_reports_a_malformed_status_line_as_no_answer():
+    # BadStatusLine is also an http.client.HTTPException
+    import socket
+    import threading
+
+    listener = socket.socket()
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(1)
+
+    def serve_garbage():
+        conn, _ = listener.accept()
+        conn.recv(4096)
+        conn.sendall(b"this is not http\r\n\r\n")
+        conn.close()
+
+    thread = threading.Thread(target=serve_garbage, daemon=True)
+    thread.start()
+    try:
+        status, detail = smoke.fetch(f"http://127.0.0.1:{listener.getsockname()[1]}/x", 5)
+    finally:
+        listener.close()
+        thread.join(timeout=5)
+    assert status is None and detail

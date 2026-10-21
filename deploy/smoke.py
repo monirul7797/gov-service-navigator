@@ -9,6 +9,7 @@ a 200 (body on stdout), 1 = timed out (last problem on stderr). Progress goes to
 from __future__ import annotations
 
 import argparse
+import http.client
 import sys
 import time
 import urllib.error
@@ -23,8 +24,11 @@ def fetch(url: str, timeout: float) -> tuple[int | None, str]:
             return response.status, response.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:  # a non-2xx answer is still an answer
         return exc.code, exc.read().decode("utf-8", errors="replace")
-    except OSError as exc:  # URLError, ConnectionError, socket.timeout
-        return None, str(getattr(exc, "reason", exc))
+    except (OSError, http.client.HTTPException) as exc:
+        # OSError: URLError, ConnectionError, socket.timeout. HTTPException: a connection dropped
+        # mid-answer (IncompleteRead) or a garbled status line (BadStatusLine), which a stack that is
+        # still starting can produce. Both mean "not ready yet", so keep polling.
+        return None, str(getattr(exc, "reason", None) or exc) or type(exc).__name__
 
 
 def wait_for_ok(

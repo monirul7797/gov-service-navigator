@@ -5,25 +5,41 @@ each test suite. The stack is five containers: `caddy` (front door), `web` (Rust
 panel, API edge), `engine` (Python: the answer service), `worker` (Python: background jobs) and
 `postgres` (PostgreSQL 17 with pgvector).
 
+**Shell: every command below is for Windows PowerShell (5.1)**, run from the repository root unless a
+step says otherwise. Paths use backslashes where PowerShell needs them.
+
 ## Prerequisites
 
 Set up once (the M0 plan calls this "Task 0"):
 
-- **Docker Desktop** with Compose v2. On this machine it lives in `G:\Docker`; if `docker` is not
-  found in a shell, add `G:\Docker\DockerDesktop\resources\bin` to `PATH`.
-- **Python 3.12.10** and the project virtual environment `.venv` at the repository root
-  (`python -m venv .venv`, then `.venv\Scripts\python -m pip install -e "./engine[dev]"`). All new
-  Python tooling and tests run in `.venv`, never in the global Python.
-- **Node 24** (`>=24 <25`) for the two frontends. The disk holding `C:` is small, so run host-side npm
-  with `--cache G:/gsn-cache/npm`.
+- **Docker Desktop** with Docker Compose v5 (the `docker compose` command). On this machine it lives
+  in `G:\Docker`. If `docker` is not found in a shell, add its folder to `PATH` for the current
+  PowerShell session:
+
+  ```powershell
+  $env:Path = "G:\Docker\DockerDesktop\resources\bin;" + $env:Path
+  docker --version
+  ```
+
+  (This lasts until you close the window; the folder also holds `docker-credential-desktop`, which
+  image pulls need.)
+- **Python 3.12.10** and the project virtual environment `.venv` at the repository root:
+
+  ```powershell
+  python -m venv .venv
+  .\.venv\Scripts\python -m pip install -e ".\engine[dev]"
+  ```
+
+  All new Python tooling and tests run in `.venv`, never in the global Python.
+- **Node 24** (`>=24 <25`) for the two frontends. Run host-side npm with `--cache G:/gsn-cache/npm`
+  (drive `C:` is small).
 - **Rust 1.99.1** is pinned in `web/rust-toolchain.toml`, but there is no C++ build toolchain on this
   machine, so Rust is compiled and tested only inside Docker (`python tools/cargo_docker.py ...`).
+- **At least 10 GB free** on the drive that holds Docker's disk image (`G:` here). See Troubleshooting.
 
 ## First run
 
-From the repository root:
-
-```
+```powershell
 python deploy/make_env.py          # creates .env with random secrets (never commit it, never paste it)
 docker compose build               # first build takes several minutes (Rust + two frontends)
 docker compose up -d
@@ -31,7 +47,7 @@ python deploy/smoke.py --url http://localhost/readyz --timeout 300
 ```
 
 The smoke script polls until the stack answers; success prints
-`{"status":"ok","checks":{"database":"ok","engine":"ok"}}`.
+`{"checks":{"database":"ok","engine":"ok"},"status":"ok"}`.
 
 If `make_env.py` says `.env` already exists it leaves it alone: it never overwrites your secrets.
 
@@ -43,18 +59,36 @@ If `make_env.py` says `.env` already exists it leaves it alone: it never overwri
 | Public site health / readiness | <http://localhost/healthz>, <http://localhost/readyz> |
 | Admin panel | <http://127.0.0.1:8081> (this machine only) |
 
-Only Caddy listens on all network interfaces (port 80). The admin panel is published on
-`127.0.0.1:8081` only; on a server it is reached over Tailscale by setting `GSN_ADMIN_PUBLISH` in
-`.env` to the server's Tailscale address. PostgreSQL, the engine and the web service's public port
-are not published at all. To prove it from another machine:
+Only Caddy listens on all network interfaces (port 80). PostgreSQL, the engine and the web service's
+public port are not published at all.
+
+### The admin port and `GSN_ADMIN_PUBLISH`
+
+The admin panel is published on the address given by `GSN_ADMIN_PUBLISH` in `.env`
+(`127.0.0.1:8081` by default, i.e. only this machine). On a server it should be reached over
+Tailscale, so set it to the server's Tailscale address **including the port**:
 
 ```
-python deploy/check_exposure.py --host <ip-of-this-machine> --expect-open 80 --expect-closed 5432,8000,8080
+GSN_ADMIN_PUBLISH=100.101.102.103:8081
 ```
+
+> **Warning:** a value without an address, such as `GSN_ADMIN_PUBLISH=8081`, publishes the admin
+> panel on **all** network interfaces, including the public internet. Always write `<ip>:8081`.
+
+To prove from another machine what is reachable, run (replace `<public-ip>` with the address the
+internet uses to reach the server; for a home test, this machine's LAN address):
+
+```powershell
+python deploy/check_exposure.py --host <public-ip> --expect-open 80 --expect-closed 8081,5432,8000,8080
+```
+
+If the admin panel is published on a Tailscale address, also check it there, from a machine on the
+same Tailscale network: `python deploy/check_exposure.py --host <tailscale-ip> --expect-open 8081`.
+A probe from the server itself says nothing about what others can reach.
 
 ## Everyday commands
 
-```
+```powershell
 docker compose ps                    # state and health of the five services
 docker compose logs -f web           # follow one service (also: engine, worker, postgres, caddy)
 docker compose logs --tail 50        # recent lines of everything
@@ -67,19 +101,24 @@ prints `worker ready` once it has reached the database, then a `heartbeat` line 
 
 ### Looking inside the database
 
-```
+```powershell
 docker compose exec postgres psql -U postgres -d gsn
 ```
 
 This opens an administrator session without a password (the container is local). To test what an
-application role may do, connect over the container network so the password is enforced:
-`docker compose exec postgres bash -c 'PGPASSWORD="$GSN_DB_WEB_PASSWORD" psql -h postgres -U gsn_web -d gsn'`.
+application role may do, connect over the container network so the password is enforced (the single
+quotes keep PowerShell from touching `$GSN_DB_WEB_PASSWORD`; it is expanded inside the container):
+
+```powershell
+docker compose exec postgres bash -c 'PGPASSWORD=$GSN_DB_WEB_PASSWORD psql -h postgres -U gsn_web -d gsn'
+```
+
 A connection to `127.0.0.1` from inside the PostgreSQL container is trusted without a password by the
 image, so it proves nothing about passwords.
 
 ### Full reset, including the database
 
-```
+```powershell
 docker compose down -v
 ```
 
@@ -94,38 +133,54 @@ volume. All data in the database is lost.
 
 ## Running the tests
 
-Run these from the repository root.
-
 | Suite | Command |
 |---|---|
-| Python: deploy scripts, compose rules, engine, worker, tools | `.venv\Scripts\python -m pytest deploy/tests engine/tests tools/tests -q` |
+| Python: deploy scripts, compose rules, engine, worker, tools | `.\.venv\Scripts\python -m pytest deploy/tests engine/tests tools/tests -q` |
 | Rust (inside Docker) | `python tools/cargo_docker.py test` |
 | Rust lint (inside Docker) | `python tools/cargo_docker.py clippy --all-targets -- -D warnings` |
-| Frontend, per app (`frontend/public`, `frontend/admin`) | `npm run check`, `npm run lint`, `npm run test:build` (add `--cache G:/gsn-cache/npm` to `npm ci`) |
-| Routing regression (legacy code, no database or LLM) | `set PYTHONIOENCODING=utf-8` then `python test_multiturn.py` with the global Python |
+| Routing regression (legacy code; no database or LLM; global Python) | `$env:PYTHONIOENCODING = "utf-8"; python test_multiturn.py` |
+
+Frontend, once per app (`frontend\public` and `frontend\admin`); `npm ci` always comes first:
+
+```powershell
+cd frontend\public
+npm ci --cache G:/gsn-cache/npm
+npm run check
+npm run lint
+npm run test:build
+cd ..\..
+```
 
 `deploy/tests/test_compose_exposure.py` reads `compose.yaml` and the Dockerfiles and fails if a new
-port is published, a sixth service appears, an image is not pinned to an exact version, or a service
-receives another service's database password.
+port is published, a sixth service appears, an image is not pinned to an exact version, a service
+loads an `env_file`, or a service receives another service's database password (or the superuser
+password). It also checks that `web` waits for a healthy database but only for the engine to have
+started, so a slow engine leaves the site up and degraded instead of down.
 
 ## Python constraints (`engine/constraints.txt`)
 
 `engine/constraints.txt` pins every package in the engine's dependency tree (including the
 dependencies of dependencies), so the Docker image gets the same versions on every build. The
 engine image installs with `pip install -c constraints.txt`. After changing a dependency in
-`engine/pyproject.toml`, regenerate the file from a throw-away virtual environment so that only the
-engine's own tree is listed:
+`engine/pyproject.toml`, regenerate the file from a throw-away virtual environment, so that only the
+engine's own tree is listed. In PowerShell 5.1 do not write the file with `>`: that produces UTF-16.
+These commands keep the comment header, write plain ASCII and sort the pins the same way every time:
 
-```
+```powershell
 python -m venv .venv-constraints
-.venv-constraints\Scripts\python -m pip install -e "./engine[dev]"
-.venv-constraints\Scripts\python -m pip freeze --exclude-editable > constraints.raw
+.\.venv-constraints\Scripts\python -m pip install -e ".\engine[dev]"
+.\.venv-constraints\Scripts\python -m pip freeze --exclude-editable | Out-File -Encoding ascii constraints.raw
+$header = Get-Content engine\constraints.txt | Where-Object { $_.StartsWith("#") }
+$pins = [string[]](Get-Content constraints.raw)
+[Array]::Sort($pins, [System.StringComparer]::OrdinalIgnoreCase)
+Set-Content -Encoding ascii engine\constraints.txt ($header + $pins)
+Remove-Item -Recurse -Force .venv-constraints, constraints.raw
 ```
 
-Then replace the package lines of `engine/constraints.txt` with the contents of `constraints.raw`
-(sorted case-insensitively, keep the comment header), delete `.venv-constraints` and `constraints.raw`,
-and run `.venv\Scripts\python -m pytest engine/tests/test_constraints.py`. The entries `colorama` and
-`tzdata` only matter on Windows and are harmless in the Linux image.
+Then run `.\.venv\Scripts\python -m pytest engine/tests/test_constraints.py -q` and check
+`git diff engine/constraints.txt`. The entries `colorama` and `tzdata` only matter on Windows and are
+harmless in the Linux image. (`.venv-constraints` and `constraints.raw` are in `.gitignore` and
+`.dockerignore` in case a step is interrupted.)
 
 ## Troubleshooting
 
@@ -137,7 +192,7 @@ and run `.venv\Scripts\python -m pytest engine/tests/test_constraints.py`. The e
   that program; the compose file deliberately does not move Caddy to another port.
 - **`docker` errors such as "read-only file system" or "input/output error"** - Docker's virtual disk
   (`G:\Docker\wsl\disk\docker_data.vhdx`) cannot grow because the drive is full. Free space on the
-  drive, restart Docker Desktop, then run `docker builder prune -f` to drop the build cache. Keep at
-  least 5 GB free on that drive before a full `docker compose build`.
-- **Out of disk space during builds** - `docker builder prune -f` removes only the build cache
-  (images and volumes stay).
+  drive, restart Docker Desktop, then run `docker builder prune -f`.
+- **Disk space** - keep at least 10 GB free on the Docker drive; a clean `docker compose build` needs
+  several GB for the build cache. `docker builder prune -f` reclaims the build cache (images and
+  volumes stay); it is safe to run at any time, the next build is just slower.

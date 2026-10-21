@@ -116,11 +116,14 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    # web waits for the database but only for the engine to have STARTED, not to be healthy: a slow or
+    # failing model load in the engine (M2) must leave the site up and degraded (/readyz answers 503
+    # with engine "fail"), not keep web and caddy from starting at all.
     depends_on:
       postgres:
         condition: service_healthy
       engine:
-        condition: service_healthy
+        condition: service_started
 
   caddy:
     image: caddy:2.11.7

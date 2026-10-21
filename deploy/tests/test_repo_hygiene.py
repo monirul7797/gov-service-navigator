@@ -48,6 +48,8 @@ DOCKERIGNORE_REQUIRED = [
     "**/__pycache__",
     "**/*.egg-info",
     "**/.pytest_cache",
+    ".venv-constraints",  # throw-away venv of the constraints-regeneration recipe
+    "constraints.raw",
 ]
 GITIGNORE_REQUIRED = [
     "setenv.bat",  # existing rule kept
@@ -58,6 +60,8 @@ GITIGNORE_REQUIRED = [
     "frontend/*/build/",
     ".venv/",
     "*.egg-info/",
+    ".venv-constraints/",
+    "constraints.raw",
 ]
 GITATTRIBUTES_REQUIRED = [
     "* text=auto",

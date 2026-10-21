@@ -92,11 +92,18 @@ def test_only_caddy_and_admin_listener_are_published():
     assert published == ALLOWED_PORTS
 
 
-def test_no_service_uses_host_networking_or_expose_to_bypass_the_port_rule():
+def test_no_service_uses_host_networking_devices_or_privileged_mode():
     for name, svc in _services().items():
         assert svc.get("network_mode") != "host", name
         assert not svc.get("devices"), name
         assert not svc.get("privileged"), name
+
+
+def test_no_service_loads_an_env_file():
+    # env_file would hand every variable of a file (all five database passwords in .env) to a service
+    # and bypass the per-service password rule below; each secret must be listed explicitly.
+    for name, svc in _services().items():
+        assert "env_file" not in svc, name
 
 
 def test_web_admin_listener_is_reachable_through_the_published_port():
@@ -126,9 +133,12 @@ def test_web_and_engine_and_postgres_have_healthchecks_with_the_documented_setti
 
 def test_dependencies_wait_for_healthy_services():
     services = _services()
-    web_deps = services["web"]["depends_on"]
-    assert web_deps["postgres"]["condition"] == "service_healthy"
-    assert web_deps["engine"]["condition"] == "service_healthy"
+    # web must NOT wait for a healthy engine: a slow or failing model load (M2) would otherwise keep
+    # web and caddy from starting at all, where the aim is a degraded site (/readyz 503, engine "fail").
+    assert services["web"]["depends_on"] == {
+        "postgres": {"condition": "service_healthy"},
+        "engine": {"condition": "service_started"},
+    }
     assert services["worker"]["depends_on"]["postgres"]["condition"] == "service_healthy"
     assert services["caddy"]["depends_on"]["web"]["condition"] == "service_healthy"
 
@@ -209,6 +219,11 @@ def test_each_service_receives_only_its_own_database_password():
         assert used == ALLOWED_DB_PASSWORDS[name], name
 
 
+def test_superuser_password_reaches_only_the_postgres_service():
+    for name, svc in _services().items():
+        assert ("POSTGRES_PASSWORD" in yaml.safe_dump(svc)) == (name == "postgres"), name
+
+
 def test_every_secret_value_comes_from_the_environment_file():
     # No literal password in compose.yaml: each *PASSWORD value must be a ${VAR...} reference.
     for name, svc in _services().items():
@@ -265,3 +280,52 @@ def test_roles_script_stops_on_errors():
     text = (ROOT / "db" / "init" / "10-roles.sh").read_text(encoding="utf-8")
     assert text.startswith("#!/bin/bash\n") or text.startswith("#!/usr/bin/env bash\n")
     assert "set -euo pipefail" in text
+
+
+# --- proof that the guards fail on a compose file that breaks the rules (temporary copies) -----
+
+
+def _mutated_compose(tmp_path, monkeypatch, mutate):
+    data = _compose()
+    mutate(data["services"])
+    path = tmp_path / "compose.yaml"
+    path.write_text(yaml.safe_dump(data), encoding="utf-8")
+    monkeypatch.setattr(__import__(__name__, fromlist=["COMPOSE"]), "COMPOSE", path)
+
+
+def _add_env_file(services):
+    services["caddy"]["env_file"] = [".env"]
+
+
+def _leak_superuser_password(services):
+    services["worker"]["environment"]["POSTGRES_PASSWORD"] = "${POSTGRES_PASSWORD}"
+
+
+def _web_waits_for_healthy_engine(services):
+    services["web"]["depends_on"]["engine"]["condition"] = "service_healthy"
+
+
+def _publish_postgres(services):
+    services["postgres"]["ports"] = ["5432:5432"]
+
+
+def _publish_admin_on_all_interfaces(services):
+    services["web"]["ports"] = ["8081:8081"]
+
+
+@pytest.mark.parametrize(
+    "guard, mutate",
+    [
+        (test_no_service_loads_an_env_file, _add_env_file),
+        (test_superuser_password_reaches_only_the_postgres_service, _leak_superuser_password),
+        (test_dependencies_wait_for_healthy_services, _web_waits_for_healthy_engine),
+        (test_only_caddy_and_admin_listener_are_published, _publish_postgres),
+        (test_only_caddy_and_admin_listener_are_published, _publish_admin_on_all_interfaces),
+    ],
+    ids=["env_file", "superuser_password", "web_waits_for_engine", "postgres_port", "admin_on_all_interfaces"],
+)
+def test_guard_fails_on_a_violating_compose_file(tmp_path, monkeypatch, guard, mutate):
+    guard()  # passes on the real file
+    _mutated_compose(tmp_path, monkeypatch, mutate)
+    with pytest.raises(AssertionError):
+        guard()
