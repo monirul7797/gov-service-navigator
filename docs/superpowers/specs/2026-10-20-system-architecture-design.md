@@ -292,6 +292,11 @@ UPDATE, DELETE and TRUNCATE for every role including its owner (as built in M0, 
 `0001_audit_log.sql`); M1 adds protection against the owner dropping or replacing those triggers
 (superuser-owned event trigger) and a hash chain for tamper evidence.
 
+**Refined by the M1 design** (`2026-10-22-m1-data-in-postgres-design.md` §3, §11): live/hidden
+status is per release (`release_services`) instead of `services.status`; a new append-only
+`publications` table records every publish/rollback; release statuses are `draft`, `validated`,
+`rejected` (the live release is `active_release`); `text_bn`/`text_en` are deferred to M2.
+
 ### 6.2 Source of truth, by phase
 
 - **Phase 1:** `data/chunks/*.jsonl` and `concept_registry.json` in git remain where content is
@@ -312,6 +317,10 @@ first release. A record's `last_updated` (when *we* edited it) is not a verifica
 back-filled with guesses. Records without it
 show the source link without a date. The list of records lacking `verified_at` is a re-check
 to-do list.
+
+**Mapping confirmed by the owner 2026-10-22:** NID ← `fetched_at`; e-Passport ← `last_crawled`;
+e-Return and BDRIS ← none. (In the corpora `last_updated` turned out to be the source's own
+publication date, not our edit date; either way it is not a verification date.)
 
 ### 6.4 Release CLI (Phase 1, run in the `worker` container over SSH via Tailscale)
 
