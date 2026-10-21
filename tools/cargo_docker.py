@@ -4,9 +4,20 @@ The Windows dev machine has no MSVC Build Tools, so Rust is compiled and tested 
 Usage (from anywhere): ``python tools/cargo_docker.py <cargo args...>``, for example
 ``python tools/cargo_docker.py test`` or ``python tools/cargo_docker.py clippy --all-targets -- -D warnings``.
 
-The whole repository is mounted at /work because ``web/`` reads ``../db/migrations`` and
-``../contracts``. Three named volumes keep the cargo registry, the rustup components and the build
-output (``web/target``) between runs; they live in Docker's data disk, not in the repository.
+Only three folders of the repository are mounted, never the repository root. Crate build scripts and
+proc-macros run as root with network access during ``cargo`` commands, so the container must not
+see ``setenv*.bat`` (LLM keys), ``.env`` (database passwords), ``data/`` or ``.git/`` (hooks):
+
+* ``web/`` at /work/web, read-write (sources, Cargo.lock; cargo may edit Cargo.toml/Cargo.lock);
+* ``db/`` at /work/db, read-only (``sqlx::migrate!("../db/migrations")``);
+* ``contracts/`` at /work/contracts, read-only (the tests read the shared JSON examples).
+
+Binds use ``--mount type=bind`` rather than ``-v`` because ``--mount`` fails when a source is
+missing, where ``-v`` silently creates an empty directory. Docker reads a ``--mount`` value as one
+CSV record, so a path containing a comma or a double quote is quoted (``_csv_field``); spaces need
+nothing and the whole value stays one argv element. Three named volumes keep the cargo registry,
+the rustup components and the build output (``web/target``) between runs; they live in Docker's
+data disk, not in the repository.
 
 Stdlib only; the exit code is cargo's exit code.
 """
@@ -32,11 +43,26 @@ def image_from_toolchain(toolchain_file: Path) -> str:
     return f"rust:{channel}-bookworm"
 
 
+def _csv_field(text: str) -> str:
+    """One CSV field as Docker's ``--mount`` parser expects it (quoted only when needed)."""
+    if any(c in text for c in (",", '"', "\r", "\n")):
+        return '"' + text.replace('"', '""') + '"'
+    return text
+
+
+def _bind(source: Path, target: str, readonly: bool) -> str:
+    """A ``--mount type=bind`` value. A missing source makes ``docker run`` fail (unlike ``-v``)."""
+    value = f"type=bind,{_csv_field(f'src={source}')},dst={target}"
+    return value + ",readonly" if readonly else value
+
+
 def build_command(repo_root: Path, cargo_args: Sequence[str], image: str) -> list[str]:
-    """The ``docker run`` argv; the repo path is one element even when it contains spaces."""
+    """The ``docker run`` argv; each mount is one argv element even when the path has spaces."""
     return [
         "docker", "run", "--rm",
-        "-v", f"{repo_root}:/work",
+        "--mount", _bind(repo_root / "web", "/work/web", readonly=False),
+        "--mount", _bind(repo_root / "db", "/work/db", readonly=True),
+        "--mount", _bind(repo_root / "contracts", "/work/contracts", readonly=True),
         "-v", "gsn-cargo-registry:/usr/local/cargo/registry",
         "-v", "gsn-rustup:/usr/local/rustup",
         "-v", "gsn-cargo-target:/work/web/target",

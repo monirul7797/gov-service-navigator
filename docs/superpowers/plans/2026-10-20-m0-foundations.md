@@ -329,14 +329,26 @@ git commit -m "feat(m0): gsn python package with engine health app, worker loop 
 - `tools/cargo_docker.py` (stdlib only; no local MSVC exists, so every cargo command in this plan
   runs through it): `image_from_toolchain(toolchain_file: Path) -> str` → `rust:<channel>-bookworm`;
   `build_command(repo_root: Path, cargo_args: list[str], image: str) -> list[str]` →
-  `["docker", "run", "--rm", "-v", f"{repo_root}:/work", "-v", "gsn-cargo-registry:/usr/local/cargo/registry",
-  "-v", "gsn-rustup:/usr/local/rustup", "-v", "gsn-cargo-target:/work/web/target", "-w", "/work/web",
-  image, "cargo", *cargo_args]` (the whole repo is mounted because `web/` reads `../db/migrations`
-  and `../contracts`; named volumes keep downloads, components and build output between runs on the
-  Docker disk on G:); CLI `python tools/cargo_docker.py <cargo args…>` exits with cargo's exit
+  `["docker", "run", "--rm",
+  "--mount", "type=bind,src=<repo_root/web>,dst=/work/web",
+  "--mount", "type=bind,src=<repo_root/db>,dst=/work/db,readonly",
+  "--mount", "type=bind,src=<repo_root/contracts>,dst=/work/contracts,readonly",
+  "-v", "gsn-cargo-registry:/usr/local/cargo/registry", "-v", "gsn-rustup:/usr/local/rustup",
+  "-v", "gsn-cargo-target:/work/web/target", "-w", "/work/web", image, "cargo", *cargo_args]`.
+  **The repo root is never mounted**: crate build scripts and proc-macros run as root with network
+  access, so the container must not see `setenv*.bat`, `.env`, `data/` or `.git/` (hooks). Only
+  `web/` (read-write), `db/` and `contracts/` (read-only; `web/` reads `../db/migrations` and
+  `../contracts`) are bind-mounted. `--mount type=bind` is used instead of `-v` because it fails
+  when a source is missing instead of silently creating an empty directory. Docker parses a
+  `--mount` value as one CSV record, so a source path containing a comma or a double quote is
+  CSV-quoted (`"src=...,..."`, inner quotes doubled); spaces need nothing and each whole `--mount`
+  value stays one argv element. Named volumes keep downloads, components and build output between
+  runs on the Docker disk on G:. CLI `python tools/cargo_docker.py <cargo args…>` exits with cargo's exit
   code, and if `docker` is not on PATH it retries with `G:\Docker\DockerDesktop\resources\bin\docker.exe`
   before failing with a clear message. Tests (`.venv` pytest): image name from a toolchain file;
-  exact argv for `["test"]`; repo path containing spaces stays one argv element; exit code passthrough
+  exact argv for `["test"]`; the bind set is exactly {web rw, db readonly, contracts readonly} and no
+  bind source or destination is the repo root; a repo path containing spaces stays one argv element
+  per mount and a path with a comma or quote round-trips through a CSV parse; exit code passthrough
   with a fake runner.
 
 - [ ] **Step 1: Write the failing tests**
@@ -366,7 +378,9 @@ Expected: compile errors (items not defined).
 - [ ] **Step 3: Implement config, readiness, routes, main per the Interfaces block**
 
 Dependencies via `cargo add` (axum, tokio[full], sqlx[runtime-tokio,postgres,migrate,macros],
-reqwest[json,rustls-tls] with default features off, tower-http[fs,trace], tracing,
+reqwest with default features off and no extra features (M0 makes only plain-http calls to
+the engine and loopback, so no TLS stack is compiled; add one when an https call is introduced),
+tower-http[fs,trace], tracing,
 tracing-subscriber[json,env-filter], serde[derive], serde_json, async-trait, thiserror; dev:
 tower[util], http-body-util, tempfile). Logging: JSON to stdout. `sqlx::migrate!` needs the
 `db/migrations/` directory to exist at compile time; until Task 6 adds the first migration, it

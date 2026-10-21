@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use gsn_web::config::{self, Config};
-use gsn_web::readiness::LiveReadiness;
+use gsn_web::readiness::{LiveReadiness, internal_http_client};
 use gsn_web::routes::{AppState, admin_router, public_router};
 use sqlx::postgres::PgPoolOptions;
 use tokio::net::TcpListener;
@@ -115,9 +115,8 @@ async fn migrate() -> Result<(), BoxError> {
 async fn healthcheck() -> Result<(), BoxError> {
     let port = config::public_port_from_vars(|name| std::env::var(name).ok())?;
     let url = format!("http://127.0.0.1:{port}/healthz");
-    let response = reqwest::Client::new()
+    let response = internal_http_client(Duration::from_secs(2))?
         .get(&url)
-        .timeout(Duration::from_secs(2))
         .send()
         .await?;
     if response.status() == reqwest::StatusCode::OK {

@@ -3,6 +3,7 @@
 There is no MSVC toolchain on the Windows dev machine, so every cargo command goes through this
 wrapper. The tests never start Docker: the process runner is replaced by a fake.
 """
+import csv
 import os
 import sys
 from pathlib import Path
@@ -36,11 +37,27 @@ def test_committed_toolchain_pins_an_exact_version():
     assert image.startswith("rust:1.99.") and image.endswith("-bookworm")
 
 
+def _mounts(cmd):
+    """Every ``--mount`` value, parsed the way Docker parses it (CSV of key=value fields)."""
+    parsed = []
+    for i, arg in enumerate(cmd):
+        if arg == "--mount":
+            fields = next(csv.reader([cmd[i + 1]], skipinitialspace=True))
+            options = {}
+            for field in fields:
+                key, _, value = field.partition("=")
+                options[key] = value
+            parsed.append(options)
+    return parsed
+
+
 def test_build_command_for_test_has_exact_argv():
     root = Path("/some/repo")
     assert build_command(root, ["test"], "rust:1.99.1-bookworm") == [
         "docker", "run", "--rm",
-        "-v", f"{root}:/work",
+        "--mount", f"type=bind,src={root / 'web'},dst=/work/web",
+        "--mount", f"type=bind,src={root / 'db'},dst=/work/db,readonly",
+        "--mount", f"type=bind,src={root / 'contracts'},dst=/work/contracts,readonly",
         "-v", "gsn-cargo-registry:/usr/local/cargo/registry",
         "-v", "gsn-rustup:/usr/local/rustup",
         "-v", "gsn-cargo-target:/work/web/target",
@@ -48,6 +65,43 @@ def test_build_command_for_test_has_exact_argv():
         "rust:1.99.1-bookworm",
         "cargo", "test",
     ]
+
+
+def test_only_web_db_and_contracts_are_mounted_and_only_web_is_writable():
+    root = Path("/some/repo")
+    cmd = build_command(root, ["test"], "img:1")
+    binds = {
+        (m["src"], m["dst"], "readonly" in m) for m in _mounts(cmd) if m["type"] == "bind"
+    }
+    assert binds == {
+        (str(root / "web"), "/work/web", False),
+        (str(root / "db"), "/work/db", True),
+        (str(root / "contracts"), "/work/contracts", True),
+    }
+
+
+def test_the_repo_root_is_never_mounted():
+    root = Path("/some/repo")
+    cmd = build_command(root, ["test"], "img:1")
+    assert _mounts(cmd)
+    for mount in _mounts(cmd):
+        assert mount["src"] != str(root)
+        assert mount["dst"] != "/work"
+    # No short-form bind either: "-v <repo>:/work" would expose setenv*.bat and .env.
+    for i, arg in enumerate(cmd):
+        if arg == "-v":
+            assert not cmd[i + 1].startswith(str(root))
+
+
+def test_named_volumes_and_workdir_are_kept():
+    cmd = build_command(Path("/r"), ["test"], "img:1")
+    volumes = [cmd[i + 1] for i, a in enumerate(cmd) if a == "-v"]
+    assert volumes == [
+        "gsn-cargo-registry:/usr/local/cargo/registry",
+        "gsn-rustup:/usr/local/rustup",
+        "gsn-cargo-target:/work/web/target",
+    ]
+    assert cmd[cmd.index("-w") + 1] == "/work/web"
 
 
 def test_cargo_args_are_passed_through_verbatim_and_last():
@@ -59,10 +113,28 @@ def test_cargo_args_are_passed_through_verbatim_and_last():
 def test_repo_path_with_spaces_stays_one_argv_element():
     root = Path("C:/Users/Some One/Structured Data/NID/repo")
     cmd = build_command(root, ["test"], "rust:1.99.1-bookworm")
-    mount = f"{root}:/work"
-    assert " " in mount
-    assert cmd.count(mount) == 1
-    assert cmd[cmd.index(mount) - 1] == "-v"
+    mounts = [cmd[i + 1] for i, a in enumerate(cmd) if a == "--mount"]
+    assert len(mounts) == 3
+    for value in mounts:
+        assert " " in value  # the whole --mount value is a single argv element
+        assert cmd.count(value) == 1
+    # Docker splits --mount values on commas only, so spaces need no quoting and must round-trip.
+    assert [m["src"] for m in _mounts(cmd)] == [
+        str(root / "web"), str(root / "db"), str(root / "contracts"),
+    ]
+
+
+def test_repo_path_with_comma_or_quote_is_csv_quoted_for_docker():
+    # Docker parses --mount as CSV: a comma or double quote in a path must be quoted, or Docker
+    # would read the rest of the path as a separate option.
+    root = Path('/home/a,b/re"po')
+    cmd = build_command(root, ["test"], "img:1")
+    mounts = _mounts(cmd)
+    assert [m["src"] for m in mounts] == [
+        str(root / "web"), str(root / "db"), str(root / "contracts"),
+    ]
+    assert [m["dst"] for m in mounts] == ["/work/web", "/work/db", "/work/contracts"]
+    assert all(m["type"] == "bind" for m in mounts)
 
 
 def test_exit_code_is_passed_through_from_the_runner():

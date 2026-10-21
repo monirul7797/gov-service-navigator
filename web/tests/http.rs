@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use axum::routing::get;
-use gsn_web::readiness::{LiveReadiness, Readiness};
+use gsn_web::readiness::{LiveReadiness, Readiness, internal_http_client};
 use gsn_web::routes::{AppState, admin_router, public_router};
 use http_body_util::BodyExt;
 use serde_json::Value;
@@ -216,15 +216,20 @@ async fn live_readiness_reports_down_when_nothing_is_reachable() {
     assert_eq!(body["checks"]["engine"], "fail");
 }
 
-/// Start a throwaway HTTP server that answers `GET /healthz` with `status`; returns its base URL.
-async fn fake_engine(status: StatusCode) -> String {
-    let app = axum::Router::new().route("/healthz", get(move || async move { status }));
+/// Serve `app` on a throwaway local port; returns its base URL.
+async fn serve_on_free_port(app: axum::Router) -> String {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
     });
     format!("http://{addr}")
+}
+
+/// A throwaway engine that answers `GET /healthz` with `status`.
+async fn fake_engine(status: StatusCode) -> String {
+    serve_on_free_port(axum::Router::new().route("/healthz", get(move || async move { status })))
+        .await
 }
 
 #[tokio::test]
@@ -242,4 +247,32 @@ async fn engine_ok_only_for_http_200() {
         format!("{}/", fake_engine(StatusCode::OK).await),
     );
     assert!(slash.engine_ok().await);
+}
+
+#[tokio::test]
+async fn engine_ok_does_not_follow_redirects() {
+    // A redirect to a healthy URL must not count as "engine ok": the probe only trusts the engine
+    // itself answering 200 on /healthz, never a redirect target.
+    let app = axum::Router::new()
+        .route(
+            "/healthz",
+            get(|| async { axum::response::Redirect::temporary("/elsewhere") }),
+        )
+        .route("/elsewhere", get(|| async { StatusCode::OK }));
+    let live = LiveReadiness::new(unreachable_pool(), serve_on_free_port(app).await);
+    assert!(!live.engine_ok().await);
+}
+
+#[tokio::test]
+async fn internal_http_client_does_not_follow_redirects() {
+    let app = axum::Router::new()
+        .route(
+            "/start",
+            get(|| async { axum::response::Redirect::temporary("/elsewhere") }),
+        )
+        .route("/elsewhere", get(|| async { StatusCode::OK }));
+    let base = serve_on_free_port(app).await;
+    let client = internal_http_client(Duration::from_secs(2)).unwrap();
+    let response = client.get(format!("{base}/start")).send().await.unwrap();
+    assert_eq!(response.status(), reqwest::StatusCode::TEMPORARY_REDIRECT);
 }
