@@ -154,6 +154,14 @@ git push origin codex/tracker-g0-p02b
 
 - **Architecture spec:** `docs/superpowers/specs/2026-10-20-system-architecture-design.md`
   (draft for owner review). Phase 1 milestones M0–M7; each milestone gets its own plan.
+- **M0 (foundations) status, 2026-10-22:** implemented on branch `feat/m0-foundations` (repo
+  hygiene, `gsn` Python package, Rust `web`, SvelteKit public/admin apps, Compose stack with
+  `migrate` and `itest`, append-only `audit_log`, CI and Dependabot, `docs/DEVELOPMENT.md`). All
+  local gates are green: 181 Python tests, Rust fmt/clippy/26 tests/`cargo audit`, both frontends
+  (lint, check, build, tests, `npm audit`), stack smoke + exposure check + 32 integration tests, and
+  the legacy `test_multiturn.py`. **CI has not run yet:** the branch is not pushed (the push needs
+  the owner's OK) and the workflow is checked only by `actionlint` and by re-running each job's
+  commands locally. Merging to `master` is a separate owner decision.
 
 ### Information needed from the owner
 
