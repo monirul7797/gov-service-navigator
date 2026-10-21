@@ -1,0 +1,33 @@
+[package]
+name = "gsn-web"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+description = "Government Service Navigator: public site, admin panel and API edge"
+publish = false
+
+[lib]
+name = "gsn_web"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gsn-web"
+path = "src/main.rs"
+
+[dependencies]
+async-trait = "=0.1.92"
+axum = "=0.8.9"
+reqwest = { version = "=0.13.5", default-features = false, features = ["json", "rustls"] }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+sqlx = { version = "=0.9.0", default-features = false, features = ["runtime-tokio", "postgres", "migrate", "macros"] }
+thiserror = "=2.0.21"
+tokio = { version = "=1.54.0", features = ["full"] }
+tower-http = { version = "=0.7.1", features = ["fs", "trace"] }
+tracing = "=0.1.44"
+tracing-subscriber = { version = "=0.3.23", features = ["json", "env-filter"] }
+
+[dev-dependencies]
+http-body-util = "=0.1.5"
+tempfile = "=3.27.0"
+tower = { version = "=0.5.3", features = ["util"] }
