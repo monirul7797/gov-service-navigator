@@ -48,9 +48,11 @@ Parent: `docs/superpowers/specs/2026-10-20-system-architecture-design.md` §6, �
   `SERVICE_MIN_SIM = 0.40`, `MAX_CONTEXT = 6`, `SCOPED_TOP_K = 8`, `GROUNDING_FLOOR = 0.42`.
   Eval out-of-scope ceilings: NID/e-Passport/e-Return `0.55`, BDRIS `0.62`. Parity tolerance
   `0.001`; stored-vector cosine floor `0.9999`.
-- Every `SECURITY DEFINER` function: `SET search_path = pg_catalog, <its schema>`, every object
-  name schema-qualified, `REVOKE EXECUTE … FROM PUBLIC`, `GRANT EXECUTE` only to the roles named
-  in the task.
+- Every `SECURITY DEFINER` function: `SET search_path = pg_catalog, <its schema>, pg_temp`
+  (`pg_temp` explicitly **last**: when it is not listed, PostgreSQL searches it *first* for
+  relation and type names — amended 2026-10-23 after the A3 review), every object name **and every
+  type name** schema-qualified (e.g. `pg_catalog.text` in DECLAREs and casts), `REVOKE EXECUTE …
+  FROM PUBLIC`, `GRANT EXECUTE` only to the roles named in the task.
 - Release content is read only from a commit via `gsn.gitsource.GitSource`, never the working
   tree. The `release` container mounts only `${GSN_REPO_GIT:-./.git}:/repo.git:ro` and
   `gsn-models:/models`; it has no `ports:` and receives only `GSN_DB_WORKER_PASSWORD`.
