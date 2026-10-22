@@ -1,3 +1,7 @@
 {
-  "known_failures": {}
+  "known_failures": {
+    "gq_nid_010": "Banglish query embedded raw by the eval (no transliteration); FAIL in the ChromaDB baseline of 564746d13d09fb59b4927a4cdb7819d9db526081",
+    "gq_er_003": "Banglish query embedded raw by the eval (no transliteration); FAIL in the ChromaDB baseline of 564746d13d09fb59b4927a4cdb7819d9db526081",
+    "gq_015": "Banglish query embedded raw by the eval (no transliteration); FAIL in the ChromaDB baseline of 564746d13d09fb59b4927a4cdb7819d9db526081"
+  }
 }
