@@ -136,7 +136,11 @@ def test_loads_the_committed_inputs_of_this_repository():
     assert [e.verified_at_field for e in inputs.manifest] == ["fetched_at", "last_crawled", None, None]
     assert sum(len(records) for records in inputs.corpora.values()) == 293
     assert sum(len(g["queries"]) for g in inputs.gold.values()) == 74
-    assert inputs.thresholds == Thresholds(known_failures={})
+    known = inputs.thresholds.known_failures
+    gold_ids = {q["id"] for g in inputs.gold.values() for q in g["queries"]}
+    assert known, "the committed thresholds file lists the known failures of the baseline run"
+    assert set(known) <= gold_ids, sorted(set(known) - gold_ids)
+    assert all(isinstance(reason, str) and reason.strip() for reason in known.values())
     assert set(inputs.registry["services"]) >= {"nid", "epassport", "ereturn", "bdris"}
     assert inputs.registry_sha256 == hashlib.sha256(source.read(REGISTRY_PATH)).hexdigest()
 
