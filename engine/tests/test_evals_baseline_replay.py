@@ -8,7 +8,10 @@ comparison meaningful: a verdict can differ between the two systems only because
 
 * The synthetic baseline below covers every rule; its legacy verdicts were worked out by hand from the
   legacy scripts (``eval_nid.py``, ``eval_epassport.py``, ``eval_ereturn.py``, ``eval_bdris.py``).
-* The real baseline (``docs/reports/m1-parity/chroma_baseline.json``) is replayed too once it exists.
+* The real baseline (``docs/reports/m1-parity/chroma_baseline.json``) is replayed too once it exists. It
+  is replayed from its own recorded gold queries (``entry["gq"]``) and nothing else: it is a frozen record
+  of the legacy system, so these tests never read the live gold files, corpus or cases file. Whether the
+  gold files have moved on since is the parity task's concern, not this test's.
 """
 import json
 from pathlib import Path
@@ -21,7 +24,6 @@ from gsn.retrieval import Hit
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PARITY_DIR = REPO_ROOT / "docs" / "reports" / "m1-parity"
 BASELINE_FILE = PARITY_DIR / "chroma_baseline.json"
-CASES_FILE = PARITY_DIR / "retrieve_cases.json"
 SERVICES = ("nid", "epassport", "ereturn", "bdris")
 
 
@@ -173,36 +175,24 @@ def _load_baseline() -> dict:
     return json.loads(BASELINE_FILE.read_text(encoding="utf-8"))
 
 
-def _gold_by_service() -> dict[str, dict[str, dict]]:
-    out = {}
-    for service in SERVICES:
-        gold = json.loads((REPO_ROOT / f"{service}_gold_queries.json").read_text(encoding="utf-8"))
-        out[service] = {gq["id"]: gq for gq in gold["queries"]}
-    return out
-
-
 @real_baseline
 def test_every_recorded_legacy_verdict_is_reproduced_by_judge():
     assert_replay_matches(_load_baseline())
 
 
 @real_baseline
-def test_the_baseline_covers_every_gold_query_exactly_once_with_the_current_gold_file_content():
+def test_the_baseline_records_every_gold_query_once_for_every_service():
     baseline = _load_baseline()
-    gold = _gold_by_service()
     recorded = [(e["service"], e["id"]) for e in baseline["gold"]]
     assert len(recorded) == len(set(recorded))
-    assert set(recorded) == {(s, i) for s, queries in gold.items() for i in queries}
+    assert {service for service, _ in recorded} == set(SERVICES)
     for entry in baseline["gold"]:
-        assert entry["gq"] == gold[entry["service"]][entry["id"]], (
-            f"{entry['id']}: the gold file changed since the baseline was exported; export it again"
-        )
+        assert entry["gq"]["id"] == entry["id"]
 
 
 @real_baseline
-def test_the_baseline_has_a_retrieve_run_per_gold_query_in_both_scopes_plus_every_case():
+def test_the_baseline_has_a_retrieve_run_per_gold_query_in_both_scopes_plus_its_case_runs():
     baseline = _load_baseline()
-    cases = json.loads(CASES_FILE.read_text(encoding="utf-8"))
     runs = {r["id"]: r for r in baseline["retrieve"]}
     assert len(runs) == len(baseline["retrieve"])
     for entry in baseline["gold"]:
@@ -210,10 +200,11 @@ def test_the_baseline_has_a_retrieve_run_per_gold_query_in_both_scopes_plus_ever
         scoped = runs[f"{entry['service']}/{entry['id']}/scoped"]
         assert everywhere["queries"] == scoped["queries"] == [entry["gq"]["query"]]
         assert everywhere["services"] is None and scoped["services"] == [entry["service"]]
-    for case in cases:
-        run = runs[case["id"]]
-        assert (run["queries"], run["services"]) == (case["queries"], case["services"])
-    assert len(runs) == 2 * len(baseline["gold"]) + len(cases)
+    case_runs = [r for r in baseline["retrieve"] if r["source"] == "case"]
+    assert case_runs
+    for run in case_runs:
+        assert 2 <= len(run["queries"]) <= 3 and run["services"] and set(run["services"]) <= set(SERVICES)
+    assert len(runs) == 2 * len(baseline["gold"]) + len(case_runs)
 
 
 @real_baseline

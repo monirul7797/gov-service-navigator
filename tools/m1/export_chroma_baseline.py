@@ -13,12 +13,21 @@ Run it with the GLOBAL Python (the one that has chromadb, sentence-transformers 
 
 What it does, in order (nothing is written until every step has succeeded):
 
+0. Preconditions, each refused with a message and exit status 1: the legacy code, the gold files and
+   ``retrieve_cases.json`` must equal what is committed at ``HEAD`` (``git status --porcelain`` on
+   exactly those paths is empty; other untracked files such as review bundles do not matter), because
+   they are read from the working tree while the baseline is stamped with ``HEAD``; and
+   ``data/vectordb`` must already exist (only the ``embed_*.py`` scripts may create it, and
+   ``chromadb.PersistentClient`` would).
 1. Freshness: the documents stored in the four collections must equal the corpus committed at
    ``HEAD`` (``git show HEAD:data/chunks/<service>.jsonl``). Any difference prints the differing
    record ids and exits with status 1: a baseline of an out-of-date index would prove nothing.
 2. Loads bge-m3 (cached copy only: ``HF_HUB_OFFLINE`` defaults to 1, so a changed upstream revision
    can never replace the one the baseline records) and notes the environment: package versions, the
-   commit, the model snapshot directory and weight file actually loaded.
+   commit, the model revision, and the snapshot directory and weight file actually loaded. The
+   baseline is committed to a public repository, so those two paths are recorded relative to the
+   Hugging Face cache (``models--BAAI--bge-m3/snapshots/<revision>/...``), never as absolute paths,
+   and ``platform`` is only the OS name and version.
 3. Gold queries: each is queried exactly the way its legacy ``eval_*.py`` queries (NID, e-Passport and
    e-Return embed the query and pass ``query_embeddings``; BDRIS passes ``query_texts`` through its
    embedding-function collection). The hits are recorded with their unrounded similarity
@@ -56,6 +65,20 @@ CASES_FILE = PARITY_DIR / "retrieve_cases.json"
 
 SERVICES = ("nid", "epassport", "ereturn", "bdris")
 DEFAULT_TOP_K = 4
+VECTOR_STORE_DIR = "data/vectordb"       # same as answer.DB_DIR; load_stored() cross-checks it
+# Read from the working tree although the baseline is stamped with HEAD, so they must equal HEAD.
+PINNED_INPUTS = (
+    "answer.py",
+    "eval_nid.py",
+    "eval_epassport.py",
+    "eval_ereturn.py",
+    "eval_bdris.py",
+    "nid_gold_queries.json",
+    "epassport_gold_queries.json",
+    "ereturn_gold_queries.json",
+    "bdris_gold_queries.json",
+    "docs/reports/m1-parity/retrieve_cases.json",
+)
 BASELINE_NAME = "chroma_baseline.json"
 VECTORS_NAME = "chroma_vectors.json.gz"
 
@@ -334,6 +357,25 @@ def validate_cases(cases: Any, gold_queries: Mapping[str, Sequence[str]]) -> Non
                 raise ValueError(f"{where}: unknown service {service!r}")
 
 
+# ------------------------------------------------------------------------------ refusals
+
+class ExportRefused(Exception):
+    """A precondition of the export is not met; the message tells the owner what to do. main() exits 1."""
+
+
+def require_vector_store(path: Path) -> None:
+    """Refuse unless ``path`` is an existing directory.
+
+    ``chromadb.PersistentClient(path=...)`` creates a missing directory, and CLAUDE.md allows only the
+    ``embed_*.py`` scripts to write to ``data/vectordb``; the exporter only reads it.
+    """
+    if not path.is_dir():
+        raise ExportRefused(
+            f"the vector store {path} does not exist. The exporter only reads it and must not create it: "
+            "build it with the embed_*.py scripts first."
+        )
+
+
 # --------------------------------------------------------------------------------------- the model
 
 def package_versions(names: Iterable[str], lookup: Callable[[str], str] = importlib.metadata.version) -> dict[str, str]:
@@ -375,19 +417,53 @@ def find_weight_file(snapshot_dir: Path) -> Path:
     raise RuntimeError(f"no weight file ({' or '.join(WEIGHT_FILES)}) in {snapshot_dir}")
 
 
-def collect_environment(model: Any, commit: str) -> dict:
-    """The environment block: versions, the model files actually loaded, and the repository commit."""
-    snapshot = model_snapshot_dir(model)
+def cache_relative(path: Path) -> str:
+    """``path`` from its Hugging Face cache entry on (``models--ORG--NAME/snapshots/<rev>/...``), with
+    ``/`` separators. A path outside any such entry is reduced to its last component. Either way the
+    user's home directory and drive never appear in the result.
+    """
+    parts = path.parts
+    for index in range(len(parts) - 1, -1, -1):
+        if parts[index].startswith("models--"):
+            return "/".join(parts[index:])
+    return path.name
+
+
+def model_revision(model: Any, snapshot_dir: Path) -> str:
+    """The model revision the pin is compared with: the loaded config's commit hash, else the name of
+    the snapshot directory (a Hub cache names it after the revision)."""
+    return getattr(model[0].auto_model.config, "_commit_hash", None) or snapshot_dir.name
+
+
+def os_description() -> str:
+    """The OS name and version only (no host name, no user name)."""
+    return f"{platform.system()} {platform.release()} {platform.version()}"
+
+
+def collect_environment(
+    model: Any,
+    commit: str,
+    *,
+    lookup: Callable[[str], str] = importlib.metadata.version,
+    resolver: Callable[[str, str], str] | None = None,
+) -> dict:
+    """The environment block: versions, the model files actually loaded, and the repository commit.
+
+    The baseline is committed to a public repository, so no value is an absolute path.
+    """
+    snapshot = model_snapshot_dir(model, resolver=resolver)
     weights = find_weight_file(snapshot)
+    name = model[0].auto_model.config._name_or_path
     environment: dict[str, Any] = {
         "python": platform.python_version(),
-        "platform": platform.platform(),
-        **package_versions(VERSION_PACKAGES),
+        "platform": os_description(),
+        **package_versions(VERSION_PACKAGES, lookup=lookup),
         "device": str(model.device),
         "hf_hub_offline": os.environ.get("HF_HUB_OFFLINE"),
-        "model_name": model[0].auto_model.config._name_or_path,
-        "model_snapshot_dir": str(snapshot),
-        "model_weight_file": str(weights),
+        "model_name": Path(name).name if Path(name).is_absolute() else name,
+        "model_revision": model_revision(model, snapshot),
+        "model_snapshot_dir": cache_relative(snapshot),
+        "model_weight_file": f"{cache_relative(snapshot)}/{weights.name}",
         "model_weight_file_bytes": weights.stat().st_size,
         "git_head": commit,
     }
@@ -410,6 +486,20 @@ def git_head(root: Path) -> str:
     if len(commit) != 40 or any(c not in "0123456789abcdef" for c in commit):
         raise RuntimeError(f"unexpected output from git rev-parse HEAD: {commit!r}")
     return commit
+
+
+def dirty_inputs(root: Path) -> list[str]:
+    """The pinned inputs that differ from ``HEAD``: modified, deleted, staged or untracked.
+
+    Only the paths in ``PINNED_INPUTS`` are asked about, so other untracked files (the review bundles)
+    and other uncommitted edits (``acquisition/*``) never matter.
+    """
+    output = _git(root, "status", "--porcelain", "--", *PINNED_INPUTS).decode("utf-8", "replace")
+    paths = []
+    for line in output.splitlines():
+        if line.strip():
+            paths.append(line[3:].split(" -> ")[-1])        # "XY path" (a rename reads "XY old -> new")
+    return paths
 
 
 def read_committed_corpora(root: Path, commit: str) -> dict[str, dict[str, str]]:
@@ -443,11 +533,17 @@ class Stored:
 
 
 def load_stored(root: Path) -> Stored:
-    """Open the vector store the way ``answer.py`` does and read every document and embedding."""
-    legacy = import_legacy(root)    # first: it sets HF_HUB_OFFLINE before any Hugging Face package loads
+    """Open the vector store the way ``answer.py`` does and read every document and embedding.
+
+    The directory must already exist: ``PersistentClient`` would create it, and only ``embed_*.py`` may.
+    """
+    require_vector_store(root / VECTOR_STORE_DIR)
+    legacy = import_legacy(root)    # sets HF_HUB_OFFLINE before any Hugging Face package loads
+    if legacy.answer.DB_DIR != VECTOR_STORE_DIR:
+        raise RuntimeError(f"answer.DB_DIR is {legacy.answer.DB_DIR!r}, not {VECTOR_STORE_DIR!r}; update the exporter")
     import chromadb
 
-    client = chromadb.PersistentClient(path=str(root / legacy.answer.DB_DIR))
+    client = chromadb.PersistentClient(path=str(root / VECTOR_STORE_DIR))
     colls = legacy.answer.load_collections(client)
     missing = [s for s in SERVICES if s not in colls]
     if missing:
@@ -538,8 +634,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     root = REPO_ROOT
 
     commit = git_head(root)
+    dirty = dirty_inputs(root)
+    if dirty:
+        print(f"refusing to export: these inputs differ from the commit {commit} the baseline would be stamped with:")
+        for path in dirty:
+            print(f"  {path}")
+        print("commit or restore them first; nothing was written.")
+        return 1
     committed = read_committed_corpora(root, commit)
-    stored = load_stored(root)
+    try:
+        stored = load_stored(root)
+    except ExportRefused as exc:
+        print(f"refusing to export: {exc}")
+        return 1
     problems = freshness_problems(stored.documents, committed)
     if problems:
         print(f"ChromaDB is not in sync with the corpus committed at {commit}; nothing was written:")
