@@ -3,7 +3,8 @@
 ``GitSource`` reads files out of one pinned commit of a repository's git directory. It is built for a
 container where ``.git`` is mounted read-only and owned by another user, so every git call is made
 with a fixed, hardened command line: an argv list (no shell), an explicit ``--git-dir``, no
-fsmonitor, no hooks, no system or global config and no terminal prompts. Failures raise
+fsmonitor, no hooks, plumbing commands only, no replace refs, no system or global config, no terminal
+prompts and none of the parent's inherited ``GIT_*`` variables. Failures raise
 ``GitSourceError`` naming the ref or path involved; the process environment is never put in a message.
 
 ``ContentSource`` is the small interface the release code depends on, so tests can use ``DictSource``.
@@ -17,7 +18,8 @@ from typing import Protocol
 
 _FULL_SHA = re.compile(r"[0-9a-f]{40}")
 # Files that hold API keys or passwords and must never be reachable from a mounted repository.
-_SECRET_PATH = re.compile(r"(^|/)setenv[^/]*\.bat$|(^|/)\.env$")
+# Case-insensitive: a Windows checkout may have committed them as ``SETENV_X.BAT`` or ``.ENV``.
+_SECRET_PATH = re.compile(r"(^|/)setenv[^/]*\.bat$|(^|/)\.env$", re.IGNORECASE)
 _TIMEOUT_SECONDS = 120
 _MAX_DETAIL = 300
 
@@ -37,10 +39,18 @@ class ContentSource(Protocol):
 
 
 def _git_env() -> dict[str, str]:
-    env = dict(os.environ)
+    """The child environment: the parent's, minus every inherited ``GIT_*`` variable, plus ours.
+
+    Inherited ``GIT_OBJECT_DIRECTORY``, ``GIT_ALTERNATE_OBJECT_DIRECTORIES``, ``GIT_CONFIG_COUNT``,
+    ``GIT_CONFIG_PARAMETERS`` and the like could redirect object reads or inject config.
+    ``GIT_NO_REPLACE_OBJECTS`` stops ``refs/replace`` in the (possibly poisoned) repository from making
+    git serve one commit's content under another commit's id.
+    """
+    env = {k: v for k, v in os.environ.items() if not k.upper().startswith("GIT_")}
     env["GIT_CONFIG_NOSYSTEM"] = "1"
     env["GIT_CONFIG_GLOBAL"] = os.devnull
     env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GIT_NO_REPLACE_OBJECTS"] = "1"
     return env
 
 
@@ -58,7 +68,7 @@ class GitSource:
         self.ref = ref
         self.commit = self._resolve(ref)
 
-    def _run(self, args: list[str], what: str) -> subprocess.CompletedProcess[bytes]:
+    def _run(self, args: list[str], what: str, stdin: bytes | None = None) -> subprocess.CompletedProcess[bytes]:
         argv = [
             "git",
             f"--git-dir={self.git_dir}",
@@ -70,14 +80,16 @@ class GitSource:
             "core.hooksPath=/dev/null",
             *args,
         ]
+        # ``input=`` and ``stdin=`` are mutually exclusive in subprocess.run.
+        feed = {"stdin": subprocess.DEVNULL} if stdin is None else {"input": stdin}
         try:
             return subprocess.run(
                 argv,
                 capture_output=True,
                 env=_git_env(),
-                stdin=subprocess.DEVNULL,
                 timeout=_TIMEOUT_SECONDS,
                 check=False,
+                **feed,
             )
         except (OSError, ValueError, subprocess.SubprocessError) as exc:
             # OSError includes FileNotFoundError (no git binary): never let that pass for a missing path.
@@ -110,14 +122,29 @@ class GitSource:
         raise GitSourceError(f"cannot read {what}{_detail(proc)}")
 
     def secret_paths_in_history(self) -> list[str]:
-        """Every path ever committed on any ref that looks like a secrets file, sorted and unique.
+        """Every path that looks like a secrets file in any commit the repository still holds.
 
-        Read NUL-delimited (``-z``): git would otherwise quote a non-ASCII name and hide its suffix.
+        Plumbing only, so the repository's own ``log.*`` or ``diff.*`` config cannot hide anything:
+        ``rev-list --all --reflog`` lists every commit reachable from a ref or a reflog entry (an
+        amended-away commit is still in the mounted object store), and ``diff-tree -m --root`` lists
+        the paths each one touches, including merge commits (against each parent) and root commits.
+        Paths are read NUL-delimited (``-z``): git would otherwise quote a non-ASCII name and hide its
+        suffix. Result is sorted and unique.
         """
-        proc = self._run(["log", "--all", "--name-only", "--format=", "-z"], "secret-path scan")
-        if proc.returncode != 0:
-            raise GitSourceError(f"cannot list history in {self.git_dir}{_detail(proc)}")
-        paths = {p for p in proc.stdout.decode("utf-8", "replace").split("\0") if p}
+        what = "secret-path scan"
+        listing = self._run(["rev-list", "--all", "--reflog"], what)
+        if listing.returncode != 0:
+            raise GitSourceError(f"cannot list commits in {self.git_dir}{_detail(listing)}")
+        if not listing.stdout.strip():
+            return []
+        touched = self._run(
+            ["diff-tree", "--stdin", "-r", "-m", "--root", "--name-only", "-z", "--no-commit-id"],
+            what,
+            stdin=listing.stdout,
+        )
+        if touched.returncode != 0:
+            raise GitSourceError(f"cannot list changed paths in {self.git_dir}{_detail(touched)}")
+        paths = {p for p in touched.stdout.decode("utf-8", "replace").split("\0") if p}
         return sorted(p for p in paths if _SECRET_PATH.search(p))
 
 

@@ -49,14 +49,18 @@ def _commit(repo: Path, files: dict[str, bytes], message: str = "commit") -> str
     return _git(repo, "rev-parse", "HEAD")
 
 
+def _init_repo(repo: Path) -> Path:
+    if shutil.which("git") is None:
+        pytest.skip("git executable not found on PATH; GitSource tests need the host git")
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    return repo
+
+
 @pytest.fixture
 def tmp_repo(tmp_path: Path) -> Path:
     """A throw-away repository on branch ``main`` with one commit (``data/a.txt``)."""
-    if shutil.which("git") is None:
-        pytest.skip("git executable not found on PATH; GitSource tests need the host git")
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    _git(repo, "init", "-q", "-b", "main")
+    repo = _init_repo(tmp_path / "repo")
     _commit(repo, {"data/a.txt": b"committed\n"}, "first")
     return repo
 
@@ -178,7 +182,8 @@ def test_every_git_call_is_hardened(tmp_repo, monkeypatch):
         source.read("data/missing.txt")
     source.secret_paths_in_history()
 
-    assert {_subcommand(argv) for argv, _ in calls} >= {"rev-parse", "cat-file", "log"}
+    plumbing = {"rev-parse", "cat-file", "rev-list", "diff-tree"}  # no porcelain such as `log`
+    assert {_subcommand(argv) for argv, _ in calls} == plumbing
     for argv, kwargs in calls:
         assert isinstance(argv, list) and argv[0] == "git"
         assert not kwargs.get("shell")
@@ -186,11 +191,67 @@ def test_every_git_call_is_hardened(tmp_repo, monkeypatch):
         for setting in (f"safe.directory={git_dir}", "core.fsmonitor=false", "core.hooksPath=/dev/null"):
             assert argv[argv.index(setting) - 1] == "-c", setting
         # `_subcommand` only finds the subcommand if every hardening option precedes it
-        assert _subcommand(argv) in {"rev-parse", "cat-file", "log"}
+        assert _subcommand(argv) in plumbing
         env = kwargs["env"]
         assert env["GIT_CONFIG_NOSYSTEM"] == "1"
         assert env["GIT_CONFIG_GLOBAL"] == os.devnull
         assert env["GIT_TERMINAL_PROMPT"] == "0"
+        assert env["GIT_NO_REPLACE_OBJECTS"] == "1"
+
+
+def test_inherited_git_variables_never_reach_git(tmp_repo, monkeypatch):
+    inherited = {
+        "GIT_DIR": str(tmp_repo / "elsewhere"),
+        "GIT_OBJECT_DIRECTORY": str(tmp_repo / "objects-elsewhere"),
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(tmp_repo / "alt"),
+        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_KEY_0": "core.fsmonitor",
+        "GIT_CONFIG_VALUE_0": "true",
+        "GIT_CONFIG_PARAMETERS": "'core.hooksPath=/tmp/evil'",
+        "GIT_EXEC_PATH": str(tmp_repo / "exec"),
+        "GIT_TERMINAL_PROMPT": "1",
+        "GIT_NO_REPLACE_OBJECTS": "",
+    }
+    for name, value in inherited.items():
+        monkeypatch.setenv(name, value)
+    real_run = subprocess.run
+    envs: list[dict[str, str]] = []
+
+    def spy(argv, **kwargs):
+        envs.append(kwargs["env"])
+        return real_run(argv, **kwargs)
+
+    monkeypatch.setattr(gitsource.subprocess, "run", spy)
+    source = GitSource(_git_dir(tmp_repo))
+    source.read("data/a.txt")
+    source.secret_paths_in_history()
+    assert envs
+    for env in envs:
+        assert {k for k in env if k.upper().startswith("GIT_")} == {
+            "GIT_CONFIG_NOSYSTEM",
+            "GIT_CONFIG_GLOBAL",
+            "GIT_TERMINAL_PROMPT",
+            "GIT_NO_REPLACE_OBJECTS",
+        }
+        assert env["GIT_TERMINAL_PROMPT"] == "0" and env["GIT_NO_REPLACE_OBJECTS"] == "1"
+
+
+def test_bogus_git_object_directory_in_the_environment_does_not_affect_reads(tmp_repo, tmp_path, monkeypatch):
+    monkeypatch.setenv("GIT_OBJECT_DIRECTORY", str(tmp_path / "no-such-objects"))
+    monkeypatch.setenv("GIT_ALTERNATE_OBJECT_DIRECTORIES", str(tmp_path / "no-such-alternates"))
+    source = GitSource(_git_dir(tmp_repo))
+    assert source.read("data/a.txt") == b"committed\n"
+    assert source.secret_paths_in_history() == []
+
+
+def test_replace_ref_cannot_make_read_return_another_commits_bytes(tmp_repo):
+    first = _git(tmp_repo, "rev-parse", "HEAD")
+    second = _commit(tmp_repo, {"data/a.txt": b"second\n"}, "second")
+    # Poison the repository: "second" now *looks like* "first" to any git that honours replace refs.
+    _git(tmp_repo, "replace", second, first)
+    source = GitSource(_git_dir(tmp_repo), "main")
+    assert source.commit == second
+    assert source.read("data/a.txt") == b"second\n"  # the pinned commit's own bytes, not the replacement's
 
 
 def test_secret_paths_found_in_history(tmp_repo):
@@ -218,6 +279,41 @@ def test_secret_paths_with_non_ascii_names_are_not_missed(tmp_repo):
     name = "setenv_জন্ম.bat"
     _commit(tmp_repo, {name: b"k"})
     assert GitSource(_git_dir(tmp_repo)).secret_paths_in_history() == [name]
+
+
+def test_secret_path_names_match_case_insensitively(tmp_repo):
+    _commit(tmp_repo, {"SETENV_X.BAT": b"k", "deploy/.ENV": b"k", ".env.example": b"x", "Docs/Setenv.Bat.md": b"x"})
+    assert GitSource(_git_dir(tmp_repo)).secret_paths_in_history() == ["SETENV_X.BAT", "deploy/.ENV"]
+
+
+def test_secret_added_only_in_a_merge_commit_is_found(tmp_repo):
+    _git(tmp_repo, "checkout", "-q", "-b", "side")
+    _commit(tmp_repo, {"side.txt": b"s"}, "side")
+    _git(tmp_repo, "checkout", "-q", "main")
+    _commit(tmp_repo, {"main.txt": b"m"}, "main")
+    _git(tmp_repo, "merge", "-q", "--no-ff", "--no-commit", "side")
+    (tmp_repo / ".env").write_bytes(b"k")  # appears in neither parent, only in the merge itself
+    _git(tmp_repo, "add", "-f", "--", ".env")
+    _git(tmp_repo, "commit", "-q", "-m", "merge side")
+    assert len(_git(tmp_repo, "rev-list", "--parents", "-n", "1", "HEAD").split()) == 3  # a real merge
+    assert GitSource(_git_dir(tmp_repo)).secret_paths_in_history() == [".env"]
+
+
+def test_secret_in_root_commit_is_found_even_if_repo_config_hides_root_commits(tmp_path):
+    repo = _init_repo(tmp_path / "root-repo")
+    _git(repo, "config", "log.showRoot", "false")  # porcelain `git log` would honour this repo config
+    _commit(repo, {".env": b"k", "ok.txt": b"x"}, "root")
+    assert GitSource(_git_dir(repo)).secret_paths_in_history() == [".env"]
+
+
+def test_secret_in_an_amended_away_commit_is_found_via_the_reflog(tmp_repo):
+    _commit(tmp_repo, {"setenv_x.bat": b"k"}, "oops, committed a secret")
+    old = _git(tmp_repo, "rev-parse", "HEAD")
+    _git(tmp_repo, "rm", "-q", "--", "setenv_x.bat")
+    _git(tmp_repo, "commit", "-q", "--amend", "--no-edit", "--allow-empty")
+    assert _git(tmp_repo, "rev-parse", "HEAD") != old
+    assert _git(tmp_repo, "branch", "--contains", old) == ""  # no branch reaches the old commit any more
+    assert GitSource(_git_dir(tmp_repo)).secret_paths_in_history() == ["setenv_x.bat"]
 
 
 def test_clean_history_reports_no_secret_paths(tmp_repo):
