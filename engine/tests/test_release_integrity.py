@@ -279,6 +279,31 @@ def test_only_the_mapped_verified_at_field_is_checked():
     assert _check(state) == []
 
 
+@pytest.mark.parametrize("how", ["absent", "null"])
+def test_mapped_verified_at_field_missing_from_every_record_of_a_live_service(how):
+    state = _state()
+    for record in state["corpora"]["nid"]:
+        if how == "absent":
+            del record["fetched_at"]
+        else:
+            record["fetched_at"] = None
+    _only(_check(state), "nid", "fetched_at", "every record")
+
+
+def test_mapped_verified_at_field_present_in_some_records_is_fine():
+    state = _state()
+    del state["corpora"]["nid"][1]["fetched_at"]
+    assert _check(state) == []
+
+
+def test_mapped_verified_at_field_missing_everywhere_is_allowed_for_a_hidden_service():
+    state = _state()
+    state["manifest"]["services"][0]["status"] = "hidden"
+    for record in state["corpora"]["nid"]:
+        del record["fetched_at"]
+    assert _check(state) == []
+
+
 def test_record_moved_to_another_service():
     state = _state()
     _only(_check(state, stored_records={"nid-1": "bdris"}), "nid-1", "bdris", "nid")
@@ -322,6 +347,25 @@ def test_gold_expected_id_that_is_not_a_string():
     state = _state()
     state["gold"]["nid"]["queries"][0]["expected_id"] = 7
     _only(_check(state), "gq_nid_001", "expected_id")
+
+
+def test_gold_query_id_used_in_two_services():
+    state = _state()
+    state["gold"]["bdris"]["queries"][0]["id"] = "gq_nid_001"
+    problem = _only(_check(state), "gq_nid_001", "nid", "bdris")
+    assert "duplicate" in problem
+
+
+def test_gold_query_id_used_twice_in_one_file():
+    state = _state()
+    state["gold"]["nid"]["queries"][1]["id"] = "gq_nid_001"
+    _only(_check(state), "gq_nid_001", "nid #1", "nid #2")
+
+
+def test_gold_query_ids_that_differ_only_in_case_are_distinct():
+    state = _state()
+    state["gold"]["bdris"]["queries"][0]["id"] = "GQ_NID_001"
+    assert _check(state) == []
 
 
 def test_problems_are_collected_not_just_the_first():

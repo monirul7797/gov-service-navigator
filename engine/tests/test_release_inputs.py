@@ -285,6 +285,27 @@ def test_strict_loads_rejects_non_finite_numbers_and_accepts_ordinary_ones():
             strict_loads(bad)
 
 
+def test_a_jsonl_line_with_a_duplicate_key_is_invalid_json():
+    good = json.dumps(NID_RECORDS[0], ensure_ascii=False)
+    twice = '{"id": "nid-9", "text": "what the reviewer saw", "text": "what would be published"}'
+    problems = _problems({**_files(), NID_CORPUS: f"{good}\n{twice}\n".encode("utf-8")})
+    assert problems == [f"{NID_CORPUS}:2: invalid JSON"]
+
+
+def test_a_nested_duplicate_key_in_a_whole_file_is_invalid_json():
+    gold = b'{"top_k": 4, "queries": [{"id": "gq_1", "query": "a", "expected": {"x": 1, "x": 1}}]}'
+    problems = _problems({**_files(), NID_GOLD: gold})
+    assert problems == [f"{NID_GOLD}: invalid JSON"]
+
+
+def test_strict_loads_rejects_duplicate_keys_at_any_depth_but_not_repeated_keys_elsewhere():
+    for bad in ('{"a": 1, "a": 2}', '{"a": 1, "a": 1}', '[{"b": {"c": [{"d": 1, "d": 2}]}}]'):
+        with pytest.raises(ValueError):
+            strict_loads(bad)
+    assert strict_loads('[{"a": 1}, {"a": 2}, {"a": {"a": 3}}]') == [{"a": 1}, {"a": 2}, {"a": {"a": 3}}]
+    assert strict_loads('{"a": 1, "A": 2}') == {"a": 1, "A": 2}
+
+
 def test_deeply_nested_json_is_invalid_not_a_crash():
     deep = b"[" * 100_000 + b"]" * 100_000
     problems = _problems({**_files(), THRESHOLDS_PATH: deep})
@@ -313,6 +334,9 @@ def _with_service(**changes):
         (_with_service(corpus="data/../../secret.jsonl"), "corpus"),
         (_with_service(gold="data\\gold.json"), "gold"),
         (_with_service(verified_at_field=5), "verified_at_field"),
+        (_with_service(verified_at_field="fetchd_at"), "verified_at_field"),  # a typo would silently drop every date
+        (_with_service(verified_at_field="last_updated"), "verified_at_field"),  # the source's own date: forbidden
+        (_with_service(verified_at_field=""), "verified_at_field"),
         (_json({"services": [MANIFEST["services"][0], MANIFEST["services"][0]]}), "duplicate"),
     ],
 )
@@ -320,6 +344,19 @@ def test_manifest_shape_problems_are_reported(manifest_bytes, fragment):
     problems = _problems({**_files(), MANIFEST_PATH: manifest_bytes})
     assert len(problems) == 1, problems
     assert problems[0].startswith(MANIFEST_PATH) and fragment in problems[0]
+
+
+def test_an_unknown_verified_at_field_names_the_service_and_the_allowed_values():
+    problems = _problems({**_files(), MANIFEST_PATH: _with_service(verified_at_field="last_updated")})
+    assert len(problems) == 1
+    assert "(nid)" in problems[0] and "'last_updated'" in problems[0]
+    assert "fetched_at" in problems[0] and "last_crawled" in problems[0] and "null" in problems[0]
+
+
+def test_only_fetched_at_last_crawled_or_null_are_accepted():
+    for value in ("fetched_at", "last_crawled", None):
+        manifest = _with_service(verified_at_field=value)
+        assert _load({**_files(), MANIFEST_PATH: manifest}).manifest[0].verified_at_field == value
 
 
 def test_a_manifest_entry_without_verified_at_field_is_a_problem_not_a_silent_none():

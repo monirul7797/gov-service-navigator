@@ -140,6 +140,19 @@ def _verified_at(inputs: ReleaseInputs, today: date) -> list[str]:
     return problems
 
 
+def _unused_verified_at_fields(inputs: ReleaseInputs) -> list[str]:
+    """A live service whose mapped field is in none of its records would publish no dates at all."""
+    problems = []
+    for entry in inputs.manifest:
+        field = entry.verified_at_field
+        records = inputs.corpora.get(entry.service_id, [])
+        if entry.status == "live" and field and records and all(r.get(field) is None for r in records):
+            problems.append(
+                f"service {entry.service_id}: verified_at_field {field!r} is absent from every record of its corpus"
+            )
+    return problems
+
+
 def _moved_records(inputs: ReleaseInputs, stored: Mapping[str, str]) -> list[str]:
     problems = []
     for entry, _, record, _ in _records(inputs):
@@ -181,6 +194,21 @@ def _gold_expected_ids(inputs: ReleaseInputs) -> list[str]:
     return problems
 
 
+def _duplicate_gold_ids(inputs: ReleaseInputs) -> list[str]:
+    """Gold query ids are unique across the whole release: ``known_failures`` is keyed by the bare id."""
+    where: dict[str, list[str]] = {}
+    for entry in inputs.manifest:
+        for number, query in enumerate(inputs.gold.get(entry.service_id, {}).get("queries", []), start=1):
+            qid = query.get("id")
+            if _non_empty(qid):
+                where.setdefault(qid, []).append(f"{entry.service_id} #{number}")
+    return [
+        f"duplicate gold query id {qid}: {', '.join(places)}"
+        for qid, places in where.items()
+        if len(places) > 1
+    ]
+
+
 def check_integrity(
     inputs: ReleaseInputs,
     stored_record_services: Mapping[str, str],
@@ -201,7 +229,9 @@ def check_integrity(
         *_duplicate_texts(inputs),
         *_bangla_without_script(inputs),
         *_verified_at(inputs, today),
+        *_unused_verified_at_fields(inputs),
         *_moved_records(inputs, stored_record_services),
         *_changed_service_names(inputs, stored_service_names),
         *_gold_expected_ids(inputs),
+        *_duplicate_gold_ids(inputs),
     ]

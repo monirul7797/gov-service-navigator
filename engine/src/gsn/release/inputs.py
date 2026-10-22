@@ -11,7 +11,8 @@ checked afterwards by ``gsn.release.integrity``.
 
 Every JSON document is parsed strictly (``strict_loads``): ``NaN``, ``Infinity`` and numbers that
 overflow to infinity are refused, because ``json.dumps`` would write them back as non-JSON tokens and
-silently change what a record hashes to.
+silently change what a record hashes to; an object with the same key twice is refused too, because
+Python would keep only the last value and a reviewer reading the file would never see which one won.
 """
 from __future__ import annotations
 
@@ -30,6 +31,9 @@ REGISTRY_PATH = "concept_registry.json"
 
 _SERVICE_ID = re.compile(r"[a-z][a-z0-9_]*")  # matches the services.service_id constraint in the database
 _STATUSES = ("live", "hidden")
+# The record fields that say when a record was last verified (spec section 2); `last_updated` is the
+# source's own publication date and is deliberately not allowed.
+_VERIFIED_AT_FIELDS = ("fetched_at", "last_crawled")
 _JSON_WHITESPACE = " \t\r"
 
 
@@ -80,6 +84,10 @@ class _NonFinite(ValueError):
     """A JSON document contained NaN, Infinity or a number too large for a float."""
 
 
+class _DuplicateKey(ValueError):
+    """A JSON object contained the same key twice."""
+
+
 def _reject_constant(token: str) -> Any:
     raise _NonFinite(token)
 
@@ -91,12 +99,31 @@ def _finite_float(text: str) -> float:
     return value
 
 
-def strict_loads(text: str) -> Any:
-    """``json.loads`` that refuses ``NaN``, ``Infinity``, ``-Infinity`` and overflowing numbers.
+def _object_without_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict:
+    result = dict(pairs)
+    if len(result) != len(pairs):
+        seen: set[str] = set()
+        for key, _ in pairs:
+            if key in seen:
+                raise _DuplicateKey(key)
+            seen.add(key)
+    return result
 
-    Raises ``ValueError`` (``json.JSONDecodeError`` is one) for any invalid document.
+
+def strict_loads(text: str) -> Any:
+    """``json.loads`` that refuses ``NaN``, ``Infinity``, ``-Infinity``, overflowing numbers and
+    objects that repeat a key (at any nesting level).
+
+    Raises ``ValueError`` (``json.JSONDecodeError`` is one) for any invalid document, and
+    ``RecursionError`` for one nested too deeply to parse; the loaders in this module catch both and
+    report them as invalid JSON.
     """
-    return json.loads(text, parse_constant=_reject_constant, parse_float=_finite_float)
+    return json.loads(
+        text,
+        parse_constant=_reject_constant,
+        parse_float=_finite_float,
+        object_pairs_hook=_object_without_duplicate_keys,
+    )
 
 
 def _read(source: ContentSource, path: str, problems: list[str]) -> bytes | None:
@@ -201,8 +228,11 @@ def _parse_entry(raw: object, index: int, problems: list[str]) -> ServiceEntry |
             problems.append(f"{where}: {key} must be a repository-relative path, got {raw.get(key)!r}")
     if "verified_at_field" not in raw:
         problems.append(f"{where}: verified_at_field is missing (use null when the service has none)")
-    elif raw["verified_at_field"] is not None and not _is_text(raw["verified_at_field"]):
-        problems.append(f"{where}: verified_at_field must be a field name or null, got {raw['verified_at_field']!r}")
+    elif raw["verified_at_field"] is not None and raw["verified_at_field"] not in _VERIFIED_AT_FIELDS:
+        problems.append(
+            f"{where}: verified_at_field must be one of {', '.join(_VERIFIED_AT_FIELDS)} or null, "
+            f"got {raw['verified_at_field']!r}"
+        )
     if len(problems) > found:
         return None
     return ServiceEntry(
