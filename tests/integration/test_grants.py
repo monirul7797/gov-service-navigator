@@ -151,18 +151,29 @@ TRIGGER_FUNCTIONS = [
 ]
 
 # Table-level privileges of gsn_worker (it builds drafts; it never writes active_release or
-# publications, which only publish_release / rollback_release change).
+# publications, which only publish_release / rollback_release change). INSERT is table-level only
+# where every column may be set by the caller; on the other tables it is granted per column, leaving
+# out the identity column and created_at (like audit_log's id and at): the caller cannot choose a
+# sequence value or backdate a row.
 WORKER_TABLE_PRIVILEGES = {
     "services": {"SELECT", "INSERT"},
-    "records": {"SELECT", "INSERT"},
-    "record_versions": {"SELECT", "INSERT"},
-    "releases": {"SELECT", "INSERT"},
+    "records": {"SELECT"},
+    "record_versions": {"SELECT"},
+    "releases": {"SELECT"},
     "release_members": {"SELECT", "INSERT", "DELETE"},  # DELETE only while the release is a draft (trigger)
     "release_services": {"SELECT", "INSERT"},
     "active_release": {"SELECT"},
     "publications": {"SELECT"},
 }
 WORKER_UPDATE_COLUMNS = {"releases": {"status", "gate_report", "override_reason"}}
+WORKER_INSERT_EXCLUDED = {  # columns the worker may NOT name in an INSERT (tables it may insert into at all)
+    "services": set(),
+    "records": {"created_at"},
+    "record_versions": {"version_id", "created_at"},
+    "releases": {"release_id", "created_at"},
+    "release_services": set(),
+    "release_members": set(),
+}
 
 
 def _columns(cur, table):
@@ -187,17 +198,25 @@ def test_release_table_privileges_match_the_specification_exactly(connect, role)
             selectable = _granted(
                 cur, f"SELECT has_column_privilege(%s, 'public.{table}', %s, 'SELECT')", role, columns
             )
+            insertable = _granted(
+                cur, f"SELECT has_column_privilege(%s, 'public.{table}', %s, 'INSERT')", role, columns
+            )
             if role == "migrate":
                 expected, expected_update, expected_select = set(TABLE_PRIVILEGES), set(columns), set(columns)
+                expected_insert = set(columns)
             elif role == "worker":
                 expected = WORKER_TABLE_PRIVILEGES[table]
                 expected_update = WORKER_UPDATE_COLUMNS.get(table, set())
                 expected_select = set(columns)
+                excluded = WORKER_INSERT_EXCLUDED.get(table)
+                expected_insert = set() if excluded is None else set(columns) - excluded
             else:  # web gets nothing new; engine reads the views only
                 expected, expected_update, expected_select = set(), set(), set()
+                expected_insert = set()
             assert privileges == expected, f"{role} table privileges on {table}"
             assert updatable == expected_update, f"{role} column UPDATE on {table}"
             assert selectable == expected_select, f"{role} column SELECT on {table}"
+            assert insertable == expected_insert, f"{role} column INSERT on {table}"
 
 
 @pytest.mark.parametrize("role", ["web", "worker", "engine"])
@@ -260,13 +279,18 @@ def test_new_objects_are_owned_by_the_migrate_role(connect):
 
 def test_publish_and_rollback_are_security_definer_with_a_pinned_search_path(connect):
     # The functions run with the owner's rights, so a caller must not be able to redirect the names
-    # they use: search_path is pinned for the function, whatever the caller's session says.
+    # they use: search_path is pinned for the function, whatever the caller's session says. pg_temp is
+    # listed explicitly and LAST; left out, PostgreSQL searches it FIRST for relation and type names,
+    # so a caller could shadow them with look-alike temporary objects (test_releases_schema.py plays
+    # that attack against publish_release and rollback_release).
     with connect("web").cursor() as cur:
         for signature in FUNCTIONS:
             cur.execute("SELECT prosecdef, proconfig FROM pg_proc WHERE oid = %s::regprocedure", (signature,))
             definer, config = cur.fetchone()
             assert definer is True, signature
-            assert config == ["search_path=pg_catalog, public"], signature
-        for signature in TRIGGER_FUNCTIONS:  # the guards are plain functions: they run with the caller's rights
-            cur.execute("SELECT prosecdef FROM pg_proc WHERE oid = %s::regprocedure", (signature,))
-            assert cur.fetchone()[0] is False, signature
+            assert config == ["search_path=pg_catalog, public, pg_temp"], signature
+        # The guards are plain functions that run with the caller's rights (inside publish/rollback,
+        # with the owner's); their search_path is pinned the same way.
+        for signature in TRIGGER_FUNCTIONS:
+            cur.execute("SELECT prosecdef, proconfig FROM pg_proc WHERE oid = %s::regprocedure", (signature,))
+            assert cur.fetchone() == (False, ["search_path=pg_catalog, public, pg_temp"]), signature

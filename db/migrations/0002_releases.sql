@@ -113,12 +113,22 @@ CREATE TABLE publications (
 
 -- ---------------------------------------------------------------------------------------------
 -- Guard triggers. They are plain functions that run with the caller's rights and fire for every
--- role, the table owner included. Names of the triggers are fixed (see the header).
+-- role, the table owner included (inside publish_release / rollback_release that is gsn_migrate).
+-- Names of the triggers are fixed (see the header).
+--
+-- Name resolution (applies to every function below, SECURITY DEFINER or not): PostgreSQL searches
+-- the session's temporary schema, pg_temp, FIRST for relation and type names unless search_path
+-- lists it. A caller who may create temporary objects could therefore shadow a type name such as
+-- `text` with a temporary DOMAIN whose CHECK calls a function of theirs, and PL/pgSQL would run that
+-- function, with the owner's rights, when it initialises a variable of that type. So every function
+-- pins `search_path = pg_catalog, public, pg_temp` (pg_temp explicitly LAST) and writes every type
+-- and relation name schema-qualified. (Functions and operators are never looked up in pg_temp.)
 -- ---------------------------------------------------------------------------------------------
 
 -- Append-only tables: any UPDATE, DELETE or TRUNCATE is refused.
-CREATE FUNCTION public.gsn_reject_change() RETURNS trigger
+CREATE FUNCTION public.gsn_reject_change() RETURNS pg_catalog.trigger
 LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
 AS $$
 BEGIN
     RAISE EXCEPTION '% is append-only', TG_TABLE_NAME;
@@ -129,8 +139,9 @@ $$;
 -- validated or rejected, when the gate has judged it. Only status, gate_report and override_reason
 -- may change in that step; everything else is frozen from the first moment (comparing the whole
 -- row as JSON means a column added later is frozen by default). Releases are never removed.
-CREATE FUNCTION public.releases_guard() RETURNS trigger
+CREATE FUNCTION public.releases_guard() RETURNS pg_catalog.trigger
 LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
 AS $$
 BEGIN
     IF TG_OP = 'TRUNCATE' THEN
@@ -138,8 +149,13 @@ BEGIN
     ELSIF TG_OP = 'DELETE' THEN
         RAISE EXCEPTION 'release % is frozen', OLD.release_id;
     ELSIF TG_OP = 'INSERT' THEN
+        -- A release starts as a draft without a verdict: the verdict is written once, by the change
+        -- out of draft below.
         IF NEW.status IS DISTINCT FROM 'draft' THEN
             RAISE EXCEPTION 'a release must be created as a draft (not %)', NEW.status;
+        END IF;
+        IF NEW.gate_report IS NOT NULL OR NEW.override_reason IS NOT NULL THEN
+            RAISE EXCEPTION 'a release is created as a draft without gate_report or override_reason';
         END IF;
         RETURN NEW;
     END IF;
@@ -148,7 +164,7 @@ BEGIN
     IF OLD.status <> 'draft' THEN
         RAISE EXCEPTION 'release % is frozen', OLD.release_id;
     END IF;
-    IF NEW.status NOT IN ('validated', 'rejected')
+    IF NEW.status IS NULL OR NEW.status NOT IN ('validated', 'rejected')
        OR (to_jsonb(NEW) - 'status' - 'gate_report' - 'override_reason')
           IS DISTINCT FROM (to_jsonb(OLD) - 'status' - 'gate_report' - 'override_reason') THEN
         RAISE EXCEPTION
@@ -163,12 +179,13 @@ $$;
 -- parent release is a draft; they are never updated. The parent row is read FOR SHARE, which
 -- waits for a concurrent status change of the release (a plain read would race with it) and then
 -- sees its committed result, so a member cannot slip into a release that has just been validated.
-CREATE FUNCTION public.release_children_guard() RETURNS trigger
+CREATE FUNCTION public.release_children_guard() RETURNS pg_catalog.trigger
 LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
 AS $$
 DECLARE
-    v_release_id bigint;
-    v_status     text;
+    v_release_id pg_catalog.int8;
+    v_status     pg_catalog.text;
 BEGIN
     IF TG_OP = 'TRUNCATE' THEN
         RAISE EXCEPTION '% is frozen: rows are never truncated', TG_TABLE_NAME;
@@ -199,11 +216,12 @@ $$;
 
 -- active_release: only a validated release may be made active, and the row is never removed. (The
 -- table is written by publish_release / rollback_release only; this stops the owner's mistakes.)
-CREATE FUNCTION public.active_release_guard() RETURNS trigger
+CREATE FUNCTION public.active_release_guard() RETURNS pg_catalog.trigger
 LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
 AS $$
 DECLARE
-    v_status text;
+    v_status pg_catalog.text;
 BEGIN
     IF TG_OP = 'TRUNCATE' THEN
         RAISE EXCEPTION 'active_release cannot be truncated; it is changed by publish_release() and rollback_release()';
@@ -287,7 +305,8 @@ CREATE TRIGGER active_release_guard_truncate
 -- publications row and the audit_log row in one transaction, so none can happen without the
 -- others. They are SECURITY DEFINER (they run as gsn_migrate, which owns the tables): the worker,
 -- who may not write active_release, publications or the audit log's chain fields, calls them.
--- Names are schema-qualified and search_path is pinned, so a caller cannot redirect them.
+-- Names are schema-qualified and search_path is pinned (pg_temp last), so a caller cannot redirect
+-- them, not even with temporary tables or domains named like the real ones (see "Name resolution").
 --
 -- Concurrency: both functions start by locking the active_release TABLE in SHARE ROW EXCLUSIVE
 -- mode, which conflicts with itself and with the row locks of INSERT/UPDATE but not with plain
@@ -298,14 +317,15 @@ CREATE TRIGGER active_release_guard_truncate
 -- blocked.
 -- ---------------------------------------------------------------------------------------------
 
-CREATE FUNCTION public.publish_release(p_release_id bigint, p_actor text) RETURNS void
+CREATE FUNCTION public.publish_release(p_release_id pg_catalog.int8, p_actor pg_catalog.text)
+RETURNS pg_catalog.void
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public
+SET search_path = pg_catalog, public, pg_temp
 AS $$
 DECLARE
-    v_status   text;
-    v_previous bigint;
+    v_status   pg_catalog.text;
+    v_previous pg_catalog.int8;
 BEGIN
     LOCK TABLE public.active_release IN SHARE ROW EXCLUSIVE MODE;
 
@@ -339,21 +359,22 @@ BEGIN
     VALUES (p_release_id, v_previous, 'publish', p_actor);
 
     INSERT INTO public.audit_log (actor, action, target, details)
-    VALUES (p_actor, 'release.publish', 'release:' || p_release_id, jsonb_build_object('previous', v_previous));
+    VALUES (p_actor, 'release.publish', 'release:' || p_release_id::pg_catalog.text,
+            jsonb_build_object('previous', v_previous));
 END;
 $$;
 
 -- Undoes the most recent switch: makes the latest publication's previous release active again and
 -- returns its id. A second rollback therefore re-applies the release the first one undid. With no
 -- earlier release (nothing published yet, or the latest publication was the very first) it refuses.
-CREATE FUNCTION public.rollback_release(p_actor text) RETURNS bigint
+CREATE FUNCTION public.rollback_release(p_actor pg_catalog.text) RETURNS pg_catalog.int8
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public
+SET search_path = pg_catalog, public, pg_temp
 AS $$
 DECLARE
-    v_target  bigint;
-    v_current bigint;
+    v_target  pg_catalog.int8;
+    v_current pg_catalog.int8;
 BEGIN
     LOCK TABLE public.active_release IN SHARE ROW EXCLUSIVE MODE;
 
@@ -378,7 +399,8 @@ BEGIN
     VALUES (v_target, v_current, 'rollback', p_actor);
 
     INSERT INTO public.audit_log (actor, action, target, details)
-    VALUES (p_actor, 'release.rollback', 'release:' || v_target, jsonb_build_object('previous', v_current));
+    VALUES (p_actor, 'release.rollback', 'release:' || v_target::pg_catalog.text,
+            jsonb_build_object('previous', v_current));
 
     RETURN v_target;
 END;
@@ -432,8 +454,20 @@ REVOKE ALL ON engine_active_release, engine_active_services, engine_active_versi
 -- The worker builds drafts and reads what it needs to evaluate them. It cannot write
 -- active_release or publications (publish_release / rollback_release do), and it can change a
 -- release only by giving it its verdict.
-GRANT SELECT, INSERT ON services, records, record_versions, releases, release_services, release_members
+GRANT SELECT ON services, records, record_versions, releases, release_services, release_members
     TO gsn_worker;
+-- INSERT is granted per column wherever a table has an identity column or created_at, and leaves
+-- those two out (the audit_log pattern): the caller cannot pick a sequence value (not even with
+-- OVERRIDING SYSTEM VALUE) or backdate a row; both always come from their defaults.
+GRANT INSERT ON services, release_services, release_members TO gsn_worker;
+GRANT INSERT (record_id, service_id) ON records TO gsn_worker;
+GRANT INSERT (record_id, content_hash, text_hash, hash_version, record, embed_text, category, subcategory,
+              heading, lang, source_url, url_kind, official, source_verified, verified_at, embedding,
+              embedding_model, source_commit, created_by, change_note)
+    ON record_versions TO gsn_worker;
+GRANT INSERT (status, source_commit, manifest, registry, registry_sha256, thresholds, gate_report,
+              embedding_model, note, override_reason, created_by)
+    ON releases TO gsn_worker;
 GRANT UPDATE (status, gate_report, override_reason) ON releases TO gsn_worker;
 GRANT DELETE ON release_members TO gsn_worker;  -- draft releases only (release_members_guard_row)
 GRANT SELECT ON active_release, publications TO gsn_worker;

@@ -7,11 +7,11 @@ with ``docker compose down -v``).
 """
 import pytest
 from psycopg.errors import RaiseException
-from test_releases_schema import (
-    _actor,
+from release_helpers import (
     active_release_id,
     audit_rows,
     make_validated_release,
+    new_actor,
     publications_after,
     publish,
     rollback,
@@ -23,7 +23,7 @@ def test_rollback_has_nothing_to_undo_before_and_after_the_first_publication(con
     if worker.execute("SELECT count(*) FROM publications").fetchone()[0]:
         pytest.skip("this database already has publications; the check needs a fresh database")
     assert active_release_id(worker) is None
-    actor = _actor()
+    actor = new_actor()
 
     # Nothing has been published at all.
     with pytest.raises(RaiseException, match="nothing to roll back"):

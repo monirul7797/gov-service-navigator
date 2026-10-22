@@ -3,187 +3,45 @@
 Everything is checked as the real roles (spec sections 3, 3.1 and 6). The stack tests share one
 database across runs, so every test makes its own service and record ids (a random suffix) and
 never assumes an empty ``active_release``; the one state that only a fresh database has lives in
-``test_00_first_publication.py``.
-
-Vectors are text literals cast to ``vector`` (the Python side never needs a pgvector package).
+``test_00_first_publication.py``. The shared helpers are in ``release_helpers.py``.
 """
-import hashlib
 import threading
-import time
-import uuid
-from dataclasses import dataclass
 from datetime import date
 
-import psycopg
 import pytest
 from psycopg.errors import (
     CheckViolation,
     DataException,
     ForeignKeyViolation,
+    GeneratedAlways,
     InsufficientPrivilege,
     NotNullViolation,
     RaiseException,
     UniqueViolation,
 )
 from psycopg.types.json import Jsonb
-
-DIM = 1024
-UNIT_VECTOR = "[" + ",".join(["0.03125"] * DIM) + "]"  # (1/32)^2 * 1024 = 1: unit length
-COMMIT = "0123456789abcdef0123456789abcdef01234567"
-MODEL = "fake-sha256-v1"
-
-
-def _tag():
-    return uuid.uuid4().hex[:8]
-
-
-def _actor():
-    """A unique actor per test: audit_log rows can never be deleted, so tests only add rows."""
-    return f"itest-{uuid.uuid4().hex}"
-
-
-def _sha(text):
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-@dataclass(frozen=True)
-class Built:
-    release_id: int
-    service_id: str
-    record_ids: tuple
-    version_ids: tuple
-    tag: str
-
-
-def add_version(conn, record_id, *, text, content_hash=None, url_kind="portal", source_commit=COMMIT,
-                embedding=UNIT_VECTOR, model=MODEL, source_url=None, verified_at=date(2026, 7, 12)):
-    """Insert one ``record_versions`` row (as whatever role ``conn`` is) and return its ``version_id``."""
-    row = conn.execute(
-        "INSERT INTO record_versions (record_id, content_hash, text_hash, hash_version, record, embed_text, "
-        "category, subcategory, heading, lang, source_url, url_kind, official, source_verified, verified_at, "
-        "embedding, embedding_model, source_commit, created_by, change_note) "
-        "VALUES (%s, %s, %s, 1, %s, %s, 'process_steps', NULL, 'Heading', 'en', %s, %s, true, true, %s, "
-        "%s::vector, %s, %s, 'itest', NULL) RETURNING version_id",
-        (
-            record_id,
-            content_hash or _sha(text),
-            _sha(text),
-            Jsonb({"id": record_id, "text": text}),
-            text,
-            source_url or f"https://example.test/{record_id}",
-            url_kind,
-            verified_at,
-            embedding,
-            model,
-            source_commit,
-        ),
-    ).fetchone()
-    return row[0]
-
-
-def add_record(conn, service_id, record_id, *, text):
-    """Insert a record and its first version; returns ``(record_id, version_id)``."""
-    conn.execute("INSERT INTO records (record_id, service_id) VALUES (%s, %s)", (record_id, service_id))
-    return record_id, add_version(conn, record_id, text=text)
-
-
-def make_draft_release(connect, n_records=2, *, service_status="live"):
-    """A service with ``n_records`` records (one version each) and a draft release holding them, as the worker."""
-    worker = connect("worker")
-    tag = _tag()
-    service_id = f"svc_{tag}"
-    record_ids, version_ids = [], []
-    with worker.transaction():
-        worker.execute(
-            "INSERT INTO services (service_id, name_bn, name_en) VALUES (%s, %s, %s)",
-            (service_id, f"সেবা {tag}", f"Service {tag}"),
-        )
-        for i in range(n_records):
-            record_id, version_id = add_record(worker, service_id, f"rec_{tag}_{i}", text=f"text {i} {tag}")
-            record_ids.append(record_id)
-            version_ids.append(version_id)
-        release_id = worker.execute(
-            "INSERT INTO releases (source_commit, manifest, registry, registry_sha256, thresholds, "
-            "embedding_model, note, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s, 'itest') RETURNING release_id",
-            (
-                COMMIT,
-                Jsonb({"services": [{"service_id": service_id}]}),
-                Jsonb({"services": {service_id: {"names": ["a", "b"]}}}),
-                "f" * 64,
-                Jsonb({"known_failures": []}),
-                MODEL,
-                f"itest {tag}",
-            ),
-        ).fetchone()[0]
-        worker.execute(
-            "INSERT INTO release_services (release_id, service_id, status) VALUES (%s, %s, %s)",
-            (release_id, service_id, service_status),
-        )
-        for record_id, version_id in zip(record_ids, version_ids):
-            worker.execute(
-                "INSERT INTO release_members (release_id, version_id, record_id) VALUES (%s, %s, %s)",
-                (release_id, version_id, record_id),
-            )
-    return Built(release_id, service_id, tuple(record_ids), tuple(version_ids), tag)
-
-
-def set_status(conn, release_id, status, *, override_reason=None):
-    conn.execute(
-        "UPDATE releases SET status = %s, gate_report = %s, override_reason = %s WHERE release_id = %s",
-        (status, Jsonb({"status": status}), override_reason, release_id),
-    )
-
-
-def make_validated_release(connect, n_records=2, *, service_status="live"):
-    """``make_draft_release`` and then the gate's verdict: the release becomes ``validated``."""
-    built = make_draft_release(connect, n_records, service_status=service_status)
-    set_status(connect("worker"), built.release_id, "validated")
-    return built
-
-
-def publish(conn, release_id, actor):
-    conn.execute("SELECT publish_release(%s, %s)", (release_id, actor))
-
-
-def rollback(conn, actor):
-    return conn.execute("SELECT rollback_release(%s)", (actor,)).fetchone()[0]
-
-
-def active_release_id(conn):
-    row = conn.execute("SELECT release_id FROM active_release").fetchone()
-    return row[0] if row else None
-
-
-def last_publication_id(conn):
-    return conn.execute("SELECT coalesce(max(publication_id), 0) FROM publications").fetchone()[0]
-
-
-def publications_after(conn, publication_id):
-    return conn.execute(
-        "SELECT release_id, previous_release_id, action, actor FROM publications "
-        "WHERE publication_id > %s ORDER BY publication_id",
-        (publication_id,),
-    ).fetchall()
-
-
-def audit_rows(conn, actor):
-    return conn.execute(
-        "SELECT action, target, details FROM audit_log WHERE actor = %s ORDER BY id", (actor,)
-    ).fetchall()
-
-
-def wait_until_a_statement_waits_for_a_lock(watcher, text, timeout=10):
-    """Poll until another session's statement containing ``text`` is blocked on a lock; the number of such sessions."""
-    deadline = time.monotonic() + timeout
-    waiting = 0
-    while time.monotonic() < deadline and not waiting:
-        waiting = watcher.execute(
-            "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() "
-            "AND wait_event_type = 'Lock' AND query LIKE %s AND pid <> pg_backend_pid()",
-            (f"%{text}%",),
-        ).fetchone()[0]
-        time.sleep(0.05)
-    return waiting
+from release_helpers import (
+    COMMIT,
+    DIM,
+    MODEL,
+    UNIT_VECTOR,
+    active_release_id,
+    add_record,
+    add_release,
+    add_version,
+    audit_rows,
+    last_publication_id,
+    make_draft_release,
+    make_validated_release,
+    new_actor,
+    new_tag,
+    publications_after,
+    publish,
+    rollback,
+    set_status,
+    sha256_hex,
+    wait_until_a_statement_waits_for_a_lock,
+)
 
 
 # --- the worker builds a release ---------------------------------------------------------------
@@ -253,7 +111,7 @@ def test_table_constraints_reject_bad_values(connect, statement, params, error):
 )
 def test_record_version_constraints_reject_bad_values(connect, overrides, error):
     worker = connect("worker")
-    tag = _tag()
+    tag = new_tag()
     service_id = f"svc_{tag}"
     worker.execute("INSERT INTO services (service_id, name_bn, name_en) VALUES (%s, 'b', 'e')", (service_id,))
     worker.execute("INSERT INTO records (record_id, service_id) VALUES (%s, %s)", (f"rec_{tag}", service_id))
@@ -265,7 +123,7 @@ def test_a_version_is_unique_per_record_hash_and_model(connect):
     worker = connect("worker")
     built = make_draft_release(connect, n_records=1)
     record_id = built.record_ids[0]
-    same_hash = _sha(f"text 0 {built.tag}")
+    same_hash = sha256_hex(f"text 0 {built.tag}")
     with pytest.raises(UniqueViolation):  # same (record, content_hash, model) as the first version
         add_version(worker, record_id, text="other text", content_hash=same_hash)
     # a different model or a different content hash is a different version
@@ -286,7 +144,7 @@ APPEND_ONLY = {
 @pytest.mark.parametrize("table", sorted(APPEND_ONLY))
 def test_versions_services_records_publications_are_append_only(connect, table):
     built = make_validated_release(connect)
-    publish(connect("worker"), built.release_id, _actor())  # makes sure `publications` has a row
+    publish(connect("worker"), built.release_id, new_actor())  # makes sure `publications` has a row
     update = APPEND_ONLY[table]
     migrate = connect("migrate")
     before = migrate.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
@@ -374,6 +232,52 @@ def test_a_release_can_only_be_created_as_a_draft(connect):
         )
 
 
+@pytest.mark.parametrize(
+    "column, value",
+    [("gate_report", Jsonb({"ok": True})), ("override_reason", "pre-approved")],
+)
+def test_a_release_is_created_without_a_verdict(connect, column, value):
+    # The verdict (gate_report, override_reason) is written once, by the draft -> validated/rejected
+    # change; a release cannot be created already carrying one.
+    with pytest.raises(RaiseException, match="draft"):
+        connect("worker").execute(
+            "INSERT INTO releases (source_commit, manifest, registry, registry_sha256, thresholds, "
+            f"embedding_model, created_by, {column}) VALUES (%s, '{{}}', '{{}}', 'x', '{{}}', 'm', 'itest', %s)",
+            (COMMIT, value),
+        )
+
+
+def test_a_draft_cannot_be_given_a_null_status(connect):
+    # The guard itself refuses it (not only the NOT NULL constraint that would answer later).
+    built = make_draft_release(connect)
+    with pytest.raises(RaiseException, match=f"release {built.release_id} is frozen"):
+        connect("worker").execute("UPDATE releases SET status = NULL WHERE release_id = %s", (built.release_id,))
+    with pytest.raises(RaiseException, match=f"release {built.release_id} is frozen"):
+        connect("migrate").execute("UPDATE releases SET status = NULL WHERE release_id = %s", (built.release_id,))
+
+
+FORBIDDEN_INSERTS = [
+    # created_at always comes from its default (now()): no backdating
+    ("INSERT INTO records (record_id, service_id, created_at) VALUES ('r', 's', '2001-01-01')", InsufficientPrivilege),
+    ("INSERT INTO record_versions (record_id, created_at) VALUES ('r', '2001-01-01')", InsufficientPrivilege),
+    ("INSERT INTO releases (source_commit, created_at) VALUES ('c', '2001-01-01')", InsufficientPrivilege),
+    # identity values always come from the sequence: without OVERRIDING SYSTEM VALUE the column
+    # refuses an explicit value, with it the missing privilege does
+    ("INSERT INTO record_versions (version_id, record_id) VALUES (1, 'r')", GeneratedAlways),
+    ("INSERT INTO record_versions (version_id, record_id) OVERRIDING SYSTEM VALUE VALUES (1, 'r')",
+     InsufficientPrivilege),
+    ("INSERT INTO releases (release_id, source_commit) VALUES (1, 'c')", GeneratedAlways),
+    ("INSERT INTO releases (release_id, source_commit) OVERRIDING SYSTEM VALUE VALUES (1, 'c')",
+     InsufficientPrivilege),
+]
+
+
+@pytest.mark.parametrize("statement, error", FORBIDDEN_INSERTS)
+def test_worker_cannot_choose_identity_values_or_timestamps(connect, statement, error):
+    with pytest.raises(error):
+        connect("worker").execute(statement)
+
+
 def test_members_frozen_after_draft(connect):
     worker, migrate = connect("worker"), connect("migrate")
     built = make_draft_release(connect)
@@ -407,7 +311,7 @@ def test_members_frozen_after_draft(connect):
         worker.execute("DELETE FROM release_members WHERE release_id = %s AND record_id = %s", (rid, extra_record))
     with pytest.raises(RaiseException, match=frozen):
         migrate.execute("DELETE FROM release_members WHERE release_id = %s", (rid,))
-    other_service = f"svc_{_tag()}"
+    other_service = f"svc_{new_tag()}"
     worker.execute("INSERT INTO services (service_id, name_bn, name_en) VALUES (%s, 'b', 'e')", (other_service,))
     with pytest.raises(RaiseException, match=frozen):
         worker.execute(
@@ -470,7 +374,7 @@ def test_publish_and_rollback_write_switch_publication_and_audit(connect):
     r1, r2 = make_validated_release(connect), make_validated_release(connect)
     before_active = active_release_id(worker)
     before_publication = last_publication_id(worker)
-    actor = _actor()
+    actor = new_actor()
 
     publish(worker, r1.release_id, actor)
     assert active_release_id(worker) == r1.release_id
@@ -498,7 +402,7 @@ def test_second_rollback_reapplies_the_undone_release(connect):
     worker, web = connect("worker"), connect("web")
     r1, r2 = make_validated_release(connect), make_validated_release(connect)
     before_publication = last_publication_id(worker)
-    actor = _actor()
+    actor = new_actor()
     publish(worker, r1.release_id, actor)
     publish(worker, r2.release_id, actor)
 
@@ -522,10 +426,10 @@ def test_publish_refuses_unvalidated_and_already_active(connect):
     rejected = make_draft_release(connect)
     set_status(worker, rejected.release_id, "rejected")
     validated = make_validated_release(connect)
-    publish(worker, validated.release_id, _actor())
+    publish(worker, validated.release_id, new_actor())
     before_publication = last_publication_id(worker)
     before_active = active_release_id(worker)
-    actor = _actor()
+    actor = new_actor()
 
     for release in (draft, rejected):
         with pytest.raises(RaiseException, match=f"release {release.release_id} is not validated"):
@@ -549,7 +453,7 @@ def test_publish_refuses_unvalidated_and_already_active(connect):
 def test_worker_cannot_write_active_release_or_publications_directly(connect):
     built = make_validated_release(connect)
     other = make_validated_release(connect)
-    publish(connect("worker"), built.release_id, _actor())
+    publish(connect("worker"), built.release_id, new_actor())
     for role in ("worker", "web", "engine"):
         conn = connect(role)
         for statement in (
@@ -572,7 +476,7 @@ def test_active_release_must_be_a_validated_release_and_is_never_removed(connect
     # the row: the guard triggers allow only what publish_release / rollback_release do.
     migrate = connect("migrate")
     published = make_validated_release(connect)
-    publish(connect("worker"), published.release_id, _actor())
+    publish(connect("worker"), published.release_id, new_actor())
     draft = make_draft_release(connect)
     not_validated = f"release {draft.release_id} is not validated"
     with pytest.raises(RaiseException, match=not_validated):
@@ -594,7 +498,7 @@ def test_concurrent_publishes_are_serialised(connect):
     # and then records the first one as its "previous" release (instead of both seeing the old one).
     r1, r2 = make_validated_release(connect), make_validated_release(connect)
     first, second, watcher = connect("worker"), connect("worker"), connect("worker")
-    actor = _actor()
+    actor = new_actor()
     before_publication = last_publication_id(watcher)
     outcome = {}
 
@@ -693,7 +597,7 @@ def test_engine_sees_only_the_active_release_views(connect):
     worker, engine = connect("worker"), connect("engine")
     r1, r2 = make_validated_release(connect, n_records=3), make_validated_release(connect, n_records=2)
     draft = make_draft_release(connect)  # drafts and unpublished releases are invisible
-    actor = _actor()
+    actor = new_actor()
     publish(worker, r1.release_id, actor)
 
     def active_versions(service_id):
@@ -720,6 +624,18 @@ def test_engine_sees_only_the_active_release_views(connect):
         f"https://example.test/{r1.record_ids[0]}", "portal", True, True, date(2026, 7, 12), MODEL,
     )
     assert active_versions(r2.service_id) == [] and active_versions(draft.service_id) == []
+
+    # A newer wording of record R sits in a draft and in a validated release that is not active. The
+    # engine must keep seeing the version the ACTIVE release holds, once, and not R's newer version
+    # (a view that joined record_versions on record_id alone would return both).
+    newer = add_version(worker, r1.record_ids[0], text=f"NEWER wording {r1.tag}")
+    add_release(worker, r1.service_id, r1.tag, [(newer, r1.record_ids[0])])  # a draft
+    unpublished = add_release(worker, r1.service_id, r1.tag, [(newer, r1.record_ids[0])])
+    set_status(worker, unpublished, "validated")
+    assert engine.execute(
+        "SELECT version_id, embed_text FROM engine_active_versions WHERE record_id = %s", (r1.record_ids[0],)
+    ).fetchall() == [(r1.version_ids[0], f"text 0 {r1.tag}")]
+    assert active_versions(r1.service_id) == rows
     dims = engine.execute(
         "SELECT vector_dims(embedding), embedding <=> %s::vector FROM engine_active_versions WHERE record_id = %s",
         (UNIT_VECTOR, r1.record_ids[0]),
@@ -747,7 +663,7 @@ def test_engine_sees_only_the_active_release_views(connect):
 def test_the_engine_does_not_see_the_records_of_a_hidden_service(connect):
     worker, engine = connect("worker"), connect("engine")
     hidden = make_validated_release(connect, service_status="hidden")
-    publish(worker, hidden.release_id, _actor())
+    publish(worker, hidden.release_id, new_actor())
     assert engine.execute("SELECT release_id FROM engine_active_release").fetchall() == [(hidden.release_id,)]
     assert engine.execute(
         "SELECT count(*) FROM engine_active_services WHERE service_id = %s", (hidden.service_id,)
@@ -776,7 +692,7 @@ def test_the_engine_views_are_security_barrier_views_with_owner_rights(connect):
 
 def test_publish_rollback_functions_are_not_executable_by_web_or_engine(connect):
     built = make_validated_release(connect)
-    publish(connect("worker"), built.release_id, _actor())
+    publish(connect("worker"), built.release_id, new_actor())
     before = active_release_id(connect("worker"))
     for role in ("web", "engine"):
         conn = connect(role)
@@ -801,11 +717,29 @@ GUARDS = {  # table -> trigger function (each table has `<table>_guard_row` and 
 }
 
 
+# pg_trigger.tgtype bits
+ROW, BEFORE, INSERT, DELETE, UPDATE, TRUNCATE = 1, 2, 4, 8, 16, 32
+APPEND_ONLY_EVENTS = UPDATE | DELETE  # gsn_reject_change guards updates and deletes (not inserts)
+STATE_RULE_EVENTS = INSERT | UPDATE | DELETE  # the state rules also check what is inserted
+EVENTS = {
+    "services": APPEND_ONLY_EVENTS,
+    "records": APPEND_ONLY_EVENTS,
+    "record_versions": APPEND_ONLY_EVENTS,
+    "publications": APPEND_ONLY_EVENTS,
+    "releases": STATE_RULE_EVENTS,
+    "release_members": STATE_RULE_EVENTS,
+    "release_services": STATE_RULE_EVENTS,
+    "active_release": STATE_RULE_EVENTS,
+}
+GUARD_SEARCH_PATH = ["search_path=pg_catalog, public, pg_temp"]
+
+
 def test_guard_triggers_have_the_registered_names_and_fire_for_normal_sessions(connect):
     with connect("web").cursor() as cur:
         cur.execute(
-            "SELECT c.relname, t.tgname, p.proname, t.tgenabled, (t.tgtype & 1) = 1, (t.tgtype & 32) = 32, "
-            "p.prosecdef, p.proowner::regrole::text "
+            "SELECT c.relname, t.tgname, p.proname, t.tgenabled, t.tgtype, "
+            "t.tgqual IS NULL AND t.tgattr::text = '' AND t.tgnargs = 0 AS unconditional, "
+            "p.prosecdef, p.proowner::regrole::text, p.proconfig "
             "FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_proc p ON p.oid = t.tgfoid "
             "WHERE NOT t.tgisinternal AND c.relname = ANY(%s)",
             (list(GUARDS),),
@@ -813,6 +747,111 @@ def test_guard_triggers_have_the_registered_names_and_fire_for_normal_sessions(c
         found = {(r[0], r[1]): r[2:] for r in cur.fetchall()}
     expected = {}
     for table, function in GUARDS.items():
-        expected[(table, f"{table}_guard_row")] = (function, "O", True, False, False, "gsn_migrate")
-        expected[(table, f"{table}_guard_truncate")] = (function, "O", False, True, False, "gsn_migrate")
-    assert found == expected  # exactly these two triggers per table, enabled, not SECURITY DEFINER
+        # `tgtype` carries timing, level and events: both triggers fire BEFORE the change; the row
+        # trigger for exactly the events above, the statement trigger for TRUNCATE only. `O` means
+        # "enabled for normal sessions"; no WHEN condition, column list or arguments narrow them.
+        expected[(table, f"{table}_guard_row")] = (
+            function, "O", ROW | BEFORE | EVENTS[table], True, False, "gsn_migrate", GUARD_SEARCH_PATH,
+        )
+        expected[(table, f"{table}_guard_truncate")] = (
+            function, "O", BEFORE | TRUNCATE, True, False, "gsn_migrate", GUARD_SEARCH_PATH,
+        )
+    assert found == expected  # exactly these two triggers per table; the functions are not SECURITY DEFINER
+
+
+# --- pg_temp shadowing (a SECURITY DEFINER function must not resolve names in the caller's pg_temp) ---
+
+
+def shadowed_worker_session(connect):
+    """A worker session whose temporary schema holds look-alikes of what the functions touch.
+
+    PostgreSQL searches pg_temp FIRST for relation and type names unless search_path lists it. The
+    session therefore gets temporary tables named like the real ones and temporary domains named
+    ``text``, ``int8``, ``jsonb`` and ``bool`` whose CHECK calls a function that raises "shadow used".
+    A function that resolved one of those names through the caller's pg_temp would fail (types) or
+    write to the wrong table (relations), and a SECURITY DEFINER function would run the look-alike
+    function with the owner's rights.
+    """
+    conn = connect("worker")
+    try:
+        conn.execute("CREATE TEMP TABLE active_release (singleton boolean, release_id bigint, switched_at timestamptz)")
+    except InsufficientPrivilege:
+        pytest.skip("TEMP is revoked from the worker: nothing can be shadowed")
+    conn.execute(
+        "CREATE TEMP TABLE publications (publication_id bigint, release_id bigint, previous_release_id bigint, "
+        "action text, at timestamptz, actor text)"
+    )
+    conn.execute("CREATE TEMP TABLE releases (release_id bigint, status text)")
+    conn.execute(
+        "CREATE TEMP TABLE audit_log (id bigint, at timestamptz, actor text, action text, target text, details jsonb)"
+    )
+    conn.execute(
+        "CREATE FUNCTION pg_temp.shadow_hit(pg_catalog.text) RETURNS pg_catalog.bool LANGUAGE plpgsql AS "
+        "$$ BEGIN RAISE EXCEPTION 'shadow used'; END $$"
+    )
+    for name in ("text", "int8", "jsonb", "bool"):
+        conn.execute(f"CREATE DOMAIN pg_temp.{name} AS pg_catalog.{name} CHECK (pg_temp.shadow_hit('{name}'))")
+    # Canary: an unqualified type name in this session really does reach the look-alike, so the
+    # tests below cannot pass just because the trap is not armed.
+    with pytest.raises(RaiseException, match="shadow used"):
+        conn.execute("DO $$ DECLARE x text; BEGIN NULL; END $$")
+    return conn
+
+
+def assert_shadows_untouched(conn):
+    for table in ("active_release", "publications", "releases", "audit_log"):
+        assert conn.execute(f"SELECT count(*) FROM pg_temp.{table}").fetchone()[0] == 0, table
+
+
+def test_publish_ignores_look_alike_tables_and_types_in_pg_temp(connect):
+    r1, r2 = make_validated_release(connect), make_validated_release(connect)
+    observer, web = connect("worker"), connect("web")
+    actor = new_actor()
+    publish(observer, r1.release_id, actor)
+    before = last_publication_id(observer)
+    attacker = shadowed_worker_session(connect)
+
+    publish(attacker, r2.release_id, actor)  # must succeed, and write the REAL tables
+
+    assert active_release_id(observer) == r2.release_id
+    assert publications_after(observer, before) == [(r2.release_id, r1.release_id, "publish", actor)]
+    assert [row[0] for row in audit_rows(web, actor)] == ["release.publish", "release.publish"]
+    assert_shadows_untouched(attacker)
+
+
+def test_rollback_ignores_look_alike_tables_and_types_in_pg_temp(connect):
+    r1, r2 = make_validated_release(connect), make_validated_release(connect)
+    observer, web = connect("worker"), connect("web")
+    actor = new_actor()
+    publish(observer, r1.release_id, actor)
+    publish(observer, r2.release_id, actor)
+    before = last_publication_id(observer)
+    attacker = shadowed_worker_session(connect)
+
+    assert rollback(attacker, actor) == r1.release_id  # must succeed, and write the REAL tables
+
+    assert active_release_id(observer) == r1.release_id
+    assert publications_after(observer, before) == [(r1.release_id, r2.release_id, "rollback", actor)]
+    assert [row[0] for row in audit_rows(web, actor)] == ["release.publish", "release.publish", "release.rollback"]
+    assert_shadows_untouched(attacker)
+
+
+def test_the_guard_triggers_ignore_look_alike_tables_and_types_in_pg_temp(connect):
+    # The guards run in the caller's session too (and inside the publish/rollback functions): a worker
+    # building a draft still works, and the frozen-release rule still holds, with the look-alikes in place.
+    built = make_draft_release(connect)
+    attacker = shadowed_worker_session(connect)
+    extra_record, extra_version = add_record(
+        attacker, built.service_id, f"rec_{built.tag}_x", text=f"x {built.tag}"
+    )
+    attacker.execute(
+        "INSERT INTO public.release_members (release_id, version_id, record_id) VALUES (%s, %s, %s)",
+        (built.release_id, extra_version, extra_record),
+    )
+    attacker.execute(
+        "UPDATE public.releases SET status = 'validated', gate_report = '{}' WHERE release_id = %s",
+        (built.release_id,),
+    )
+    with pytest.raises(RaiseException, match=f"release {built.release_id} is frozen"):
+        attacker.execute("DELETE FROM public.release_members WHERE release_id = %s", (built.release_id,))
+    assert_shadows_untouched(attacker)
