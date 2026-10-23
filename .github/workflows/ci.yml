@@ -168,8 +168,9 @@ jobs:
       - name: Create .env
         run: python deploy/make_env.py
 
+      # --profile tools also builds the one-off release image (gsn-release:dev), which a plain build skips.
       - name: Build the images
-        run: docker compose build
+        run: docker compose --profile tools build
 
       - name: Start the stack
         run: docker compose up -d
@@ -184,6 +185,21 @@ jobs:
 
       - name: Integration tests (against the running stack)
         run: docker compose -f compose.yaml -f compose.test.yaml run --rm itest
+
+      # Builds a release of this very commit with the fake embedder (no 2 GB model in CI), publishes it
+      # and lists releases: proves the release image, the read-only repository mount, the secret-path
+      # scan and the database functions work together. The fake embedder makes the gold queries fail,
+      # hence --override. The itest step above ran first on this fresh database, so the release id is
+      # not 1: it is read from the first line of the build output. -T: no pseudo-terminal in CI.
+      - name: Release smoke (fake embedder)
+        run: |
+          set -euo pipefail
+          release() { docker compose --profile tools run --rm -T -e GSN_EMBEDDER=fake release release "$@"; }
+          release build --commit HEAD --override "CI smoke test (fake embedder)" | tee build.log
+          id=$(sed -n 's/^release_id=\([0-9]*\) .*/\1/p' build.log)
+          test -n "$id" || { echo "no release id in the first line of the build output"; exit 1; }
+          release publish "$id" --allow-fake
+          release list
 
       - name: Container state and logs (only when something failed)
         if: failure()

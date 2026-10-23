@@ -368,6 +368,40 @@ def test_gold_query_ids_that_differ_only_in_case_are_distinct():
     assert _check(state) == []
 
 
+def test_known_failure_that_is_a_gold_query_of_any_service_is_fine():
+    state = _state()
+    state["thresholds"]["known_failures"] = {"gq_nid_003": "why", "gq_001": "why"}
+    assert _check(state) == []
+
+
+def test_known_failure_that_is_not_a_gold_query_id_is_a_problem():
+    state = _state()
+    state["thresholds"]["known_failures"] = {"gq_nid_003": "why", "gq_nid_999": "a typo"}
+    problem = _only(_check(state), "known_failures", "gq_nid_999")
+    assert "gq_nid_003" not in problem
+
+
+def test_known_failure_whose_gold_query_was_removed_by_a_data_edit():
+    state = _state()
+    state["thresholds"]["known_failures"] = {"gq_nid_002": "why"}
+    del state["gold"]["nid"]["queries"][1]
+    _only(_check(state), "known_failures", "gq_nid_002")
+
+
+def test_known_failure_ids_are_matched_exactly():
+    state = _state()
+    state["thresholds"]["known_failures"] = {"GQ_NID_001": "case differs", " gq_nid_001": "space"}
+    problems = _check(state)
+    assert len(problems) == 2, problems
+
+
+def test_every_unknown_known_failure_is_listed():
+    state = _state()
+    state["thresholds"]["known_failures"] = {"nope_1": "x", "nope_2": "y"}
+    problems = _check(state)
+    assert len(problems) == 2 and "nope_1" in problems[0] and "nope_2" in problems[1]
+
+
 def test_problems_are_collected_not_just_the_first():
     state = _state()
     state["corpora"]["nid"][1]["text"] = ""

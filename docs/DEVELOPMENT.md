@@ -4,7 +4,9 @@ How to run the Government Service Navigator stack on your own machine (Windows) 
 each test suite. The stack is five containers: `caddy` (front door), `web` (Rust: public site, admin
 panel, API edge), `engine` (Python: the answer service), `worker` (Python: background jobs) and
 `postgres` (PostgreSQL 17 with pgvector). A sixth container, `migrate`, is a one-shot job: it applies
-the database migrations and exits (see "Database migrations").
+the database migrations and exits (see "Database migrations"). A seventh, `release`, is a one-off tool
+you start by hand to build and publish data releases (see "Releases"); `docker compose up` never
+starts it.
 
 **Shell: every command below is for Windows PowerShell (5.1)**, run from the repository root unless a
 step says otherwise. Paths use backslashes where PowerShell needs them.
@@ -217,10 +219,11 @@ Notes:
   `Scanning Cargo.lock for vulnerabilities (199 crate dependencies)` and no warnings or errors.
 
 `deploy/tests/test_compose_exposure.py` reads `compose.yaml`, `compose.test.yaml` and the Dockerfiles
-and fails if a new port is published, a service other than the five plus the one-shot `migrate` job
-appears, `migrate` gets a restart policy or a port, an image is not pinned to an exact version, a
-service loads an `env_file`, or a service receives another service's database password (or the
-superuser password). It also checks that `web` waits for a healthy database and the finished
+and fails if a new port is published, a service other than the five plus the one-shot `migrate` and
+`release` jobs appears, either job gets a restart policy or a port, `release` loses its `tools`
+profile or mounts anything but the model volume and the repository's `.git` folder read-only, an image
+is not pinned to an exact version, a service loads an `env_file`, or a service receives another
+service's database password (or the superuser password). It also checks that `web` waits for a healthy database and the finished
 migrations but only for the engine to have started, so a slow engine leaves the site up and degraded
 instead of down.
 
@@ -256,6 +259,86 @@ with a random canary value.
 `itest` receives all four role passwords, and every run adds a few rows to `audit_log` (rows can
 never be deleted). Run it only against this local development stack; `docker compose down -v`
 resets the database. Never run it against a server that holds real data.
+
+## Releases (the data in PostgreSQL)
+
+A **release** is one complete, frozen copy of the knowledge base: every record of every live service,
+with its vector, as it was in one commit of this repository. Nothing in a release is ever edited. A
+change to the data is a new commit, then a new release; the chatbot (from milestone M2) answers from
+the one release that is *active*, and you can go back to the previous one in a second. A release is
+`draft` while it is being built, then `validated` (it passed the checks) or `rejected` (it did not),
+and only a validated release can be published.
+
+`gsn` runs these commands in the one-off `release` container (compose profile `tools`: a plain
+`docker compose up` never starts it). Build its image once, and again after any change in
+`engine\src`; the stack must be running (`docker compose up -d`), because the container waits for the
+finished migrations and talks to `postgres`:
+
+```powershell
+docker compose --profile tools build
+```
+
+Every command has the form `docker compose --profile tools run --rm release release <command>` (the
+container's entry point is `gsn`, so the first `release` is the compose service and the second is the
+`gsn` subcommand). The commands:
+
+| Command | What it does |
+|---|---|
+| `release build [--commit REF] [--note TEXT] [--override REASON]` | Reads the inputs of a commit (default `HEAD`; a branch, tag or short SHA also works), checks them, embeds the new texts, writes a draft, runs the gold queries against it and validates or rejects it. Prints `release_id=<n> status=<status>` first, then a summary. |
+| `release publish ID [--allow-fake]` | Makes a validated release the active one. |
+| `release rollback` | Undoes the latest publish or rollback (the previous active release becomes active again). |
+| `release list` | One line per release; the active one is marked `yes`. |
+| `release show ID` | The release as JSON, with its gate report and the records added, removed and changed compared with the active release. |
+| `eval --release ID [--json]` | Runs the gold queries against any existing release (queries are read from that release's own commit). |
+
+For example, a build, a look at what changed, and the switch (use the number `build` printed):
+
+```powershell
+docker compose --profile tools run --rm release release build --note "after the August crawl"
+docker compose --profile tools run --rm release release show 5
+docker compose --profile tools run --rm release release publish 5
+```
+
+Things to know:
+
+- **Only committed content is read.** The container sees the repository's `.git` folder, read-only,
+  and never the working tree, so a file you have not committed is not in the release, and neither are
+  edits you have made but not committed. Commit first, then build. `GSN_REPO_GIT` can point the
+  mount at another `.git` folder. The build refuses to start (exit 2, with the paths) if any commit in
+  that history ever contained a `setenv*.bat` or `.env` file, because those hold secrets.
+- **Building the same commit again is cheap.** Versions and vectors that are already stored are
+  reused (the summary shows `embedded: 0`), so a rejected build can be fixed and repeated without
+  re-embedding anything.
+- **Rejected releases.** If any gold query fails that is not listed under `known_failures` in
+  `data/release_thresholds.json`, the release is `rejected`. Fix the data and build again, or add
+  `--override "why this is fine"` after looking at the failures: the reason is stored on the release
+  and in the audit log (`release.override`). `--override` has no effect when nothing failed.
+- **Audit trail.** Every build writes `release.build` and then one of `release.validate`,
+  `release.reject` or `release.override`; publish and rollback write their own rows. The actor is
+  `GSN_ACTOR` (default `owner`); set it in `.env` or the shell to record who ran a command.
+- **The real embedding model** (BAAI/bge-m3, about 2 GB) arrives with task C1. Until then a build
+  without `GSN_EMBEDDER` stops with exit code 2 ("real embedder arrives in Task C1"). For tests and
+  smoke runs, `-e GSN_EMBEDDER=fake` selects a stand-in whose vectors carry **no meaning**:
+
+  ```powershell
+  docker compose --profile tools run --rm -e GSN_EMBEDDER=fake release release build --commit HEAD --override "local smoke"
+  docker compose --profile tools run --rm release release list
+  ```
+
+  A release built that way is stamped `fake-sha256-v1`, its gold queries fail (hence `--override`), and
+  `publish` refuses it unless you add `--allow-fake`. `GSN_EMBEDDER=fake` is for tests only; never
+  publish such a release on a server that serves real users. `docker compose down -v` wipes the
+  smoke data along with the rest of the local database.
+
+**Exit codes** (scripts and CI read these):
+
+| Code | Meaning |
+|---|---|
+| 0 | Success (a build that is `validated`, or any other command that worked). |
+| 1 | Runtime error: the database could not be reached or a statement failed (one `error: database: ...` line), or a bug (a traceback is printed). |
+| 2 | Usage or configuration error, or a refusal: a bad argument or ref, a missing `GSN_DB_*` variable, an embedder that cannot be made or does not match the release, secret files in the repository history, or the database said no (`release 7 is not validated`, `nothing to roll back`). The message is printed on stderr. |
+| 3 | The build finished but the release is `rejected` (for `eval`: the gate would reject). |
+| 4 | Integrity problems in the inputs: the full list is printed and **nothing was written**, not even an audit row. |
 
 ## Python constraints (`engine/constraints.txt`)
 

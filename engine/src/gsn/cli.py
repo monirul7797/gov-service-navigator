@@ -1,20 +1,38 @@
-"""Command line entry point: ``gsn worker`` and ``gsn engine``."""
+"""Command line entry point: ``gsn worker``, ``gsn engine``, ``gsn release ...`` and ``gsn eval``.
+
+``gsn release`` and ``gsn eval`` are run by hand (in the one-off ``release`` container) and print plain
+text for the owner. Exit codes: 0 success (a build that is validated, or any other command that worked),
+1 runtime error (database down, a bug), 2 usage or configuration error or a refusal (a bad argument or
+ref, a missing ``GSN_DB_*`` variable, an embedder that cannot be made, secret files in the repository's
+history, a database refusal such as "release 7 is not validated"), 3 a build that finished but was
+rejected (or an eval whose gate would reject), 4 integrity problems (nothing written).
+"""
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import signal
 import sys
-from collections.abc import Sequence
+import traceback
+from collections.abc import Callable, Sequence
 
 import psycopg
 
-from gsn import logs
+from gsn import logs, store
 from gsn.db import connect_kwargs
+from gsn.embed import Embedder, get_embedder
+from gsn.gitsource import GitSourceError
+from gsn.release import commands
+from gsn.release.build import INTEGRITY_FAILED, build_release, dhaka_today, format_build_summary
+from gsn.release.commands import CommandError
 from gsn.worker.main import run_worker
 
 CONNECT_TIMEOUT_SECONDS = 10
+
+EXIT_REJECTED = 3
+EXIT_INTEGRITY = 4
 
 
 def _exit_on_sigterm(_signum: int, _frame: object) -> None:
@@ -37,14 +55,145 @@ def _serve_engine(host: str, port: int) -> None:
     uvicorn.run(app, host=host, port=port, log_config=None, access_log=False)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+class UsageError(Exception):
+    """A configuration or usage problem the owner fixes by changing the command or the environment."""
+
+
+def _non_empty(text: str) -> str:
+    if not text.strip():
+        raise argparse.ArgumentTypeError("must not be empty")
+    return text
+
+
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="gsn", description="Government Service Navigator")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("worker", help="run the background worker")
     engine = sub.add_parser("engine", help="run the engine HTTP service")
     engine.add_argument("--host", default="127.0.0.1", help="bind address (default: 127.0.0.1)")
     engine.add_argument("--port", type=int, default=8000, help="bind port (default: 8000)")
-    args = parser.parse_args(argv)
+
+    release = sub.add_parser("release", help="build, publish and inspect data releases")
+    rsub = release.add_subparsers(dest="release_command", required=True, metavar="COMMAND")
+    build = rsub.add_parser("build", help="build and judge a release from a commit of the repository")
+    build.add_argument("--commit", default="HEAD", metavar="REF", help="branch, tag or SHA to build (default: HEAD)")
+    build.add_argument("--note", help="free text stored with the release")
+    build.add_argument("--override", type=_non_empty, metavar="REASON",
+                       help="validate a release whose gold queries failed; the reason is stored and audited")
+    publish = rsub.add_parser("publish", help="make a validated release the active one")
+    publish.add_argument("release_id", type=int, metavar="ID")
+    publish.add_argument("--allow-fake", action="store_true",
+                         help="publish a release built with the fake embedder (tests only)")
+    rsub.add_parser("rollback", help="undo the latest publish or rollback")
+    rsub.add_parser("list", help="list all releases")
+    show = rsub.add_parser("show", help="print one release as JSON, with its changes against the active release")
+    show.add_argument("release_id", type=int, metavar="ID")
+
+    evaluate = sub.add_parser("eval", help="run the gold queries against a release")
+    evaluate.add_argument("--release", dest="release_id", type=int, required=True, metavar="ID")
+    evaluate.add_argument("--json", action="store_true", help="print the full result as JSON")
+    return parser
+
+
+def _db_kwargs() -> dict:
+    try:
+        return connect_kwargs(os.environ)
+    except ValueError as exc:  # names the missing variable, never a value
+        raise UsageError(str(exc)) from None
+
+
+def _make_embedder() -> Embedder:
+    try:
+        return get_embedder(os.environ)
+    except (NotImplementedError, ValueError) as exc:
+        raise UsageError(f"cannot make the embedder: {exc}") from None
+
+
+def _actor() -> str:
+    return os.environ.get("GSN_ACTOR") or "owner"
+
+
+def _dump(value: object) -> str:
+    return json.dumps(value, indent=2, ensure_ascii=False, default=str)
+
+
+def _run_build(args: argparse.Namespace, connect: Callable[[], psycopg.Connection]) -> int:
+    # The repository is opened (ref resolved, history scanned for secrets) before the model is loaded or
+    # the database touched: a bad ref or a dirty history costs nothing.
+    source = commands.open_repository(args.commit)
+    conn = connect()
+    try:
+        result = build_release(
+            conn, source, _make_embedder(), actor=_actor(), note=args.note, override=args.override,
+            today=dhaka_today(),
+        )
+    finally:
+        conn.close()
+    print(format_build_summary(result))
+    if result.status == INTEGRITY_FAILED:
+        return EXIT_INTEGRITY
+    return EXIT_REJECTED if result.status == "rejected" else 0
+
+
+def _run_eval(args: argparse.Namespace, connect: Callable[[], psycopg.Connection]) -> int:
+    conn = connect()
+    try:
+        result = commands.eval_release(conn, args.release_id, _make_embedder())
+    finally:
+        conn.close()
+    print(_dump(result) if args.json else commands.format_eval(result))
+    return 0 if result["passed"] else EXIT_REJECTED
+
+
+def _run_simple(args: argparse.Namespace, connect: Callable[[], psycopg.Connection]) -> int:
+    conn = connect()
+    try:
+        name = args.release_command
+        if name == "publish":
+            commands.publish(conn, args.release_id, _actor(), args.allow_fake)
+            print(f"release {args.release_id} is now the active release")
+        elif name == "rollback":
+            print(f"rolled back: release {commands.rollback(conn, _actor())} is the active release again")
+        elif name == "list":
+            print(commands.format_release_list(commands.list_releases(conn)))
+        else:  # show
+            print(_dump(commands.show(conn, args.release_id)))
+    finally:
+        conn.close()
+    return 0
+
+
+def _run_release_command(args: argparse.Namespace) -> int:
+    """Run ``gsn release ...`` or ``gsn eval`` and turn every outcome into an exit code (see the module doc)."""
+    try:
+        kwargs = _db_kwargs()
+
+        def connect() -> psycopg.Connection:
+            # autocommit: the store opens its own short transactions (see gsn.store).
+            return psycopg.connect(**kwargs, autocommit=True, connect_timeout=CONNECT_TIMEOUT_SECONDS)
+
+        if args.command == "eval":
+            return _run_eval(args, connect)
+        if args.release_command == "build":
+            return _run_build(args, connect)
+        return _run_simple(args, connect)
+    except (UsageError, CommandError, store.StoreError, GitSourceError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except psycopg.Error as exc:  # database down, failing statement: psycopg's message names no password
+        print(f"error: database: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:  # a bug: keep the traceback for the owner to report
+        traceback.print_exc()
+        print(f"error: unexpected {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 1
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = _build_parser().parse_args(argv)
+
+    if args.command in ("release", "eval"):
+        return _run_release_command(args)
 
     if args.command == "engine":
         logs.configure("engine")

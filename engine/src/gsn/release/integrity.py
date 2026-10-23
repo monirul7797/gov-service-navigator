@@ -209,6 +209,21 @@ def _duplicate_gold_ids(inputs: ReleaseInputs) -> list[str]:
     ]
 
 
+def _unknown_known_failures(inputs: ReleaseInputs) -> list[str]:
+    """Every ``known_failures`` id must be a gold query of this release (a typo or a removed query
+    would otherwise sit in the file doing nothing, and the next query given that id would be waved through)."""
+    gold_ids = {
+        query.get("id")
+        for entry in inputs.manifest
+        for query in inputs.gold.get(entry.service_id, {}).get("queries", [])
+    }
+    return [
+        f"known_failures lists {qid!r}, which is not a gold query id of this release"
+        for qid in sorted(inputs.thresholds.known_failures)
+        if qid not in gold_ids
+    ]
+
+
 def check_integrity(
     inputs: ReleaseInputs,
     stored_record_services: Mapping[str, str],
@@ -234,4 +249,5 @@ def check_integrity(
         *_changed_service_names(inputs, stored_service_names),
         *_gold_expected_ids(inputs),
         *_duplicate_gold_ids(inputs),
+        *_unknown_known_failures(inputs),
     ]

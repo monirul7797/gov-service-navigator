@@ -1,8 +1,8 @@
 """Static checks on ``compose.yaml`` and the Dockerfiles (no Docker needed).
 
 They guard the review-focus items for the container stack: nothing but Caddy and the admin
-listener is published, the long-running service set is fixed (plus the one-shot ``migrate`` job),
-every image pulled from a registry and every Dockerfile ``FROM`` is pinned to an exact version,
+listener is published, the long-running service set is fixed (plus the one-shot ``migrate`` and
+``release`` jobs), every image pulled from a registry and every Dockerfile ``FROM`` is pinned to an exact version,
 secrets are never written into the compose file, and each service only receives its own database
 password. ``compose.test.yaml`` (the ``itest`` job) gets its own checks at the end.
 """
@@ -19,7 +19,7 @@ DOCKERFILES = [ROOT / "web" / "Dockerfile", ROOT / "engine" / "Dockerfile"]
 
 ALLOWED_PORTS = {"caddy": ["80:80"], "web": ["${GSN_ADMIN_PUBLISH:-127.0.0.1:8081}:8081"]}
 LONG_RUNNING_SERVICES = {"caddy", "web", "engine", "worker", "postgres"}
-ONE_SHOT_SERVICES = {"migrate"}  # run to completion and exit (restart "no")
+ONE_SHOT_SERVICES = {"migrate", "release"}  # run to completion and exit (restart "no")
 EXPECTED_SERVICES = LONG_RUNNING_SERVICES | ONE_SHOT_SERVICES
 
 # Which database password variable each service may receive (spec section 6.1). The engine has no
@@ -36,6 +36,7 @@ ALLOWED_DB_PASSWORDS = {
     "web": {"GSN_DB_WEB_PASSWORD"},
     "engine": set(),
     "worker": {"GSN_DB_WORKER_PASSWORD"},
+    "release": {"GSN_DB_WORKER_PASSWORD"},
     "postgres": DB_PASSWORD_VARS,
 }
 
@@ -125,7 +126,7 @@ def test_web_admin_listener_is_reachable_through_the_published_port():
 # --- service set -----------------------------------------------------------------------------
 
 
-def test_long_running_services_are_exactly_five_plus_the_one_shot_migrate_job():
+def test_long_running_services_are_exactly_five_plus_the_one_shot_jobs():
     services = _services()
     assert set(services) == EXPECTED_SERVICES
     long_running = {name for name, svc in services.items() if svc.get("restart") != "no"}
@@ -186,6 +187,34 @@ def test_worker_reuses_the_engine_image():
     assert "build" not in services["worker"]
 
 
+def test_release_is_a_one_shot_tool_that_is_never_started_by_a_plain_up():
+    release = _services()["release"]
+    assert release["restart"] == "no"
+    assert release.get("profiles") == ["tools"]  # `docker compose up` skips it; `--profile tools run` starts it
+    assert not release.get("ports")
+    assert release["image"] == "gsn-release:dev"
+    assert release["build"] == {"context": "./engine", "target": "release"}
+    assert release["depends_on"] == {"migrate": {"condition": "service_completed_successfully"}}
+    assert "command" not in release  # the image's entrypoint is `gsn`, so the arguments are the owner's
+
+
+def test_release_mounts_only_the_models_volume_and_the_repository_read_only():
+    release = _services()["release"]
+    # The repository is mounted as the git directory only (no working tree, so no setenv*.bat or .env
+    # file is visible, only what history holds, which the CLI scans before it reads anything).
+    assert release["volumes"] == ["gsn-models:/models", "${GSN_REPO_GIT:-./.git}:/repo.git:ro"]
+    assert "gsn-models" in _compose()["volumes"]
+
+
+def test_release_uses_the_worker_role_and_receives_only_its_password():
+    env = _env(_services()["release"])
+    assert env["GSN_DB_USER"] == "gsn_worker"
+    assert env["GSN_DB_PASSWORD"] == "${GSN_DB_WORKER_PASSWORD:?run python deploy/make_env.py first}"
+    assert env["GSN_ACTOR"] == "${GSN_ACTOR:-owner}"
+    # The fake embedder is chosen on the command line (-e GSN_EMBEDDER=fake), never by default.
+    assert "GSN_EMBEDDER" not in env
+
+
 # --- pinned images ---------------------------------------------------------------------------
 
 
@@ -194,7 +223,7 @@ def test_every_image_is_pinned():
     # everything pulled from a registry needs an exact version tag or a digest.
     services = _services()
     built = {svc["image"] for svc in services.values() if "build" in svc}
-    assert built == {"gsn-web:dev", "gsn-engine:dev"}
+    assert built == {"gsn-web:dev", "gsn-engine:dev", "gsn-release:dev"}
     pulled = {name: svc["image"] for name, svc in services.items() if svc["image"] not in built}
     assert set(pulled) == {"postgres", "caddy"}
     for name, reference in pulled.items():
@@ -269,6 +298,7 @@ def test_services_use_their_own_database_roles():
     assert _env(services["migrate"])["GSN_DB_USER"] == "gsn_migrate"
     assert _env(services["web"])["GSN_DB_USER"] == "gsn_web"
     assert _env(services["worker"])["GSN_DB_USER"] == "gsn_worker"
+    assert _env(services["release"])["GSN_DB_USER"] == "gsn_worker"
     assert "GSN_DB_USER" not in _env(services["engine"])
 
 
@@ -289,6 +319,19 @@ def test_engine_stages_run_as_a_dedicated_non_root_user(stage):
     block = re.search(rf"^FROM \S+ AS {stage}\b(.*?)(?=^FROM |\Z)", text, re.M | re.S).group(1)
     user = re.search(r"^USER (\S+)", block, re.M)
     assert user is not None and user.group(1) not in {"root", "0"}
+
+
+def test_engine_release_stage_is_the_runtime_plus_git_and_runs_as_the_dedicated_user():
+    text = (ROOT / "engine" / "Dockerfile").read_text(encoding="utf-8")
+    block = re.search(r"^FROM runtime AS release\b(.*?)(?=^FROM |\Z)", text, re.M | re.S).group(1)
+    users = re.findall(r"^USER (\S+)", block, re.M)
+    assert users[0] == "root" and users[-1] == "gsn"  # root only for the install, the entrypoint runs as gsn
+    assert "--no-install-recommends git" in block and "/var/lib/apt/lists" in block
+    assert "chown gsn:gsn /models" in block
+    for setting in ("HF_HOME=/models", "HF_HUB_OFFLINE=1", "GIT_CONFIG_NOSYSTEM=1", "GSN_REPO_GIT=/repo.git"):
+        assert setting in block, setting
+    assert 'ENTRYPOINT ["gsn"]' in block and 'CMD ["--help"]' in block
+    assert "EXPOSE" not in block
 
 
 def test_engine_runtime_stage_contains_no_tests():
@@ -358,6 +401,30 @@ def _publish_admin_on_all_interfaces(services):
     services["web"]["ports"] = ["8081:8081"]
 
 
+def _publish_release(services):
+    services["release"]["ports"] = ["8082:8082"]
+
+
+def _release_restarts(services):
+    services["release"]["restart"] = "unless-stopped"
+
+
+def _release_always_starts(services):
+    del services["release"]["profiles"]
+
+
+def _release_gets_every_password(services):
+    services["release"]["environment"]["GSN_DB_MIGRATE_PASSWORD"] = "${GSN_DB_MIGRATE_PASSWORD}"
+
+
+def _release_mounts_the_working_tree(services):
+    services["release"]["volumes"] = ["gsn-models:/models", "./:/repo.git:ro"]
+
+
+def _release_mounts_the_repository_writable(services):
+    services["release"]["volumes"] = ["gsn-models:/models", "${GSN_REPO_GIT:-./.git}:/repo.git"]
+
+
 @pytest.mark.parametrize(
     "guard, mutate",
     [
@@ -365,10 +432,16 @@ def _publish_admin_on_all_interfaces(services):
         (test_superuser_password_reaches_only_the_postgres_service, _leak_superuser_password),
         (test_dependencies_wait_for_healthy_services, _web_waits_for_healthy_engine),
         (test_dependencies_wait_for_healthy_services, _web_skips_migrate),
-        (test_long_running_services_are_exactly_five_plus_the_one_shot_migrate_job, _migrate_restarts),
+        (test_long_running_services_are_exactly_five_plus_the_one_shot_jobs, _migrate_restarts),
         (test_only_caddy_and_admin_listener_are_published, _publish_migrate),
         (test_only_caddy_and_admin_listener_are_published, _publish_postgres),
         (test_only_caddy_and_admin_listener_are_published, _publish_admin_on_all_interfaces),
+        (test_only_caddy_and_admin_listener_are_published, _publish_release),
+        (test_long_running_services_are_exactly_five_plus_the_one_shot_jobs, _release_restarts),
+        (test_release_is_a_one_shot_tool_that_is_never_started_by_a_plain_up, _release_always_starts),
+        (test_each_service_receives_only_its_own_database_password, _release_gets_every_password),
+        (test_release_mounts_only_the_models_volume_and_the_repository_read_only, _release_mounts_the_working_tree),
+        (test_release_mounts_only_the_models_volume_and_the_repository_read_only, _release_mounts_the_repository_writable),
     ],
     ids=[
         "env_file",
@@ -379,6 +452,12 @@ def _publish_admin_on_all_interfaces(services):
         "migrate_port",
         "postgres_port",
         "admin_on_all_interfaces",
+        "release_port",
+        "release_restarts",
+        "release_without_profile",
+        "release_gets_every_password",
+        "release_mounts_working_tree",
+        "release_mounts_repository_writable",
     ],
 )
 def test_guard_fails_on_a_violating_compose_file(tmp_path, monkeypatch, guard, mutate):
