@@ -384,9 +384,22 @@ def test_a_changed_manifest_mapping_creates_new_versions_with_the_dates_and_embe
         assert b_members[record["id"]] == a_members[record["id"]]
         assert count(connect, "SELECT count(*) FROM record_versions WHERE record_id = %s", record["id"]) == 1
 
+    # `show` lists exactly the records whose version differs from the active release's, although their
+    # content (and so their content_hash) is identical in A and B
+    actor = new_actor()
+    commands.publish(worker, a.release_id, actor, allow_fake=True)
+    shown = commands.show(worker, b.release_id)
+    assert shown["active_release_id"] == a.release_id
+    assert shown["diff_vs_active"] == {
+        "added": [], "removed": [], "changed": sorted(r["id"] for r in project.records[first_sid])}
+    assert store.member_hashes(worker, a.release_id) == store.member_hashes(worker, b.release_id)
+
     c = run_build(connect, project)                                          # a plain rebuild reuses everything
     assert (c.embedded, c.reused_versions, c.copied_vectors) == (0, 6, 0)
     assert members(connect, c.release_id) == b_members
+    assert commands.show(worker, c.release_id)["diff_vs_active"] == shown["diff_vs_active"]
+    commands.publish(worker, b.release_id, actor, allow_fake=True)           # once B is active, C differs from it in nothing
+    assert commands.show(worker, c.release_id)["diff_vs_active"] == {"added": [], "removed": [], "changed": []}
 
 
 def test_changed_text_is_embedded_and_the_old_version_stays(connect, project):

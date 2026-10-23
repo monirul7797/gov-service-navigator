@@ -115,11 +115,13 @@ def format_release_list(rows: Sequence[dict]) -> str:
 
 def show(conn: psycopg.Connection, release_id: int) -> dict:
     """One release without its bulky blobs, with its record and service counts and the records added,
-    removed and changed (by content hash) compared with the active release."""
+    removed and changed compared with the active release. A record is *changed* when the release holds a
+    different version of it (same record id, different version id): that covers a new content, and also a
+    derivation-only change such as a new ``verified_at_field`` mapping, where the content is the same."""
     shown = {key: value for key, value in _release(conn, release_id).items() if key not in _BULKY_COLUMNS}
-    mine = store.member_hashes(conn, release_id)
+    mine = store.member_version_ids(conn, release_id)
     active = store.active_release_id(conn)
-    base = store.member_hashes(conn, active) if active is not None else {}
+    base = store.member_version_ids(conn, active) if active is not None else {}
     shown["records"] = len(mine)
     shown["live_services"] = store.live_services(conn, release_id)
     shown["active_release_id"] = active

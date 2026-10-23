@@ -46,7 +46,8 @@ from gsn.retrieval import Hit
 
 __all__ = [
     "Draft", "Hit", "NewVersion", "StoreError", "active_release_id", "audit", "create_draft", "existing_vectors",
-    "existing_versions", "list_releases", "live_services", "member_hashes", "publish", "release_row", "rollback",
+    "existing_versions", "list_releases", "live_services", "member_hashes", "member_version_ids", "publish",
+    "release_row", "rollback",
     "search", "set_gate_result", "stored_record_services", "stored_service_names", "stored_vectors",
     "vector_from_text", "vector_to_text",
 ]
@@ -398,6 +399,19 @@ def member_hashes(conn: psycopg.Connection, release_id: int) -> dict[str, str]:
         "SELECT m.record_id, v.content_hash FROM release_members AS m "
         "JOIN record_versions AS v ON v.version_id = m.version_id AND v.record_id = m.record_id "
         "WHERE m.release_id = %s ORDER BY m.record_id",
+        (release_id,),
+    ))
+
+
+def member_version_ids(conn: psycopg.Connection, release_id: int) -> dict[str, int]:
+    """``record_id -> version_id`` of the version each record has in the release.
+
+    A version is identified by the record's content, the columns derived from it and the embedding
+    model, so two releases hold the same version of a record exactly when they agree on all three.
+    """
+    return dict(_fetch(
+        conn,
+        "SELECT record_id, version_id FROM release_members WHERE release_id = %s ORDER BY record_id",
         (release_id,),
     ))
 

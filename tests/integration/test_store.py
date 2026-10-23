@@ -693,6 +693,9 @@ def test_read_helpers_describe_a_release(connect):
     assert entry_for_release["embedding_model"] == MODEL and entry_for_release["is_active"] is False
 
     assert store.member_hashes(worker, release_id) == {v.record_id: v.content_hash for v in versions}
+    assert store.member_version_ids(worker, release_id) == member_versions(worker, release_id)
+    assert len(set(store.member_version_ids(worker, release_id).values())) == len(versions)
+    assert store.member_version_ids(worker, UNKNOWN_ID) == {}
     assert store.live_services(worker, release_id) == [live]                     # hidden services are not live
     assert store.live_services(worker, UNKNOWN_ID) == []
     vectors = store.stored_vectors(worker, release_id)

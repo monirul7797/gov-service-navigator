@@ -121,14 +121,14 @@ def test_format_release_list_of_nothing_says_so():
 
 
 def _patch_members(monkeypatch, members, active):
-    monkeypatch.setattr(store, "member_hashes", lambda conn, rid: members[rid])
+    monkeypatch.setattr(store, "member_version_ids", lambda conn, rid: members[rid])
     monkeypatch.setattr(store, "active_release_id", lambda conn: active)
     monkeypatch.setattr(store, "live_services", lambda conn, rid: ["alpha", "beta"])
 
 
 def test_show_drops_the_large_blobs_and_keeps_the_gate_report(monkeypatch):
     Recorder(monkeypatch)
-    _patch_members(monkeypatch, {7: {"r1": "h1"}, 5: {"r1": "h1"}}, active=5)
+    _patch_members(monkeypatch, {7: {"r1": 11}, 5: {"r1": 11}}, active=5)
     shown = commands.show(object(), 7)
     assert "manifest" not in shown and "registry" not in shown
     assert shown["gate_report"] == {"passed": True} and shown["registry_sha256"] == "f" * 64
@@ -137,13 +137,13 @@ def test_show_drops_the_large_blobs_and_keeps_the_gate_report(monkeypatch):
     json.dumps(shown, default=str)
 
 
-def test_show_diffs_against_the_active_release_by_record_id_and_hash(monkeypatch):
+def test_show_diffs_against_the_active_release_by_record_id_and_version(monkeypatch):
     Recorder(monkeypatch)
     _patch_members(
         monkeypatch,
         {
-            7: {"keep": "h", "edited": "new", "added-b": "x", "added-a": "y"},
-            5: {"keep": "h", "edited": "old", "gone-2": "z", "gone-1": "z"},
+            7: {"keep": 1, "edited": 22, "added-b": 3, "added-a": 4},
+            5: {"keep": 1, "edited": 21, "gone-2": 5, "gone-1": 6},
         },
         active=5,
     )
@@ -153,15 +153,25 @@ def test_show_diffs_against_the_active_release_by_record_id_and_hash(monkeypatch
         "added": ["added-a", "added-b"], "removed": ["gone-1", "gone-2"], "changed": ["edited"]}
 
 
+def test_show_lists_a_record_as_changed_whenever_its_version_differs_even_if_the_content_is_the_same(monkeypatch):
+    # A new version of unchanged content is what a derivation-only change makes (a new verified_at_field
+    # mapping, a new url_kind rule): the content hash is the same, the version is not. A different embedding
+    # model is a different version too.
+    Recorder(monkeypatch)
+    _patch_members(monkeypatch, {7: {"derived": 30, "same": 2}, 5: {"derived": 10, "same": 2}}, active=5)
+    monkeypatch.setattr(store, "member_hashes", lambda conn, rid: {"derived": "same-content", "same": "x"})
+    assert commands.show(object(), 7)["diff_vs_active"] == {"added": [], "removed": [], "changed": ["derived"]}
+
+
 def test_show_of_the_active_release_has_an_empty_diff(monkeypatch):
     Recorder(monkeypatch, rows={7: _release(is_active=True)})
-    _patch_members(monkeypatch, {7: {"a": "1", "b": "2"}}, active=7)
+    _patch_members(monkeypatch, {7: {"a": 1, "b": 2}}, active=7)
     assert commands.show(object(), 7)["diff_vs_active"] == {"added": [], "removed": [], "changed": []}
 
 
 def test_show_with_nothing_published_yet_lists_everything_as_added(monkeypatch):
     Recorder(monkeypatch)
-    _patch_members(monkeypatch, {7: {"b": "2", "a": "1"}}, active=None)
+    _patch_members(monkeypatch, {7: {"b": 2, "a": 1}}, active=None)
     shown = commands.show(object(), 7)
     assert shown["active_release_id"] is None
     assert shown["diff_vs_active"] == {"added": ["a", "b"], "removed": [], "changed": []}

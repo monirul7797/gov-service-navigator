@@ -298,7 +298,7 @@ pipe it). The commands:
 | `release publish ID [--allow-fake]` | Makes a validated release the active one. |
 | `release rollback` | Undoes the latest publish or rollback (the previous active release becomes active again). |
 | `release list` | One line per release; the active one is marked `yes`. |
-| `release show ID` | The release as JSON, with its gate report and the records added, removed and changed compared with the active release. |
+| `release show ID` | The release as JSON, with its gate report and the records added, removed and changed compared with the active release (changed: the release holds a different version of the record, which includes a changed derivation such as a new `verified_at_field` mapping, not only edited content). |
 | `eval --release ID [--json]` | Runs the gold queries against any existing release (queries are read from that release's own commit). |
 
 For example, a build, a look at what changed, and the switch (use the number `build` printed):
