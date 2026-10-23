@@ -276,8 +276,12 @@ by the baseline) and the model revision the PC uses
   the trigger runs).
 - Canonical row: `chain_seq`, `id`, `at` rendered in UTC with fixed precision, `actor`, `action`,
   `target`, `details` — with `hash_version = 1` so the format can evolve.
-- Verification walks the chain by `chain_seq`, not by `id`. Rows written before the chain existed
-  (local test rows only) have NULL hashes; verification starts at `chain_seq = 1`.
+- Verification walks the chain by `chain_seq`, not by `id`, starting at `chain_seq = 1`. Every
+  `audit_log` row must be chained: a row with a NULL `chain_seq` is reported as a break (amended
+  2026-10-23 after the B1 review — every real database is created fresh, so an unchained row can
+  only be a forged append). The verification core takes the rows and the head as parameters, so its
+  tamper detection can be tested on scratch copies while the watchdog (§8.1) protects the real
+  table.
 - `audit_verify()` (`SECURITY DEFINER`) returns OK or the first broken `chain_seq`, so the worker can
   verify without reading audit contents. `gsn audit verify` wraps it.
 - Exporting the latest hash off the server (so even a superuser rewrite is detectable) is M4.
