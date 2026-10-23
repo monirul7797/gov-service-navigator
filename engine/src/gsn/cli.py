@@ -1,11 +1,13 @@
-"""Command line entry point: ``gsn worker``, ``gsn engine``, ``gsn release ...`` and ``gsn eval``.
+"""Command line entry point: ``gsn worker``, ``gsn engine``, ``gsn release ...``, ``gsn eval`` and
+``gsn audit verify``.
 
-``gsn release`` and ``gsn eval`` are run by hand (in the one-off ``release`` container) and print plain
-text for the owner. Exit codes: 0 success (a build that is validated, or any other command that worked),
-1 runtime error (database down, a bug), 2 usage or configuration error or a refusal (a bad argument or
-ref, a missing ``GSN_DB_*`` variable, an embedder that cannot be made, secret files in the repository's
-history, a database refusal such as "release 7 is not validated"), 3 a build that finished but was
-rejected (or an eval whose gate would reject), 4 integrity problems (nothing written).
+``gsn release``, ``gsn eval`` and ``gsn audit`` are run by hand (in the one-off ``release`` container) and
+print plain text for the owner. Exit codes: 0 success (a build that is validated, an intact audit chain,
+or any other command that worked), 1 runtime error (database down, a bug; for ``audit verify`` also a
+broken chain), 2 usage or configuration error or a refusal (a bad argument or ref, a missing ``GSN_DB_*``
+variable, an embedder that cannot be made, secret files in the repository's history, a database refusal
+such as "release 7 is not validated"), 3 a build that finished but was rejected (or an eval whose gate
+would reject), 4 integrity problems (nothing written).
 """
 from __future__ import annotations
 
@@ -20,7 +22,7 @@ from collections.abc import Callable, Sequence
 
 import psycopg
 
-from gsn import logs, store
+from gsn import audit, logs, store
 from gsn.db import connect_kwargs
 from gsn.embed import Embedder, get_embedder
 from gsn.gitsource import GitSourceError
@@ -92,6 +94,10 @@ def _build_parser() -> argparse.ArgumentParser:
     evaluate = sub.add_parser("eval", help="run the gold queries against a release")
     evaluate.add_argument("--release", dest="release_id", type=int, required=True, metavar="ID")
     evaluate.add_argument("--json", action="store_true", help="print the full result as JSON")
+
+    audit_parser = sub.add_parser("audit", help="inspect the audit log")
+    asub = audit_parser.add_subparsers(dest="audit_command", required=True, metavar="COMMAND")
+    asub.add_parser("verify", help="check the audit log's hash chain (exit 0 when intact, 1 when broken)")
     return parser
 
 
@@ -163,8 +169,18 @@ def _run_simple(args: argparse.Namespace, connect: Callable[[], psycopg.Connecti
     return 0
 
 
-def _run_release_command(args: argparse.Namespace) -> int:
-    """Run ``gsn release ...`` or ``gsn eval`` and turn every outcome into an exit code (see the module doc)."""
+def _run_audit_verify(connect: Callable[[], psycopg.Connection]) -> int:
+    conn = connect()
+    try:
+        status = audit.verify(conn)
+    finally:
+        conn.close()
+    print(audit.format_status(status))
+    return 0 if status.ok else 1
+
+
+def _run_guarded(run: Callable[[Callable[[], psycopg.Connection]], int]) -> int:
+    """Run a hand-run command with a connection factory and turn every outcome into an exit code (see the module doc)."""
     try:
         kwargs = _db_kwargs()
 
@@ -172,11 +188,7 @@ def _run_release_command(args: argparse.Namespace) -> int:
             # autocommit: the store opens its own short transactions (see gsn.store).
             return psycopg.connect(**kwargs, autocommit=True, connect_timeout=CONNECT_TIMEOUT_SECONDS)
 
-        if args.command == "eval":
-            return _run_eval(args, connect)
-        if args.release_command == "build":
-            return _run_build(args, connect)
-        return _run_simple(args, connect)
+        return run(connect)
     except (UsageError, CommandError, store.StoreError, GitSourceError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -189,11 +201,27 @@ def _run_release_command(args: argparse.Namespace) -> int:
         return 1
 
 
+def _run_release_command(args: argparse.Namespace) -> int:
+    """Run ``gsn release ...`` or ``gsn eval``."""
+
+    def run(connect: Callable[[], psycopg.Connection]) -> int:
+        if args.command == "eval":
+            return _run_eval(args, connect)
+        if args.release_command == "build":
+            return _run_build(args, connect)
+        return _run_simple(args, connect)
+
+    return _run_guarded(run)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
     if args.command in ("release", "eval"):
         return _run_release_command(args)
+
+    if args.command == "audit":  # only ``verify`` exists
+        return _run_guarded(_run_audit_verify)
 
     if args.command == "engine":
         logs.configure("engine")
