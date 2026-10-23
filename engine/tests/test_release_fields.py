@@ -1,11 +1,12 @@
 import ast
+import dataclasses
 import json
 from datetime import date
 from pathlib import Path
 
 import pytest
 
-from gsn.release.fields import VersionFields, parse_verified_at, url_kind, version_fields
+from gsn.release.fields import VersionFields, fields_hash, parse_verified_at, url_kind, version_fields
 from gsn.release.inputs import ServiceEntry
 
 REPO = Path(__file__).resolve().parents[2]
@@ -160,3 +161,79 @@ def test_version_fields_leaves_absent_optional_columns_empty_and_never_assumes_o
 def test_version_fields_raises_value_error_for_an_unparseable_mapped_date():
     with pytest.raises(ValueError):
         version_fields({"source_url": "https://x.test/", "fetched_at": "July"}, _entry("fetched_at"))
+
+
+# --- fields_hash: the identity of the derived columns -------------------------------------------
+
+BASE_FIELDS = VersionFields(
+    category="process_steps", subcategory="sub", heading="Heading", lang="en", source_url="https://example.test/a",
+    url_kind="portal", official=True, source_verified=True, verified_at=date(2026, 7, 12),
+)
+
+
+def test_fields_hash_is_sha256_of_the_canonical_json_of_the_nine_columns():
+    import hashlib
+
+    expected = hashlib.sha256(json.dumps(
+        {
+            "category": "process_steps", "subcategory": "sub", "heading": "Heading", "lang": "en",
+            "source_url": "https://example.test/a", "url_kind": "portal", "official": True,
+            "source_verified": True, "verified_at": "2026-07-12",
+        },
+        sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    assert fields_hash(BASE_FIELDS) == expected
+    assert fields_hash(BASE_FIELDS) == fields_hash(dataclasses.replace(BASE_FIELDS))  # deterministic
+    assert len(expected) == 64 and expected == expected.lower()
+
+
+def test_fields_hash_is_pinned():
+    # Changing the format changes every stored identity: this literal must only move together with a decision.
+    assert fields_hash(BASE_FIELDS) == "401c457fdaee61cba906d7b0a1945227a1abcbae2746a509dff8c19196a65dab"
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"category": "fees"},
+        {"category": None},
+        {"subcategory": "other"},
+        {"subcategory": None},
+        {"heading": "Another heading"},
+        {"heading": None},
+        {"lang": "bn"},
+        {"lang": None},
+        {"source_url": "https://example.test/b"},
+        {"url_kind": "info"},
+        {"official": False},
+        {"official": None},
+        {"source_verified": False},
+        {"verified_at": date(2026, 7, 13)},
+        {"verified_at": None},
+    ],
+    ids=lambda change: "-".join(f"{k}={v}" for k, v in change.items()),
+)
+def test_fields_hash_changes_when_any_one_field_changes(change):
+    assert fields_hash(dataclasses.replace(BASE_FIELDS, **change)) != fields_hash(BASE_FIELDS)
+
+
+def test_fields_hash_tells_a_missing_date_from_every_date_and_all_changes_apart():
+    seen = {fields_hash(dataclasses.replace(BASE_FIELDS, verified_at=v)) for v in (None, date(2026, 7, 12), date(2026, 7, 13))}
+    assert len(seen) == 3
+
+
+def test_fields_hash_keeps_bangla_text_literal_and_ignores_nothing_else():
+    bangla = dataclasses.replace(BASE_FIELDS, heading="জন্ম নিবন্ধন")
+    other = dataclasses.replace(BASE_FIELDS, heading="জন্ম নিবন্ধনা")
+    assert fields_hash(bangla) != fields_hash(other)
+
+
+def test_fields_hash_follows_the_manifest_mapping_and_the_derivation():
+    record = {"id": "r", "text": "t", "source_url": "https://e.test/x", "fetched_at": "2026-07-12T23:04:19"}
+    unmapped = version_fields(record, _entry(None))
+    mapped = version_fields(record, _entry("fetched_at"))
+    assert fields_hash(unmapped) != fields_hash(mapped)
+    assert fields_hash(mapped) == fields_hash(version_fields(dict(record), _entry("fetched_at")))
+    # the same record under a different URL rule would differ too
+    assert fields_hash(version_fields({**record, "source_url": "https://e.test/faq"}, _entry("fetched_at"))) \
+        != fields_hash(mapped)

@@ -43,18 +43,20 @@ class Built:
     tag: str
 
 
-def add_version(conn, record_id, *, text, content_hash=None, url_kind="portal", source_commit=COMMIT,
-                embedding=UNIT_VECTOR, model=MODEL, source_url=None, verified_at=date(2026, 7, 12)):
+def add_version(conn, record_id, *, text, content_hash=None, fields_hash=None, url_kind="portal",
+                source_commit=COMMIT, embedding=UNIT_VECTOR, model=MODEL, source_url=None,
+                verified_at=date(2026, 7, 12)):
     """Insert one ``record_versions`` row (as whatever role ``conn`` is) and return its ``version_id``."""
     row = conn.execute(
-        "INSERT INTO record_versions (record_id, content_hash, text_hash, hash_version, record, embed_text, "
-        "category, subcategory, heading, lang, source_url, url_kind, official, source_verified, verified_at, "
-        "embedding, embedding_model, source_commit, created_by, change_note) "
-        "VALUES (%s, %s, %s, 1, %s, %s, 'process_steps', NULL, 'Heading', 'en', %s, %s, true, true, %s, "
+        "INSERT INTO record_versions (record_id, content_hash, fields_hash, text_hash, hash_version, record, "
+        "embed_text, category, subcategory, heading, lang, source_url, url_kind, official, source_verified, "
+        "verified_at, embedding, embedding_model, source_commit, created_by, change_note) "
+        "VALUES (%s, %s, %s, %s, 1, %s, %s, 'process_steps', NULL, 'Heading', 'en', %s, %s, true, true, %s, "
         "%s::vector, %s, %s, 'itest', NULL) RETURNING version_id",
         (
             record_id,
             content_hash or sha256_hex(text),
+            fields_hash or sha256_hex(f"fields of {record_id}"),
             sha256_hex(text),
             Jsonb({"id": record_id, "text": text}),
             text,

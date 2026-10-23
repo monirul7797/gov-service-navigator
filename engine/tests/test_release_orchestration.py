@@ -5,6 +5,7 @@ under test: the order of the steps, which versions and vectors are reused, how t
 override decide, and which audit rows are written. The fake keeps what ``create_draft`` was given, so
 a second build sees the versions and vectors of the first, as it would in the database.
 """
+import dataclasses
 import json
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
@@ -16,6 +17,7 @@ from gsn.embed import FakeEmbedder
 from gsn.gitsource import DictSource
 from gsn.hashing import content_hash, text_hash
 from gsn.release import build
+from gsn.release.fields import fields_hash
 from gsn.retrieval import Hit
 
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
@@ -115,12 +117,14 @@ class World:
         self.embedder = SpyEmbedder(self.log)
         self.record_services: dict[str, str] = {}
         self.service_names: dict[str, tuple[str, str]] = {}
-        self.versions: dict[tuple[str, str], int] = {}      # (record_id, content_hash) -> version_id
+        self.versions: dict[tuple[str, str, str], int] = {}  # (record_id, content_hash, fields_hash) -> version_id
+        self.version_keys: list[list[tuple]] = []           # the keys each existing_versions call was given
         self.vectors: dict[str, list[float]] = {}           # text_hash -> vector
         self.drafts: list[store.Draft] = []
         self.gate_results: list[tuple] = []
         self.audits: list[tuple] = []
         self._next_version = 1
+        self.fail_audit: str | None = None      # an audit action whose insert fails
         for name in ("stored_record_services", "stored_service_names", "existing_versions", "existing_vectors",
                      "create_draft", "set_gate_result", "search", "audit"):
             monkeypatch.setattr(store, name, getattr(self, name))
@@ -139,7 +143,9 @@ class World:
 
     def existing_versions(self, conn, keys, model):
         self.log.append("existing_versions")
-        return {rid: self.versions[(rid, h)] for rid, h in keys if (rid, h) in self.versions}
+        keys = list(keys)
+        self.version_keys.append(keys)
+        return {rid: self.versions[(rid, ch, fh)] for rid, ch, fh in keys if (rid, ch, fh) in self.versions}
 
     def existing_vectors(self, conn, text_hashes, model):
         self.log.append("existing_vectors")
@@ -149,7 +155,7 @@ class World:
         self.log.append("create_draft")
         self.drafts.append(draft)
         for v in draft.new_versions:
-            self.versions[(v.record_id, v.content_hash)] = self._next_version
+            self.versions[(v.record_id, v.content_hash, v.fields_hash)] = self._next_version
             self._next_version += 1
             self.vectors[v.text_hash] = v.embedding
             self.record_services[v.record_id] = v.service_id
@@ -163,6 +169,8 @@ class World:
 
     def audit(self, conn, actor, action, target, details):
         self.log.append(f"audit:{action}")
+        if action == self.fail_audit:
+            raise RuntimeError("audit failed")
         self.audits.append((actor, action, target, details))
 
     def search(self, conn, release_id, service_id, vector, k):
@@ -211,19 +219,35 @@ def test_the_steps_run_in_order_and_new_texts_are_embedded_before_the_draft_is_w
     assert log.index("create_draft") < log.index("audit:release.build") < log.index("set_gate_result:validated")
     assert log.index("set_gate_result:validated") < log.index("audit:release.validate")
     # the gold queries are embedded after the draft exists: one text per call
-    assert log[log.index("audit:release.build") + 1] == "encode:1"
+    assert log[log.index("audit:release.build") + 2] == "encode:1"  # after the draft's "commit"
     assert world.embedder.batches[0] == [r["text"] for sid in ("alpha", "beta") for r in world.state["corpora"][sid]]
 
 
-def test_the_draft_transaction_is_separate_from_the_verdict_transaction(world):
+def test_the_draft_and_its_build_audit_row_are_one_transaction_and_the_verdict_another(world):
     world.build()
     log = world.log
-    assert log.count("begin") == log.count("commit") == 1
-    begin, end = log.index("begin"), log.index("commit")
-    # the verdict and its audit row are one transaction ...
-    assert log[begin + 1:end] == ["set_gate_result:validated", "audit:release.validate"]
-    # ... and create_draft never runs inside it (its member guard holds a FOR SHARE lock on the release)
-    assert log.index("create_draft") < begin
+    assert log.count("begin") == log.count("commit") == 2
+    first_begin, first_end = log.index("begin"), log.index("commit")
+    second_begin = log.index("begin", first_end)
+    # the draft and the audit row that records it commit together: a crash cannot leave a draft unrecorded ...
+    assert log[first_begin + 1:first_end] == ["create_draft", "audit:release.build"]
+    # ... the verdict and its audit row are another transaction, never the draft's (the member guard holds a
+    # FOR SHARE lock on the release row until the draft's transaction ends) ...
+    assert log[second_begin + 1:log.index("commit", second_begin)] == [
+        "set_gate_result:validated", "audit:release.validate"]
+    # ... and nothing runs inside a transaction while the gold queries are embedded and searched
+    between = log[first_end + 1:second_begin]
+    assert between and all(entry.startswith("encode:") for entry in between)
+
+
+def test_a_failing_build_audit_row_rolls_the_draft_back(world):
+    world.fail_audit = "release.build"
+    with pytest.raises(RuntimeError, match="audit failed"):
+        world.build()
+    assert world.log[-3:] == ["create_draft", "audit:release.build", "rollback"]
+    assert "set_gate_result:validated" not in world.log and "commit" not in world.log
+    assert world.audits == [] and world.gate_results == []
+    assert len(world.embedder.batches) == 1  # only the record texts: no gold query ran on the abandoned draft
 
 
 def test_the_draft_holds_the_derived_columns_and_provenance(world):
@@ -244,6 +268,24 @@ def test_the_draft_holds_the_derived_columns_and_provenance(world):
     assert v.fields.verified_at == date(2026, 7, 11) and v.fields.url_kind == "portal"
     beta = next(v for v in draft.new_versions if v.record_id == "beta-1")
     assert beta.fields.verified_at is None
+
+
+def test_every_new_version_carries_the_hash_of_its_derived_columns(world):
+    world.build()
+    for v in world.drafts[0].new_versions:
+        assert v.fields_hash == fields_hash(v.fields) and len(v.fields_hash) == 64
+    assert len({v.fields_hash for v in world.drafts[0].new_versions}) == 6
+
+
+def test_existing_versions_are_looked_up_by_record_content_and_derived_columns(world):
+    world.build()
+    keys = world.version_keys[0]
+    assert len(keys) == 6 and all(len(key) == 3 for key in keys)
+    by_id = {v.record_id: v for v in world.drafts[0].new_versions}
+    # on the second build the very same triples are asked for and found
+    world.build()
+    assert {key[0]: key for key in world.version_keys[1]} == {
+        rid: (rid, v.content_hash, v.fields_hash) for rid, v in by_id.items()}
 
 
 def test_the_gate_report_keeps_every_verdict(world):
@@ -363,6 +405,30 @@ def test_a_changed_provenance_field_is_a_new_version_that_copies_the_vector(worl
     assert "alpha-1" not in draft.member_version_ids and len(draft.member_version_ids) == 5
 
 
+def test_a_changed_manifest_mapping_is_a_new_version_per_dated_record_and_embeds_nothing(world):
+    mapping = world.state["manifest"]["services"][0]
+    mapping["verified_at_field"] = None          # alpha's records carry fetched_at, but nothing maps it
+    first = world.build()
+    assert first.status == "validated"
+    assert all(v.fields.verified_at is None for v in world.drafts[0].new_versions)
+
+    mapping["verified_at_field"] = "fetched_at"  # now it is mapped: same records, different derived columns
+    second = world.build()
+    assert second.status == "validated"
+    assert (second.embedded, second.reused_versions, second.copied_vectors) == (0, 3, 3)
+    draft = world.drafts[1]
+    assert sorted(v.record_id for v in draft.new_versions) == ["alpha-1", "alpha-2", "alpha-3"]
+    assert sorted(draft.member_version_ids) == ["beta-1", "beta-2", "beta-3"]  # undated service: unchanged
+    for new in draft.new_versions:
+        old = next(v for v in world.drafts[0].new_versions if v.record_id == new.record_id)
+        assert new.content_hash == old.content_hash and new.fields_hash != old.fields_hash
+        assert new.fields.verified_at is not None and new.embedding == old.embedding
+
+    third = world.build()  # nothing changed since: everything is reused
+    assert (third.embedded, third.reused_versions, third.copied_vectors) == (0, 6, 0)
+    assert world.drafts[2].new_versions == []
+
+
 def test_changed_text_is_embedded_and_only_that_text(world):
     world.build()
     world.state["corpora"]["beta"][2]["text"] = "Beta documents text, revised"
@@ -432,13 +498,15 @@ def test_an_override_validates_a_failing_release_and_records_the_reason(world):
     details = world.audits[1][3]
     assert details["override_reason"] == "owner reviewed gq_alpha_1" and details["unexpected_failures"] == ["gq_alpha_1"]
     assert world.gate_results[0][2]["overridden"] is True
-    assert world.log[world.log.index("begin") + 1:world.log.index("commit")] == [
+    second_begin = world.log.index("begin", world.log.index("commit"))
+    assert world.log[second_begin + 1:world.log.index("commit", second_begin)] == [
         "set_gate_result:validated", "audit:release.override"]
 
 
 def test_an_override_that_is_not_needed_is_not_recorded(world):
     result = world.build(override="just in case")
     assert (result.status, result.overridden) == ("validated", False)
+    assert result.override_given_but_not_needed is True
     assert world.gate_results[0][3] is None
     assert [a[1] for a in world.audits] == ["release.build", "release.validate"]
 
@@ -518,6 +586,26 @@ def test_a_long_list_of_failures_is_cut_short_in_the_summary():
     assert build.listed(ids[:10]) == ", ".join(ids[:10])
     cut = build.listed(ids)
     assert cut.startswith(", ".join(ids[:10])) and "gq_10" not in cut and "and 15 more" in cut
+
+
+def test_the_summary_says_when_an_override_was_given_but_the_gate_passed(world):
+    text = build.format_build_summary(world.build(override="just in case"))
+    assert "override not needed: the gate passed (no override recorded)" in text
+    assert "just in case" not in text
+    assert "override not needed" not in build.format_build_summary(world.build())
+    assert "override not needed" not in build.format_build_summary(world.build(override=None))
+
+
+def test_the_publish_hint_is_the_container_command(world):
+    text = build.format_build_summary(world.build())
+    hint = "docker compose --profile tools run --rm release release publish 1"
+    # the fake embedder's releases are refused by publish without the flag, so the hint names it
+    assert f"{hint} --allow-fake" in text
+    assert "gsn release publish" not in text
+    real = dataclasses.replace(world.build(), embedding_model="BAAI/bge-m3@abc")
+    real_text = build.format_build_summary(real)
+    assert "docker compose --profile tools run --rm release release publish 2" in real_text
+    assert "--allow-fake" not in real_text
 
 
 def test_the_summary_of_an_override_says_so(world):

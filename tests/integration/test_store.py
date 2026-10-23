@@ -16,7 +16,7 @@ from release_helpers import COMMIT, MODEL, add_record, audit_rows, new_actor, ne
 from gsn import store
 from gsn.embed import FakeEmbedder
 from gsn.hashing import HASH_VERSION, content_hash, text_hash
-from gsn.release.fields import VersionFields
+from gsn.release.fields import VersionFields, fields_hash
 from gsn.release.inputs import ServiceEntry
 
 EMBEDDER = FakeEmbedder()
@@ -46,7 +46,7 @@ def new_version(service_id, record_id, text, *, embedding=None, **extra):
     )
     return store.NewVersion(
         record_id=record_id, service_id=service_id, record=record, embed_text=text,
-        content_hash=content_hash(record), text_hash=text_hash(text), fields=fields,
+        content_hash=content_hash(record), fields_hash=fields_hash(fields), text_hash=text_hash(text), fields=fields,
         embedding=embedding if embedding is not None else EMBEDDER.encode([text])[0],
     )
 
@@ -360,17 +360,29 @@ def test_existing_versions_and_vectors_are_found_by_hash_and_model(connect):
     stored = member_versions(worker, release_id)
     v0, v1 = versions
 
-    keys = [(v0.record_id, v0.content_hash), (v1.record_id, v1.content_hash)]
+    keys = [(v0.record_id, v0.content_hash, v0.fields_hash), (v1.record_id, v1.content_hash, v1.fields_hash)]
     assert store.existing_versions(worker, keys, MODEL) == stored
     assert store.existing_versions(worker, iter(keys), MODEL) == stored        # any iterable
     assert store.existing_versions(worker, keys[:1], MODEL) == {v0.record_id: stored[v0.record_id]}
-    assert store.existing_versions(worker, [(v1.record_id, v0.content_hash)], MODEL) == {}  # hash of another record
-    assert store.existing_versions(worker, [(v0.record_id, "0" * 64)], MODEL) == {}          # edited content
-    assert store.existing_versions(worker, [("rec_unknown_" + tag, v0.content_hash)], MODEL) == {}
+    assert store.existing_versions(
+        worker, [(v1.record_id, v0.content_hash, v0.fields_hash)], MODEL) == {}  # hashes of another record
+    assert store.existing_versions(worker, [(v0.record_id, "0" * 64, v0.fields_hash)], MODEL) == {}  # edited content
+    assert store.existing_versions(worker, [(v0.record_id, v0.content_hash, "0" * 64)], MODEL) == {}  # derived columns
+    assert store.existing_versions(
+        worker, [("rec_unknown_" + tag, v0.content_hash, v0.fields_hash)], MODEL) == {}
     assert store.existing_versions(worker, keys, "another-model") == {}                      # other model
     assert store.existing_versions(worker, [], MODEL) == {}
     with pytest.raises(ValueError, match=v0.record_id):  # one record, two contents: ambiguous, not "last wins"
-        store.existing_versions(worker, [(v0.record_id, v0.content_hash), (v0.record_id, v1.content_hash)], MODEL)
+        store.existing_versions(
+            worker,
+            [(v0.record_id, v0.content_hash, v0.fields_hash), (v0.record_id, v1.content_hash, v1.fields_hash)],
+            MODEL,
+        )
+    with pytest.raises(ValueError, match=v0.record_id):  # same content, two derivations: just as ambiguous
+        store.existing_versions(
+            worker, [(v0.record_id, v0.content_hash, v0.fields_hash), (v0.record_id, v0.content_hash, "1" * 64)],
+            MODEL,
+        )
 
     thashes = [v0.text_hash, v1.text_hash, "0" * 64]
     vectors = store.existing_vectors(worker, thashes, MODEL)
@@ -384,11 +396,11 @@ def test_existing_versions_and_vectors_are_found_by_hash_and_model(connect):
     # Same text under another model is a different vector: each model finds its own.
     other = [0.03125] * 1024  # exactly representable in float32
     worker.execute(
-        "INSERT INTO record_versions (record_id, content_hash, text_hash, hash_version, record, embed_text, "
-        "source_url, url_kind, source_verified, embedding, embedding_model, source_commit, created_by) "
-        "VALUES (%s, %s, %s, 1, '{}'::jsonb, 'x', 'https://example.test/', 'info', true, %s::vector, "
+        "INSERT INTO record_versions (record_id, content_hash, fields_hash, text_hash, hash_version, record, "
+        "embed_text, source_url, url_kind, source_verified, embedding, embedding_model, source_commit, created_by) "
+        "VALUES (%s, %s, %s, %s, 1, '{}'::jsonb, 'x', 'https://example.test/', 'info', true, %s::vector, "
         "'another-model', %s, 'itest-store')",
-        (v0.record_id, v0.content_hash, v0.text_hash, store.vector_to_text(other), COMMIT),
+        (v0.record_id, v0.content_hash, v0.fields_hash, v0.text_hash, store.vector_to_text(other), COMMIT),
     )
     assert store.existing_vectors(worker, [v0.text_hash], "another-model") == {v0.text_hash: other}
     assert store.existing_vectors(worker, [v0.text_hash], MODEL)[v0.text_hash] == pytest.approx(v0.embedding, abs=1e-7)

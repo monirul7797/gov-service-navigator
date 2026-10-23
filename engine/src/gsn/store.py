@@ -67,6 +67,7 @@ class NewVersion:
     record: dict
     embed_text: str
     content_hash: str
+    fields_hash: str
     text_hash: str
     fields: VersionFields
     embedding: list[float]
@@ -172,24 +173,29 @@ def stored_service_names(conn: psycopg.Connection) -> dict[str, tuple[str, str]]
     return {sid: (bn, en) for sid, bn, en in _fetch(conn, "SELECT service_id, name_bn, name_en FROM services")}
 
 
-def existing_versions(conn: psycopg.Connection, keys: Iterable[tuple[str, str]], model: str) -> dict[str, int]:
-    """``record_id -> version_id`` for each ``(record_id, content_hash)`` that is stored for ``model``.
+def existing_versions(
+    conn: psycopg.Connection, keys: Iterable[tuple[str, str, str]], model: str
+) -> dict[str, int]:
+    """``record_id -> version_id`` for each ``(record_id, content_hash, fields_hash)`` stored for ``model``.
 
-    A record given two different hashes is a ``ValueError``: the result could hold only one of them.
+    A version is identified by the record's content AND the columns derived from it, so a record whose
+    content is unchanged but whose derived columns are (a new manifest mapping, a new ``url_kind`` rule)
+    is not found. A record given two different keys is a ``ValueError``: the result could hold only one
+    of them.
     """
-    wanted: dict[str, str] = {}
-    for record_id, chash in keys:
-        if wanted.setdefault(record_id, chash) != chash:
-            raise ValueError(f"record {record_id!r} was given two different content hashes")
+    wanted: dict[str, tuple[str, str]] = {}
+    for record_id, chash, fhash in keys:
+        if wanted.setdefault(record_id, (chash, fhash)) != (chash, fhash):
+            raise ValueError(f"record {record_id!r} was given two different content or fields hashes")
     if not wanted:
         return {}
     rows = _fetch(
         conn,
         "SELECT v.record_id, v.version_id FROM record_versions AS v "
-        "JOIN unnest(%s::text[], %s::text[]) AS k (record_id, content_hash) "
-        "ON k.record_id = v.record_id AND k.content_hash = v.content_hash "
+        "JOIN unnest(%s::text[], %s::text[], %s::text[]) AS k (record_id, content_hash, fields_hash) "
+        "ON k.record_id = v.record_id AND k.content_hash = v.content_hash AND k.fields_hash = v.fields_hash "
         "WHERE v.embedding_model = %s",
-        (list(wanted), list(wanted.values()), model),
+        (list(wanted), [h[0] for h in wanted.values()], [h[1] for h in wanted.values()], model),
     )
     return {record_id: version_id for record_id, version_id in rows}
 
@@ -267,13 +273,13 @@ def _insert_draft(conn: psycopg.Connection, draft: Draft) -> int:
         f = v.fields
         (version_id,) = _fetch(
             conn,
-            "INSERT INTO record_versions (record_id, content_hash, text_hash, hash_version, record, embed_text, "
-            "category, subcategory, heading, lang, source_url, url_kind, official, source_verified, verified_at, "
-            "embedding, embedding_model, source_commit, created_by, change_note) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::vector, %s, %s, %s, %s) "
+            "INSERT INTO record_versions (record_id, content_hash, fields_hash, text_hash, hash_version, record, "
+            "embed_text, category, subcategory, heading, lang, source_url, url_kind, official, source_verified, "
+            "verified_at, embedding, embedding_model, source_commit, created_by, change_note) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::vector, %s, %s, %s, %s) "
             "RETURNING version_id",
             (
-                v.record_id, v.content_hash, v.text_hash, HASH_VERSION, Jsonb(v.record), v.embed_text,
+                v.record_id, v.content_hash, v.fields_hash, v.text_hash, HASH_VERSION, Jsonb(v.record), v.embed_text,
                 f.category, f.subcategory, f.heading, f.lang, f.source_url, f.url_kind, f.official,
                 f.source_verified, f.verified_at, vector_to_text(v.embedding), draft.embedding_model,
                 draft.source_commit, draft.created_by, draft.note,

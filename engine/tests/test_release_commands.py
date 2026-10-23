@@ -15,9 +15,14 @@ COMMIT = "0123456789abcdef0123456789abcdef01234567"
 REAL_MODEL = "BAAI/bge-m3@5617a9f61b028005a4858fdac845db406aefb181"
 
 
-def _release(release_id=7, *, model="fake-sha256-v1", status="validated", is_active=False, known=None):
+def _manifest(*service_ids):
+    return {"services": [{"service_id": sid, "status": "live"} for sid in service_ids]}
+
+
+def _release(release_id=7, *, model="fake-sha256-v1", status="validated", is_active=False, known=None,
+             services=("alpha",)):
     return {
-        "release_id": release_id, "status": status, "source_commit": COMMIT, "manifest": {"services": ["big"]},
+        "release_id": release_id, "status": status, "source_commit": COMMIT, "manifest": _manifest(*services),
         "registry": {"services": {"big": {}}}, "registry_sha256": "f" * 64,
         "thresholds": {"known_failures": known or {}}, "gate_report": {"passed": True},
         "embedding_model": model, "note": "n", "override_reason": None,
@@ -179,19 +184,26 @@ GOLD = {
 }
 
 
-def _eval_source(**extra):
+def _eval_source(*service_ids, **extra):
+    """A repository whose services (default: just ``alpha``) each have a corpus and the ``GOLD`` queries."""
+
     def dump(obj):
         return json.dumps(obj).encode("utf-8")
 
+    service_ids = service_ids or ("alpha",)
     files = {
         "data/release_manifest.json": dump({"services": [{
-            "service_id": "alpha", "name_bn": "আলফা", "name_en": "Alpha", "status": "live",
-            "corpus": "c.jsonl", "gold": "alpha_gold.json", "verified_at_field": None}]}),
+            "service_id": sid, "name_bn": f"{sid} bn", "name_en": sid.title(), "status": "live",
+            "corpus": f"{sid}.jsonl", "gold": f"{sid}_gold.json", "verified_at_field": None}
+            for sid in service_ids]}),
         "data/release_thresholds.json": dump({"known_failures": {}}),
-        "concept_registry.json": dump({"services": {"alpha": {}}}),
-        "c.jsonl": b'{"id": "alpha-1", "text": "t", "source_url": "https://e.test/1"}\n',
-        "alpha_gold.json": dump(GOLD),
+        "concept_registry.json": dump({"services": {sid: {} for sid in service_ids}}),
     }
+    for sid in service_ids:
+        files[f"{sid}.jsonl"] = f'{{"id": "{sid}-1", "text": "t", "source_url": "https://e.test/1"}}\n'.encode("utf-8")
+        # alpha keeps the plain ids; another service gets its own, because query ids are unique per release
+        suffix = "" if sid == "alpha" else f"_{sid}"
+        files[f"{sid}_gold.json"] = dump({**GOLD, "queries": [{**q, "id": q["id"] + suffix} for q in GOLD["queries"]]})
     files.update(extra)
     return DictSource(COMMIT, files)
 
@@ -227,6 +239,24 @@ def test_eval_release_runs_the_gold_queries_of_the_release_commit(eval_world):
     assert [v["query_id"] for v in result["verdicts"]] == ["gq_ok", "gq_known", "gq_bad"]
     assert eval_world.searches == [(7, "alpha", 4)] * 3
     json.dumps(result)
+
+
+def test_eval_release_follows_the_frozen_manifest_order_not_the_alphabet(monkeypatch, eval_world):
+    monkeypatch.setitem(evals.RULES, "zeta", evals.RULES["nid"])
+    eval_world.rows[7] = _release(services=("zeta", "alpha"))          # the build ran zeta first ...
+    monkeypatch.setattr(store, "live_services", lambda conn, rid: ["alpha", "zeta"])  # ... the store sorts
+    monkeypatch.setattr(store, "search", lambda conn, rid, sid, vector, k: [Hit("x", sid, 0.9, "t", "fees", None, "h", "u")])
+    result = commands.eval_release(object(), 7, FakeEmbedder(), source=_eval_source("alpha", "zeta"))
+    assert list(result["counts"]) == ["zeta", "alpha"]
+    assert [v["service_id"] for v in result["verdicts"]] == ["zeta"] * 3 + ["alpha"] * 3
+
+
+def test_eval_release_runs_only_the_services_that_are_live_in_the_release(monkeypatch, eval_world):
+    monkeypatch.setitem(evals.RULES, "zeta", evals.RULES["nid"])
+    eval_world.rows[7] = _release(services=("zeta", "alpha"))
+    monkeypatch.setattr(store, "live_services", lambda conn, rid: ["alpha"])    # zeta is hidden in this release
+    result = commands.eval_release(object(), 7, FakeEmbedder(), source=_eval_source("alpha", "zeta"))
+    assert list(result["counts"]) == ["alpha"]
 
 
 def test_eval_release_passes_when_every_failure_is_known(monkeypatch, eval_world):

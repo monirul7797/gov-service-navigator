@@ -134,6 +134,20 @@ def show(conn: psycopg.Connection, release_id: int) -> dict:
 # --- eval ---------------------------------------------------------------------------------------
 
 
+def _in_manifest_order(row: dict, live: Sequence[str]) -> list[str]:
+    """The live services in the order of the release's own (frozen) manifest, which is the order the
+    build judged them in, so ``gsn eval`` lists its verdicts exactly as the stored gate report does.
+    ``store.live_services`` sorts by id, which is a different order. A live service the manifest does
+    not name (it cannot happen for a release this code built) goes last, in id order."""
+    wanted = set(live)
+    ordered = [
+        entry["service_id"]
+        for entry in (row.get("manifest") or {}).get("services", [])
+        if isinstance(entry, dict) and entry.get("service_id") in wanted
+    ]
+    return list(dict.fromkeys(ordered)) + sorted(wanted - set(ordered))
+
+
 def eval_release(
     conn: psycopg.Connection, release_id: int, embedder: Embedder, *, source: ContentSource | None = None
 ) -> dict:
@@ -150,7 +164,7 @@ def eval_release(
             f"{embedder.model_id}: scores from different models cannot be compared. Set GSN_EMBEDDER to "
             "match the release"
         )
-    live = store.live_services(conn, release_id)
+    live = _in_manifest_order(row, store.live_services(conn, release_id))
     if source is None:
         source = open_repository(row["source_commit"])
     try:

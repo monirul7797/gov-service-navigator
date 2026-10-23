@@ -31,14 +31,15 @@ class Project:
 
     def __init__(self, tag):
         self.tag = tag
-        self.sids = (f"svc_{tag}_a", f"svc_{tag}_b")
+        # Manifest order is deliberately NOT alphabetical order (the store lists services alphabetically).
+        self.sids = (f"svc_{tag}_z", f"svc_{tag}_a")
         self.records = {
             sid: [
                 {
                     "id": f"{sid}-{n}", "text": f"{sid} {category} text number {n}", "heading": f"Heading {n}",
                     "category": category, "lang": "en", "source_url": f"https://example.test/{sid}/{n}",
                     "official": True,
-                    **({"fetched_at": f"2026-07-1{n}T10:00:00"} if sid.endswith("_a") else {}),
+                    **({"fetched_at": f"2026-07-1{n}T10:00:00"} if sid == self.sids[0] else {}),
                 }
                 for n, category in enumerate(("fees", "process", "documents"), start=1)
             ]
@@ -48,6 +49,7 @@ class Project:
         self.top_k = 4
         self.expected_override = {}     # query id -> a different expected_id (makes that query fail at top_k 1)
         self.status = {sid: "live" for sid in self.sids}
+        self.verified_at_field = "fetched_at"   # the manifest mapping of the first service (the other has none)
 
     def query_id(self, record):
         return f"gq_{record['id']}"
@@ -66,7 +68,7 @@ class Project:
         manifest = {"services": [
             {"service_id": sid, "name_bn": f"সেবা {sid}", "name_en": f"Service {sid}", "status": self.status[sid],
              "corpus": f"data/chunks/{sid}.jsonl", "gold": f"{sid}_gold.json",
-             "verified_at_field": "fetched_at" if sid.endswith("_a") else None}
+             "verified_at_field": self.verified_at_field if sid == self.sids[0] else None}
             for sid in self.sids
         ]}
         files = {
@@ -162,6 +164,39 @@ def test_a_search_of_the_built_release_finds_each_record_first(connect, project)
         sid = next(s for s in project.sids if record in project.records[s])
         (hit, *_) = store.search(worker, result.release_id, sid, EMBEDDER.encode([record["text"]])[0], 4)
         assert hit.record_id == record["id"] and hit.sim == pytest.approx(1.0, abs=1e-6)
+
+
+# --- the draft and its build audit row are one transaction -------------------------------------
+
+
+def test_a_failing_build_audit_row_leaves_no_draft_behind(connect, project, monkeypatch):
+    real_audit = store.audit
+
+    def failing(conn, actor, action, target, details):
+        if action == "release.build":
+            raise RuntimeError("injected audit failure")
+        return real_audit(conn, actor, action, target, details)
+
+    monkeypatch.setattr(store, "audit", failing)
+    releases_before = count(connect, "SELECT count(*) FROM releases")
+    members_before = count(connect, "SELECT count(*) FROM release_members")
+    actor = new_actor()
+    with pytest.raises(RuntimeError, match="injected audit failure"):
+        run_build(connect, project, actor=actor)
+
+    # the audit step ran after create_draft had inserted everything, yet nothing at all remains
+    assert count(connect, "SELECT count(*) FROM releases") == releases_before
+    assert count(connect, "SELECT count(*) FROM release_members") == members_before
+    assert count(connect, "SELECT count(*) FROM services WHERE service_id = ANY(%s)", list(project.sids)) == 0
+    assert count(connect, "SELECT count(*) FROM records WHERE record_id LIKE %s", f"svc_{project.tag}%") == 0
+    assert count(connect, "SELECT count(*) FROM record_versions WHERE record_id LIKE %s", f"svc_{project.tag}%") == 0
+    assert audit_for(connect, actor) == []
+
+    # the abandoned attempt blocks nothing: the same build now runs from scratch
+    monkeypatch.setattr(store, "audit", real_audit)
+    again = run_build(connect, project, actor=actor)
+    assert again.status == "validated" and (again.embedded, again.reused_versions) == (6, 0)
+    assert [a[0] for a in audit_for(connect, actor, again.release_id)] == ["release.build", "release.validate"]
 
 
 # --- the gate -----------------------------------------------------------------------------------
@@ -323,6 +358,37 @@ def test_changed_provenance_field_new_version_same_vector(connect, project):
     assert others == {rid: vid for rid, vid in members(connect, first.release_id).items() if rid != record["id"]}
 
 
+def test_a_changed_manifest_mapping_creates_new_versions_with_the_dates_and_embeds_nothing(connect, project):
+    first_sid, second_sid = project.sids
+    project.verified_at_field = None       # commit A: the records carry fetched_at, but no field is mapped to it
+    a = run_build(connect, project)
+    assert a.status == "validated" and a.embedded == 6
+    worker = connect("worker")
+    a_members = members(connect, a.release_id)
+    dated = "SELECT count(*) FROM record_versions WHERE version_id = ANY(%s) AND verified_at IS NOT NULL"
+    assert worker.execute(dated, (list(a_members.values()),)).fetchone()[0] == 0
+
+    project.verified_at_field = "fetched_at"    # commit B: the very same records, now mapped
+    b = run_build(connect, project)
+    assert b.status == "validated" and b.release_id != a.release_id
+    assert (b.embedded, b.reused_versions, b.copied_vectors) == (0, 3, 3)
+    b_members = members(connect, b.release_id)
+    for n, record in enumerate(project.records[first_sid], start=1):
+        assert b_members[record["id"]] != a_members[record["id"]]            # a NEW version ...
+        assert worker.execute("SELECT verified_at FROM record_versions WHERE version_id = %s",
+                              (b_members[record["id"]],)).fetchone()[0] == date(2026, 7, 10 + n)  # ... with the date
+        assert store.stored_vectors(worker, b.release_id)[record["id"]] == \
+            store.stored_vectors(worker, a.release_id)[record["id"]]       # ... and the very same vector
+        assert count(connect, "SELECT count(*) FROM record_versions WHERE record_id = %s", record["id"]) == 2
+    for record in project.records[second_sid]:                               # the service without a mapping: untouched
+        assert b_members[record["id"]] == a_members[record["id"]]
+        assert count(connect, "SELECT count(*) FROM record_versions WHERE record_id = %s", record["id"]) == 1
+
+    c = run_build(connect, project)                                          # a plain rebuild reuses everything
+    assert (c.embedded, c.reused_versions, c.copied_vectors) == (0, 6, 0)
+    assert members(connect, c.release_id) == b_members
+
+
 def test_changed_text_is_embedded_and_the_old_version_stays(connect, project):
     first = run_build(connect, project)
     record = project.records[project.sids[1]][2]
@@ -397,9 +463,14 @@ def test_rollback_goes_back_to_the_release_that_was_active_before(connect, proje
 
 def test_eval_release_reproduces_the_gate_report_of_the_build(connect, project):
     built = run_build(connect, project)
+    # the store lists services alphabetically, the build judged them in manifest order: the two differ here,
+    # so this test passing proves eval follows the release's frozen manifest and not the store's order
+    assert store.live_services(connect("worker"), built.release_id) == sorted(project.sids) != list(project.sids)
     result = commands.eval_release(connect("worker"), built.release_id, EMBEDDER, source=project.source())
     report = release_row(connect, built.release_id)["gate_report"]
     assert result["passed"] is True and result["counts"] == report["counts"]
+    assert list(result["counts"]) == list(project.sids)
+    assert [v["service_id"] for v in report["verdicts"]][0] == project.sids[0]
     assert [v["query_id"] for v in result["verdicts"]] == [v["query_id"] for v in report["verdicts"]]
     assert result["verdicts"] == report["verdicts"]
 

@@ -6,10 +6,12 @@ legacy root code: the engine image does not contain it). A test lifts the origin
 """
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from gsn.hashing import canonical_json
 from gsn.release.inputs import ServiceEntry
 
 # General portal-vs-informational URL classification, copied from answer.py: read-only
@@ -89,3 +91,25 @@ def version_fields(record: dict, entry: ServiceEntry) -> VersionFields:
         source_verified=not record.get("source_url_unverified", False),
         verified_at=parse_verified_at(record.get(field)) if field else None,
     )
+
+
+def fields_hash(fields: VersionFields) -> str:
+    """SHA-256 (lowercase hex) of the canonical JSON of the derived columns of a version.
+
+    Together with the record's ``content_hash`` it is the identity of a stored version: the same record
+    under a different manifest mapping (``verified_at_field``) or a different derivation rule
+    (``url_kind``, ``official``, ``source_verified``) is a different version, so a stale derived column
+    is never reused. ``verified_at`` enters as an ISO date string, or null. Any change to this payload
+    changes every stored identity (the pinned value in the tests says so).
+    """
+    return hashlib.sha256(canonical_json({
+        "category": fields.category,
+        "subcategory": fields.subcategory,
+        "heading": fields.heading,
+        "lang": fields.lang,
+        "source_url": fields.source_url,
+        "url_kind": fields.url_kind,
+        "official": fields.official,
+        "source_verified": fields.source_verified,
+        "verified_at": fields.verified_at.isoformat() if fields.verified_at is not None else None,
+    })).hexdigest()

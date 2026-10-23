@@ -36,6 +36,7 @@ CREATE TABLE record_versions (
     version_id      bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     record_id       text        NOT NULL REFERENCES records (record_id),
     content_hash    text        NOT NULL,   -- SHA-256 of the record's canonical JSON (computed in Python)
+    fields_hash     text        NOT NULL,   -- SHA-256 of the canonical JSON of the derived columns below (Python)
     text_hash       text        NOT NULL,   -- SHA-256 of embed_text: same text + same model = same vector
     hash_version    integer     NOT NULL,
     record          jsonb       NOT NULL,   -- the original record, every field
@@ -55,8 +56,9 @@ CREATE TABLE record_versions (
     created_at      timestamptz NOT NULL DEFAULT now(),
     created_by      text        NOT NULL,
     change_note     text,
-    -- A build reuses the version of a record that already exists for the same content and model.
-    UNIQUE (record_id, content_hash, embedding_model),
+    -- A build reuses the version of a record that already exists for the same content, the same derived
+    -- columns (a changed manifest mapping or derivation rule is a new version) and the same model.
+    UNIQUE (record_id, content_hash, fields_hash, embedding_model),
     -- Target of the release_members foreign key: a member's version belongs to the member's record.
     UNIQUE (version_id, record_id)
 );
@@ -461,9 +463,9 @@ GRANT SELECT ON services, records, record_versions, releases, release_services, 
 -- OVERRIDING SYSTEM VALUE) or backdate a row; both always come from their defaults.
 GRANT INSERT ON services, release_services, release_members TO gsn_worker;
 GRANT INSERT (record_id, service_id) ON records TO gsn_worker;
-GRANT INSERT (record_id, content_hash, text_hash, hash_version, record, embed_text, category, subcategory,
-              heading, lang, source_url, url_kind, official, source_verified, verified_at, embedding,
-              embedding_model, source_commit, created_by, change_note)
+GRANT INSERT (record_id, content_hash, fields_hash, text_hash, hash_version, record, embed_text, category,
+              subcategory, heading, lang, source_url, url_kind, official, source_verified, verified_at,
+              embedding, embedding_model, source_commit, created_by, change_note)
     ON record_versions TO gsn_worker;
 GRANT INSERT (status, source_commit, manifest, registry, registry_sha256, thresholds, gate_report,
               embedding_model, note, override_reason, created_by)

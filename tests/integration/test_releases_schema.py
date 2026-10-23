@@ -119,16 +119,32 @@ def test_record_version_constraints_reject_bad_values(connect, overrides, error)
         add_version(worker, f"rec_{tag}", text=f"text {tag}", **overrides)
 
 
-def test_a_version_is_unique_per_record_hash_and_model(connect):
+def test_a_version_is_unique_per_record_content_derived_columns_and_model(connect):
     worker = connect("worker")
     built = make_draft_release(connect, n_records=1)
     record_id = built.record_ids[0]
     same_hash = sha256_hex(f"text 0 {built.tag}")
-    with pytest.raises(UniqueViolation):  # same (record, content_hash, model) as the first version
+    with pytest.raises(UniqueViolation):  # same (record, content_hash, fields_hash, model) as the first version
         add_version(worker, record_id, text="other text", content_hash=same_hash)
-    # a different model or a different content hash is a different version
+    # a different model, a different content hash or different derived columns is a different version
     add_version(worker, record_id, text="other text", content_hash=same_hash, model="fake-other-model")
     add_version(worker, record_id, text="other text 2")
+    add_version(worker, record_id, text="other text 3", content_hash=same_hash, fields_hash=sha256_hex("derived"))
+    with pytest.raises(UniqueViolation):  # ... but only once
+        add_version(worker, record_id, text="other text 4", content_hash=same_hash, fields_hash=sha256_hex("derived"))
+
+
+def test_a_version_needs_a_fields_hash(connect):
+    worker = connect("worker")
+    built = make_draft_release(connect, n_records=1)
+    with pytest.raises(NotNullViolation):
+        worker.execute(
+            "INSERT INTO record_versions (record_id, content_hash, text_hash, hash_version, record, embed_text, "
+            "source_url, url_kind, source_verified, embedding, embedding_model, source_commit, created_by) "
+            "VALUES (%s, 'c', 't', 1, '{}'::jsonb, 'x', 'https://example.test/', 'info', true, %s::vector, "
+            "'fake-sha256-v1', %s, 'itest')",
+            (built.record_ids[0], UNIT_VECTOR, COMMIT),
+        )
 
 
 # --- append-only and frozen rules ---------------------------------------------------------------

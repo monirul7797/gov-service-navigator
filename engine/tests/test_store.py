@@ -15,7 +15,7 @@ from psycopg import errors
 from gsn import store
 from gsn.embed import FakeEmbedder
 from gsn.hashing import content_hash, text_hash
-from gsn.release.fields import VersionFields
+from gsn.release.fields import VersionFields, fields_hash
 from gsn.release.inputs import ServiceEntry
 
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
@@ -29,7 +29,8 @@ def make_version(record_id, service_id="svc"):
     )
     return store.NewVersion(
         record_id=record_id, service_id=service_id, record=record, embed_text=record["text"],
-        content_hash=content_hash(record), text_hash=text_hash(record["text"]), fields=fields,
+        content_hash=content_hash(record), fields_hash=fields_hash(fields), text_hash=text_hash(record["text"]),
+        fields=fields,
         embedding=FakeEmbedder().encode([record["text"]])[0],
     )
 

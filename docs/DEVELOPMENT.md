@@ -287,9 +287,10 @@ finished migrations and talks to `postgres`:
 docker compose --profile tools build
 ```
 
-Every command has the form `docker compose --profile tools run --rm release release <command>` (the
+Every command has the form `docker compose --profile tools run --rm -T release release <command>` (the
 container's entry point is `gsn`, so the first `release` is the compose service and the second is the
-`gsn` subcommand). The commands:
+`gsn` subcommand; `-T` switches off the pseudo-terminal, which keeps the output clean when you save or
+pipe it). The commands:
 
 | Command | What it does |
 |---|---|
@@ -303,9 +304,9 @@ container's entry point is `gsn`, so the first `release` is the compose service 
 For example, a build, a look at what changed, and the switch (use the number `build` printed):
 
 ```powershell
-docker compose --profile tools run --rm release release build --note "after the August crawl"
-docker compose --profile tools run --rm release release show 5
-docker compose --profile tools run --rm release release publish 5
+docker compose --profile tools run --rm -T release release build --note "after the August crawl"
+docker compose --profile tools run --rm -T release release show 5
+docker compose --profile tools run --rm -T release release publish 5
 ```
 
 Things to know:
@@ -317,21 +318,26 @@ Things to know:
   that history ever contained a `setenv*.bat` or `.env` file, because those hold secrets.
 - **Building the same commit again is cheap.** Versions and vectors that are already stored are
   reused (the summary shows `embedded: 0`), so a rejected build can be fixed and repeated without
-  re-embedding anything.
+  re-embedding anything. A stored version is identified by the record's content *and* by the columns
+  derived from it (the verification date and its manifest mapping, the link kind, the official and
+  verified flags). If only that derivation changes, for example you map `verified_at_field` for a
+  service, its records get new versions but the vectors are copied, so still nothing is embedded.
 - **Rejected releases.** If any gold query fails that is not listed under `known_failures` in
   `data/release_thresholds.json`, the release is `rejected`. Fix the data and build again, or add
   `--override "why this is fine"` after looking at the failures: the reason is stored on the release
-  and in the audit log (`release.override`). `--override` has no effect when nothing failed.
+  and in the audit log (`release.override`). `--override` has no effect when nothing failed (the
+  summary then says `override not needed` and no reason is recorded).
 - **Audit trail.** Every build writes `release.build` and then one of `release.validate`,
-  `release.reject` or `release.override`; publish and rollback write their own rows. The actor is
+  `release.reject` or `release.override`; publish and rollback write their own rows. The draft and its
+  `release.build` row are saved together, so a release never exists without its build row. The actor is
   `GSN_ACTOR` (default `owner`); set it in `.env` or the shell to record who ran a command.
 - **The real embedding model** (BAAI/bge-m3, about 2 GB) arrives with task C1. Until then a build
   without `GSN_EMBEDDER` stops with exit code 2 ("real embedder arrives in Task C1"). For tests and
   smoke runs, `-e GSN_EMBEDDER=fake` selects a stand-in whose vectors carry **no meaning**:
 
   ```powershell
-  docker compose --profile tools run --rm -e GSN_EMBEDDER=fake release release build --commit HEAD --override "local smoke"
-  docker compose --profile tools run --rm release release list
+  docker compose --profile tools run --rm -T -e GSN_EMBEDDER=fake release release build --commit HEAD --override "local smoke"
+  docker compose --profile tools run --rm -T release release list
   ```
 
   A release built that way is stamped `fake-sha256-v1`, its gold queries fail (hence `--override`), and
