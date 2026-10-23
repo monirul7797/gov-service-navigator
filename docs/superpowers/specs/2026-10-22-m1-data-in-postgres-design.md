@@ -48,7 +48,7 @@ New migrations (`db/migrations/0002_…` onwards; applied migrations are never e
 |---|---|---|
 | `services` | `service_id` (PK: `nid`, `bdris`, `epassport`, `ereturn`), `name_bn`, `name_en` | insert only |
 | `records` | `record_id` (PK, today's corpus IDs — unique across all corpora), `service_id` FK, `created_at` | insert only |
-| `record_versions` | `version_id` (identity PK), `record_id` FK, `content_hash`, `text_hash`, `hash_version`, `record` (JSONB: the original record, every field; string values exactly as in the file), `embed_text` (the record's `text`, exactly what is embedded), `category`, `subcategory`, `heading`, `lang`, `source_url`, `url_kind`, `official`, `source_verified`, `verified_at` (date, nullable), `embedding` (`vector(1024)`), `embedding_model`, `source_commit`, `created_at`, `created_by`, `change_note` | **append-only** (UPDATE/DELETE/TRUNCATE rejected) |
+| `record_versions` | `version_id` (identity PK), `record_id` FK, `content_hash`, `fields_hash`, `text_hash`, `hash_version`, `record` (JSONB: the original record, every field; string values exactly as in the file), `embed_text` (the record's `text`, exactly what is embedded), `category`, `subcategory`, `heading`, `lang`, `source_url`, `url_kind`, `official`, `source_verified`, `verified_at` (date, nullable), `embedding` (`vector(1024)`), `embedding_model`, `source_commit`, `created_at`, `created_by`, `change_note` | **append-only** (UPDATE/DELETE/TRUNCATE rejected) |
 | `releases` | `release_id` (identity PK, small integers the owner types), `status` (`draft` → `validated` \| `rejected`), `source_commit`, `manifest` (JSONB), `registry` (JSONB), `registry_sha256` (of the file's raw bytes), `thresholds` (JSONB), `gate_report` (JSONB), `embedding_model`, `note`, `override_reason`, `created_at`, `created_by` | only `status` (+ `gate_report`, `override_reason`) may change, once, out of `draft` |
 | `release_members` | `release_id`, `version_id`, `record_id`; PK (`release_id`, `version_id`), UNIQUE (`release_id`, `record_id`) — one version per record per release | insert/delete only while the release is `draft` |
 | `release_services` | (`release_id`, `service_id`) PK, `status` (`live` \| `hidden`) | frozen with the release |
@@ -57,10 +57,15 @@ New migrations (`db/migrations/0002_…` onwards; applied migrations are never e
 
 - **Version identity** — `content_hash` = SHA-256 of the record's canonical JSON, computed in
   Python as `json.dumps(record, sort_keys=True, ensure_ascii=False, separators=(",", ":"))`
-  encoded UTF-8, with `hash_version = 1`. It is never recomputed from `jsonb::text`. A build
-  reuses an existing version when (`record_id`, `content_hash`, `embedding_model`) exists (UNIQUE
-  index). A changed field such as a newer `fetched_at` is a real change (a newer verification) and
-  gets a new version.
+  encoded UTF-8, with `hash_version = 1`. It is never recomputed from `jsonb::text`.
+  `fields_hash` = SHA-256 of the canonical JSON of the derived columns (`category`, `subcategory`,
+  `heading`, `lang`, `source_url`, `url_kind`, `official`, `source_verified`, `verified_at` as an
+  ISO date or null), so a version also captures what the manifest mapping and the derivation code
+  made of the record. A build reuses an existing version when (`record_id`, `content_hash`,
+  `fields_hash`, `embedding_model`) exists (UNIQUE index). A changed field such as a newer
+  `fetched_at`, a changed `verified_at_field` mapping or a changed `url_kind` rule is a real change
+  and gets a new version (amended 2026-10-23 after the A6 review: reuse by content alone would
+  have kept stale derived columns forever).
 - **Embedding reuse** — `text_hash` = SHA-256 of `embed_text`. A new version whose (`text_hash`,
   `embedding_model`) already exists copies that vector instead of re-embedding, so a re-crawl that
   only changes provenance fields costs no embedding time.
