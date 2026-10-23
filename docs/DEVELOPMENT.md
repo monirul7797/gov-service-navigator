@@ -239,6 +239,15 @@ python deploy/smoke.py --url http://localhost/readyz --timeout 300
 docker compose -f compose.yaml -f compose.test.yaml run --rm itest
 ```
 
+The `itest` image contains a copy of the `gsn` package, and `docker compose run` reuses an image it
+already has, so after changing anything under `engine\src` rebuild it first (a plain `docker compose
+build` and `--profile tools build` skip it, because `itest` belongs to the `test` profile; CI builds
+it fresh):
+
+```powershell
+docker compose -f compose.yaml -f compose.test.yaml build itest
+```
+
 They check that each of the four database roles can log in and has exactly the rights it should
 (`gsn_web` reads and appends `audit_log`, `gsn_worker` only appends, `gsn_engine` has no access, no
 role except the owner can create tables; `tests/integration/test_grants.py` compares the complete
