@@ -97,7 +97,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     audit_parser = sub.add_parser("audit", help="inspect the audit log")
     asub = audit_parser.add_subparsers(dest="audit_command", required=True, metavar="COMMAND")
-    asub.add_parser("verify", help="check the audit log's hash chain (exit 0 when intact, 1 when broken)")
+    verify_help = (
+        "check the audit log's hash chain; every row must be chained (exit 0 when intact, 1 when broken, "
+        "naming the first bad chain position; an unchained row counts as a break at the position it would take)"
+    )
+    asub.add_parser("verify", help=verify_help, description=verify_help)
     return parser
 
 

@@ -23,7 +23,7 @@ The owner's UPDATE/DELETE/TRUNCATE are still blocked, by the triggers (see test_
 The release tables, views, sequences and functions of migration 0002 (spec section 3.1) are checked
 further down in the same way: gsn_worker writes drafts, gsn_engine reads three views, gsn_web gets
 nothing new, and gsn_migrate owns everything. Migration 0003 (spec section 8.2) adds the chain head
-table, which no login role may touch, and the two audit functions.
+table, which no login role may touch, and the three audit functions.
 """
 import pytest
 
@@ -152,6 +152,9 @@ FUNCTIONS = {  # SECURITY DEFINER functions: signature -> the roles allowed to e
     # service; the chain trigger function runs only as a trigger, whoever inserts, so nobody calls it.
     "public.audit_verify()": {"worker", "web", "migrate"},
     "public.audit_log_chain()": {"migrate"},
+    # the verification core takes any table shaped like audit_log, so only the owner may call it
+    # (audit_verify() calls it with the real log and head; the tests call it on scratch copies)
+    "public.audit_verify_rows(regclass, bigint, bytea)": {"migrate"},
 }
 TRIGGER_FUNCTIONS = [
     "public.gsn_reject_change()",

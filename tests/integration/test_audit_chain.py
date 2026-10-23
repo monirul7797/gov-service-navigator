@@ -3,22 +3,31 @@
 Every row written to ``audit_log`` is chained to the one before it: a ``BEFORE INSERT`` trigger takes the
 next ``chain_seq`` and the previous ``row_hash`` from the single-row head table ``audit_chain`` and
 stores the row's own hash. ``audit_verify()`` walks the chain by ``chain_seq`` and reports the first
-broken position. The tests below pin down:
+broken position; every row of ``audit_log`` must be chained, so a row without a ``chain_seq`` is a break.
+The tests below pin down:
 
 * how rows are chained (also from the worker, which cannot read ``audit_log``) and the exact hash
-  format, recomputed here in Python from the documented canonical row (``hash_version`` 1);
+  format, recomputed here in Python from the documented canonical row (``hash_version`` 1), also under
+  other session time zones, for multi-row inserts and when a privileged inserter supplies chain values;
 * that callers cannot choose the chain columns, and that concurrent inserts are chained in lock order;
-* that ``audit_verify()`` notices every kind of tampering (edit, removal, truncation, a rewritten or
-  missing head) and that its tampering tests leave nothing behind (each runs in a rolled-back
-  transaction as the table owner, the only role that could do this at all);
-* that the SECURITY DEFINER functions ignore look-alike temporary tables and types a caller creates.
+* that verification notices every kind of tampering (edit, recomputed hash, removal, truncation, an
+  unchained row, a rewritten or missing head).
+
+Tampering with the rows never touches ``audit_log`` itself (the watchdog of task B2 forbids switching its
+guard triggers off, and the guards are part of what is being tested). Instead each test copies the table
+into a scratch table inside a transaction that is rolled back (``scratch_copy``), tampers with the copy
+and runs the verification CORE, ``audit_verify_rows(table, head_seq, head_hash)``, on it: the same code
+``audit_verify()`` runs on the real table. Only the chain head is tampered with in place (the owner may
+write ``audit_chain``), again inside a rolled-back transaction.
 
 Rows can never be deleted, so each test writes under its own unique actor and only ever reads its own rows.
 """
 import hashlib
 import json
 import threading
-from datetime import timezone
+import uuid
+from contextlib import contextmanager
+from datetime import timedelta, timezone
 
 import pytest
 from psycopg.errors import InsufficientPrivilege, NotNullViolation, RaiseException
@@ -47,6 +56,15 @@ def chained_rows(conn, actor):
 def verify(conn):
     """``(ok, rows_checked, first_bad_seq)`` as audit_verify() reports it."""
     return conn.execute("SELECT ok, rows_checked, first_bad_seq FROM public.audit_verify()").fetchone()
+
+
+def verify_rows(conn, table, head_seq, head_hash):
+    """The verification core on any table shaped like audit_log (``table`` is a regclass literal)."""
+    return conn.execute(
+        "SELECT ok, rows_checked, first_bad_seq FROM public.audit_verify_rows("
+        "%s::pg_catalog.regclass, %s::pg_catalog.int8, %s::pg_catalog.bytea)",
+        (table, head_seq, head_hash),
+    ).fetchone()
 
 
 def head(conn):
@@ -87,6 +105,35 @@ def canonical_hash(row, *, action=None):
     return hashlib.sha256(canonical.encode("utf-8")).digest()
 
 
+class Scratch:
+    """A throw-away copy of audit_log plus the chain head it was taken with; see ``scratch_copy``."""
+
+    def __init__(self, conn, identifier, head_values):
+        self.conn, self.identifier, self.head = conn, identifier, head_values
+        self.table = f"public.{identifier}"  # also a valid regclass literal
+
+    def execute(self, sql, params=None):
+        """Run ``sql`` with ``{t}`` replaced by the copy's name (a plain replace: the SQL may hold braces)."""
+        return self.conn.execute(sql.replace("{t}", self.table), params)
+
+    def verify(self, head_values=None):
+        head_seq, head_hash = self.head if head_values is None else head_values
+        return verify_rows(self.conn, self.table, head_seq, head_hash)
+
+
+@contextmanager
+def scratch_copy(migrate, identifier=None):
+    """Copy ``audit_log`` into a scratch table (as the table owner) inside a transaction that is rolled back.
+
+    The copy has no triggers and no constraints, so it can be tampered with freely; nothing outlives the
+    ``with`` block, and the real table is never touched. ``identifier`` is the (already quoted) table name.
+    """
+    with migrate.transaction(force_rollback=True):
+        identifier = identifier or f"scratch_{uuid.uuid4().hex}"
+        migrate.execute(f"CREATE TABLE public.{identifier} AS SELECT * FROM public.audit_log")
+        yield Scratch(migrate, identifier, head(migrate))
+
+
 # --- chaining ---------------------------------------------------------------------------------
 
 
@@ -122,6 +169,60 @@ def test_row_hash_is_the_sha256_of_the_documented_canonical_row(connect):
     for row in rows:
         assert row["row_hash"] == canonical_hash(row)
     assert rows[1]["prev_hash"] == rows[0]["row_hash"]
+
+
+def test_a_multi_row_insert_chains_every_row_in_order(connect):
+    worker, web = connect("worker"), connect("web")
+    actor = new_actor()
+    worker.execute(
+        "INSERT INTO public.audit_log (actor, action) VALUES (%s, 'itest.multi.1'), (%s, 'itest.multi.2'), "
+        "(%s, 'itest.multi.3')",
+        (actor, actor, actor),
+    )
+    worker.execute(
+        "INSERT INTO public.audit_log (actor, action) SELECT %s, 'itest.multi.select.' || g "
+        "FROM generate_series(1, 3) AS g",
+        (actor,),
+    )
+    rows = chained_rows(web, actor)
+    assert [r["action"] for r in rows[:3]] == ["itest.multi.1", "itest.multi.2", "itest.multi.3"]
+    assert len(rows) == 6
+    assert [r["chain_seq"] for r in rows] == [rows[0]["chain_seq"] + i for i in range(6)]
+    assert [r["id"] for r in rows] == sorted(r["id"] for r in rows)
+    for before, row in zip(rows, rows[1:]):
+        assert row["prev_hash"] == before["row_hash"]
+    assert all(row["row_hash"] == canonical_hash(row) for row in rows)
+    assert verify(worker)[0] is True
+
+
+def test_chaining_and_verification_do_not_depend_on_the_session_time_zone(connect):
+    worker, web = connect("worker"), connect("web")
+    worker.execute("SET TIME ZONE 'Asia/Dhaka'")
+    web.execute("SET TIME ZONE 'America/Los_Angeles'")
+    actor = new_actor()
+    add_audit_row(worker, actor, "itest.tz.worker")
+    add_audit_row(web, actor, "itest.tz.web")
+    rows = chained_rows(web, actor)  # `at` comes back in the web session's zone, not UTC
+    assert all(row["at"].utcoffset() != timedelta(0) for row in rows)
+    assert all(row["row_hash"] == canonical_hash(row) for row in rows)  # the hash always used UTC
+    assert verify(worker)[0] is True and verify(web)[0] is True
+    worker.execute("SET TIME ZONE 'UTC'")
+    assert verify(worker)[0] is True
+
+
+def test_the_trigger_overwrites_chain_values_a_privileged_inserter_supplies(connect):
+    # Web and worker cannot name the chain columns at all (below). The owner can, and gets them replaced.
+    migrate, web = connect("migrate"), connect("web")
+    actor = new_actor()
+    migrate.execute(
+        "INSERT INTO public.audit_log (actor, action, chain_seq, prev_hash, row_hash, hash_version) "
+        "VALUES (%s, 'itest.owner_forged', 777777777, %s, %s, 7)",
+        (actor, b"\x01", b"\x02" * 32),
+    )
+    (row,) = chained_rows(web, actor)
+    assert row["chain_seq"] != 777777777 and row["hash_version"] == 1
+    assert row["prev_hash"] != b"\x01" and row["row_hash"] == canonical_hash(row)
+    assert verify(migrate)[0] is True
 
 
 def test_a_failed_insert_does_not_advance_the_chain(connect):
@@ -161,9 +262,17 @@ def test_login_roles_cannot_touch_the_chain_head(connect, role):
             conn.execute(statement)
 
 
-def test_the_engine_cannot_run_the_audit_functions(connect):
+def test_the_engine_cannot_run_audit_verify(connect):
     with pytest.raises(InsufficientPrivilege):
         connect("engine").execute("SELECT * FROM public.audit_verify()")
+
+
+@pytest.mark.parametrize("role", ["web", "worker", "engine"])
+def test_only_the_owner_can_run_the_verification_core(connect, role):
+    # The core takes any table: letting a login role call it would let it point a SECURITY DEFINER
+    # function at arbitrary tables.
+    with pytest.raises(InsufficientPrivilege):
+        verify_rows(connect(role), "public.audit_log", 0, None)
 
 
 @pytest.mark.parametrize("role", ["web", "worker"])
@@ -240,18 +349,6 @@ def three_rows(connect):
     return rows
 
 
-def disable_row_guard(migrate):
-    migrate.execute("ALTER TABLE public.audit_log DISABLE TRIGGER audit_log_no_update_delete")
-
-
-def trigger_states(conn):
-    return dict(
-        conn.execute(
-            "SELECT tgname, tgenabled FROM pg_trigger WHERE tgrelid = 'public.audit_log'::regclass AND NOT tgisinternal"
-        ).fetchall()
-    )
-
-
 def test_verify_is_ok_and_counts_the_chained_rows(connect):
     three_rows(connect)
     web, worker = connect("web"), connect("worker")
@@ -259,40 +356,47 @@ def test_verify_is_ok_and_counts_the_chained_rows(connect):
     assert (ok, first_bad) == (True, None)
     assert rows_checked == count_chained(web) >= 3
     assert verify(web) == (ok, rows_checked, first_bad)  # the web role may verify too
+    # every row is chained: the verifier treats an unchained row as a break, so there must be none
+    assert web.execute("SELECT count(*) FROM public.audit_log WHERE chain_seq IS NULL").fetchone()[0] == 0
 
 
-def test_verify_detects_a_changed_row_and_the_rollback_restores_everything(connect):
-    rows = three_rows(connect)
-    middle = rows[1]
-    migrate, worker = connect("migrate"), connect("worker")
-    assert verify(worker)[0] is True
-
-    # Only the table owner can do this, and only by switching a guard trigger off. (Task B2's watchdog will
-    # refuse the DISABLE TRIGGER; its test then tampers with the chain head instead, see below.)
-    with migrate.transaction(force_rollback=True):
-        disable_row_guard(migrate)
-        migrate.execute("UPDATE public.audit_log SET action = 'itest.tampered' WHERE id = %s", (middle["id"],))
-        ok, rows_checked, first_bad = verify(migrate)
-    assert (ok, first_bad) == (False, middle["chain_seq"])
-    assert rows_checked == middle["chain_seq"] - 1  # the rows before the broken one were checked and are fine
-
-    assert verify(worker)[0] is True
-    assert trigger_states(migrate)["audit_log_no_update_delete"] == "O"  # the rollback re-enabled the guard
+def test_audit_verify_is_the_core_applied_to_the_real_log_and_head(connect):
+    three_rows(connect)
+    migrate = connect("migrate")
+    real = verify(migrate)
+    assert real[0] is True
+    assert verify_rows(migrate, "public.audit_log", *head(migrate)) == real
+    with scratch_copy(migrate) as scratch:
+        assert scratch.verify() == real  # an untouched copy verifies exactly like the original
 
 
 @pytest.mark.parametrize(
     "assignment",
-    ["action = 'itest.tampered'", "details = '{\"i\": 99}'::jsonb", "target = 'itest:elsewhere'",
-     "actor = 'someone-else'", "at = at + interval '1 microsecond'", "prev_hash = NULL"],
+    [
+        "action = 'itest.tampered'",
+        "details = '{\"i\": 99}'::jsonb",
+        "target = 'itest:elsewhere'",
+        "actor = 'someone-else'",
+        "at = at + interval '1 microsecond'",
+        "id = id + 1000000000",
+        "prev_hash = NULL",
+        "row_hash = '\\x00'::bytea",
+        "row_hash = NULL",
+        "hash_version = 2",
+        "hash_version = NULL",
+        "chain_seq = chain_seq + 1000",
+    ],
 )
-def test_verify_detects_a_change_of_any_hashed_column(connect, assignment):
+def test_verify_detects_a_change_of_any_chain_column(connect, assignment):
     rows = three_rows(connect)
+    middle = rows[1]
     migrate = connect("migrate")
-    with migrate.transaction(force_rollback=True):
-        disable_row_guard(migrate)
-        migrate.execute(f"UPDATE public.audit_log SET {assignment} WHERE id = %s", (rows[1]["id"],))
-        ok, _, first_bad = verify(migrate)
-    assert (ok, first_bad) == (False, rows[1]["chain_seq"])
+    with scratch_copy(migrate) as scratch:
+        scratch.execute(f"UPDATE {{t}} SET {assignment} WHERE id = %s", (middle["id"],))
+        ok, rows_checked, first_bad = scratch.verify()
+    assert (ok, first_bad) == (False, middle["chain_seq"])
+    assert rows_checked == middle["chain_seq"] - 1  # the rows before the broken one were checked and are fine
+    assert verify(migrate)[0] is True  # the real log was never touched
 
 
 def test_a_rewritten_row_hash_breaks_the_link_to_the_next_row(connect):
@@ -300,44 +404,109 @@ def test_a_rewritten_row_hash_breaks_the_link_to_the_next_row(connect):
     # points at the old one, so the chain breaks one position later.
     rows = three_rows(connect)
     middle = rows[1]
-    migrate = connect("migrate")
-    with migrate.transaction(force_rollback=True):
-        disable_row_guard(migrate)
-        migrate.execute(
-            "UPDATE public.audit_log SET action = 'itest.tampered', row_hash = %s WHERE id = %s",
+    with scratch_copy(connect("migrate")) as scratch:
+        scratch.execute(
+            "UPDATE {t} SET action = 'itest.tampered', row_hash = %s WHERE id = %s",
             (canonical_hash(middle, action="itest.tampered"), middle["id"]),
         )
-        ok, _, first_bad = verify(migrate)
+        ok, _, first_bad = scratch.verify()
     assert (ok, first_bad) == (False, rows[2]["chain_seq"])
 
 
 def test_verify_detects_a_removed_row_in_the_middle(connect):
     rows = three_rows(connect)
-    migrate = connect("migrate")
-    with migrate.transaction(force_rollback=True):
-        disable_row_guard(migrate)
-        migrate.execute("DELETE FROM public.audit_log WHERE id = %s", (rows[1]["id"],))
-        ok, rows_checked, first_bad = verify(migrate)
+    with scratch_copy(connect("migrate")) as scratch:
+        scratch.execute("DELETE FROM {t} WHERE id = %s", (rows[1]["id"],))
+        ok, rows_checked, first_bad = scratch.verify()
     assert (ok, first_bad) == (False, rows[1]["chain_seq"])  # the first missing position
     assert rows_checked == rows[1]["chain_seq"] - 1
 
 
 def test_verify_detects_removed_rows_at_the_end_of_the_chain(connect):
     three_rows(connect)
-    migrate = connect("migrate")
-    last = last_chain_seq(migrate)
-    with migrate.transaction(force_rollback=True):
-        disable_row_guard(migrate)
-        migrate.execute("DELETE FROM public.audit_log WHERE chain_seq = %s", (last,))
-        ok, rows_checked, first_bad = verify(migrate)
+    with scratch_copy(connect("migrate")) as scratch:
+        last = scratch.head[0]
+        scratch.execute("DELETE FROM {t} WHERE chain_seq = %s", (last,))
+        ok, rows_checked, first_bad = scratch.verify()
     assert (ok, first_bad) == (False, last)  # the remaining rows are consistent, but the head expects one more
     assert rows_checked == last - 1
+
+
+# Every row must be chained. An unchained row (chain_seq NULL) is a break, reported at the position it
+# would take: 1 + the number of chained rows with a smaller id. A forged append is therefore reported at
+# n + 1, right after the last chained row.
+
+
+def test_a_forged_unchained_row_at_the_end_is_a_break_after_the_last_chained_row(connect):
+    three_rows(connect)
+    with scratch_copy(connect("migrate")) as scratch:
+        last = scratch.head[0]
+        scratch.execute(
+            "INSERT INTO {t} (id, at, actor, action, target, details) "
+            "SELECT max(id) + 1, now(), 'forger', 'itest.forged', NULL, '{}'::jsonb FROM {t}"
+        )
+        assert scratch.execute("SELECT count(*) FROM {t} WHERE chain_seq IS NULL").fetchone()[0] == 1
+        assert scratch.verify() == (False, last, last + 1)
+
+
+def test_an_unchained_row_in_the_middle_is_reported_at_the_position_it_would_take(connect):
+    rows = three_rows(connect)
+    middle = rows[1]
+    with scratch_copy(connect("migrate")) as scratch:
+        # a forged row that carries the middle row's id (so it sorts where that row sits) but no chain values
+        scratch.execute(
+            "INSERT INTO {t} (id, at, actor, action, target, details) VALUES (%s, now(), 'forger', 'itest.forged', "
+            "NULL, '{}'::jsonb)",
+            (middle["id"],),
+        )
+        ok, rows_checked, first_bad = scratch.verify()
+    assert (ok, first_bad) == (False, middle["chain_seq"])
+    assert rows_checked == middle["chain_seq"] - 1
+
+
+def test_a_row_whose_chain_position_was_removed_is_a_break(connect):
+    rows = three_rows(connect)
+    middle = rows[1]
+    with scratch_copy(connect("migrate")) as scratch:
+        scratch.execute("UPDATE {t} SET chain_seq = NULL, prev_hash = NULL, row_hash = NULL WHERE id = %s", (middle["id"],))
+        ok, rows_checked, first_bad = scratch.verify()
+    assert (ok, first_bad) == (False, middle["chain_seq"])
+    assert rows_checked == middle["chain_seq"] - 1
+
+
+def test_the_lowest_problem_is_reported_when_there_are_several(connect):
+    rows = three_rows(connect)
+    middle = rows[1]
+    with scratch_copy(connect("migrate")) as scratch:
+        scratch.execute(
+            "INSERT INTO {t} (id, at, actor, action, target, details) "
+            "SELECT max(id) + 1, now(), 'forger', 'itest.forged', NULL, '{}'::jsonb FROM {t}"
+        )
+        scratch.execute("UPDATE {t} SET action = 'itest.tampered' WHERE id = %s", (middle["id"],))
+        ok, _, first_bad = scratch.verify()
+    assert (ok, first_bad) == (False, middle["chain_seq"])  # the tampered row, not the forged append after the end
+
+
+def test_the_core_quotes_the_table_name_it_is_given(connect):
+    three_rows(connect)
+    migrate = connect("migrate")
+    real = verify(migrate)
+    identifier = '"Scratch ""Q"" ; DROP TABLE audit_log; --"'  # quotes, a semicolon and a comment marker
+    with scratch_copy(migrate, identifier) as scratch:
+        assert scratch.verify() == real
+        scratch.execute("DELETE FROM {t} WHERE id = (SELECT max(id) FROM {t})")
+        assert scratch.verify()[0] is False  # it really read that table
+    assert verify(migrate) == real  # and audit_log is still there, untouched
+
+
+# The head is tampered with in place (the owner may write audit_chain), inside a transaction that is rolled back.
 
 
 @pytest.mark.parametrize(
     "assignment, bad_position",
     [
         ("last_hash = '\\x00'::bytea", "last"),  # head and last row disagree
+        ("last_hash = NULL", "last"),
         ("last_seq = last_seq + 1", "after_last"),  # head claims a row that is not there
         ("last_seq = last_seq - 1", "last"),  # head forgot the last row
     ],
@@ -355,6 +524,24 @@ def test_verify_detects_a_rewritten_chain_head(connect, assignment, bad_position
     assert verify(migrate)[0] is True  # the rollback restored the head
 
 
+@pytest.mark.parametrize("head_seq", [-5, -1, 0])
+def test_a_head_behind_the_start_of_the_chain_never_gives_negative_numbers(connect, head_seq):
+    three_rows(connect)
+    migrate = connect("migrate")
+    with migrate.transaction(force_rollback=True):
+        migrate.execute("UPDATE public.audit_chain SET last_seq = %s", (head_seq,))
+        assert verify(migrate) == (False, 0, 1)  # ok stays false; the numbers are clamped to 0 checked, position 1
+    assert verify_rows(migrate, "public.audit_log", head_seq, None) == (False, 0, 1)
+    assert verify(migrate)[0] is True
+
+
+def test_a_head_far_ahead_of_the_chain_is_reported_right_after_the_last_row(connect):
+    three_rows(connect)
+    migrate = connect("migrate")
+    last = last_chain_seq(migrate)
+    assert verify_rows(migrate, "public.audit_log", last + 10**6, None) == (False, last, last + 1)
+
+
 def test_a_missing_chain_head_fails_verification_and_blocks_new_rows(connect):
     three_rows(connect)
     migrate = connect("migrate")
@@ -366,22 +553,6 @@ def test_a_missing_chain_head_fails_verification_and_blocks_new_rows(connect):
             with migrate.transaction():
                 add_audit_row(migrate, new_actor())
     assert verify(migrate)[0] is True
-
-
-def test_rows_without_a_chain_position_are_pre_chain_and_skipped(connect):
-    # A local database that held audit rows before migration 0003 has such rows (chain_seq NULL). Only a
-    # table owner who switches the chain trigger off can create one now.
-    three_rows(connect)
-    migrate = connect("migrate")
-    before = verify(migrate)
-    with migrate.transaction(force_rollback=True):
-        migrate.execute("ALTER TABLE public.audit_log DISABLE TRIGGER audit_log_chain_insert")
-        add_audit_row(migrate, new_actor(), "itest.pre_chain")
-        assert migrate.execute(
-            "SELECT count(*) FROM public.audit_log WHERE chain_seq IS NULL AND action = 'itest.pre_chain'"
-        ).fetchone()[0] == 1
-        assert verify(migrate) == before
-    assert trigger_states(migrate)["audit_log_chain_insert"] == "O"
 
 
 def test_the_chain_trigger_is_a_before_insert_row_trigger_that_fires_in_normal_sessions(connect):
@@ -428,7 +599,7 @@ def shadowed_worker_session(connect):
         "CREATE FUNCTION pg_temp.shadow_hit(pg_catalog.text) RETURNS pg_catalog.bool LANGUAGE plpgsql AS "
         "$$ BEGIN RAISE EXCEPTION 'shadow used'; END $$"
     )
-    for name in ("text", "bytea", "int8", "jsonb", "bool", "timestamptz"):
+    for name in ("text", "bytea", "int8", "jsonb", "bool", "timestamptz", "regclass"):
         conn.execute(f"CREATE DOMAIN pg_temp.{name} AS pg_catalog.{name} CHECK (pg_temp.shadow_hit('{name}'))")
     # Canary: an unqualified type name in this session really does reach the look-alike, so the test
     # below cannot pass just because the trap is not armed.
