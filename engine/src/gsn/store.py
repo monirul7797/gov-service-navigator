@@ -7,14 +7,20 @@ Conventions:
 
 * Every function takes an open psycopg connection and returns plain Python values. Rows are read
   through explicit row factories, so the result does not depend on the connection's own.
-* The connection should be in autocommit mode (as ``gsn.cli`` opens it). Functions that write do
-  their own ``conn.transaction()``; on an autocommit connection that is a real transaction, on
-  another it is a savepoint inside the caller's.
+* The connection should be in autocommit mode (as ``gsn.cli`` opens it). A function that writes does
+  its work inside ``conn.transaction()``. On an autocommit connection that is one real transaction,
+  committed when the function returns. On a connection that is not in autocommit mode it joins the
+  transaction the caller already has open (a savepoint: nothing is committed until the caller commits)
+  or, when none is open, begins and commits its own.
 * Vectors travel as pgvector text (``'[x,y,...]'::vector``, each component written with ``repr``) and
   come back by parsing the text pgvector prints. No pgvector or numpy package is involved.
 * A write that PostgreSQL refuses (a state rule such as "release 7 is frozen", a constraint, a missing
-  release) raises ``StoreError`` carrying the server's message text, never connection details.
-  Reads, and a drop of the connection itself, raise psycopg's own exceptions.
+  privilege or release) raises ``StoreError`` carrying the server's message text, never connection
+  details. Only an error the server reports with a SQLSTATE can be a refusal, and not one that
+  describes the session or the system instead of the statement (classes 08 connection, 40 transaction
+  rollback, 53 resources, 57 operator intervention, 58 system, XX internal): a dropped connection, a
+  server shutdown, a cancelled query or a deadlock reaches the caller as psycopg's own exception, and
+  so does every error of the read functions. A crash is therefore never mistaken for a refusal.
 * Release content is never edited: versions are appended, a release is assembled as a draft, judged
   once (``set_gate_result``) and switched on or off only by the SQL functions ``publish_release`` and
   ``rollback_release`` (``publish`` and ``rollback`` here). The worker has no other way to touch
@@ -91,17 +97,33 @@ class Draft:
 # --- plumbing ----------------------------------------------------------------------------------
 
 
+# SQLSTATE classes that describe the session or the system rather than the statement. The server sends
+# them with a code too (a terminated backend reports 57P01 before it closes the connection), but they
+# are crashes to report, not refusals to explain.
+_NOT_REFUSALS = frozenset({"08", "40", "53", "57", "58", "XX"})
+
+
+def _is_refusal(exc: psycopg.Error) -> bool:
+    """True if the server turned the statement down: it sent a SQLSTATE, and not one of a failure class."""
+    state = exc.sqlstate
+    return state is not None and state[:2] not in _NOT_REFUSALS
+
+
 @contextmanager
 def _refusals_as_store_errors() -> Iterator[None]:
-    """Turn a PostgreSQL error into ``StoreError(<the server's message>)``.
+    """Turn a refusal by the server into ``StoreError(<the server's message>)``; let anything else through.
 
     Only the primary message text is kept: psycopg's own exception text can carry connection details,
-    and the traceback chain is dropped (``from None``) for the same reason.
+    and the traceback chain is dropped (``from None``) for the same reason. An error that is not a
+    refusal (see ``_is_refusal``: no SQLSTATE, or a connection / resource / shutdown class) is re-raised
+    unchanged, so callers never report a crash as a refusal.
     """
     try:
         yield
     except psycopg.Error as exc:
-        raise StoreError(exc.diag.message_primary or f"database error ({type(exc).__name__})") from None
+        if not _is_refusal(exc):
+            raise
+        raise StoreError(exc.diag.message_primary or f"database error (SQLSTATE {exc.sqlstate})") from None
 
 
 def _fetch(conn: psycopg.Connection, sql: str, params: Any = None, *, row_factory: Any = tuple_row) -> list:
@@ -196,8 +218,10 @@ def create_draft(conn: psycopg.Connection, draft: Draft) -> int:
     """Insert a draft release and everything it needs, in one transaction; returns its ``release_id``.
 
     Missing services and records are inserted (``ON CONFLICT DO NOTHING``: an existing one is kept),
-    then the new versions, the release itself (always as a ``draft``), its services and its members
-    (the reused versions plus the new ones). If anything fails, nothing is left behind.
+    then the new versions (their ``change_note`` is the draft's ``note``, which may be ``None``; a
+    reused version keeps the note it was created with), the release itself (always as a ``draft``), its
+    services and its members (the reused versions plus the new ones). If anything fails, nothing is
+    left behind.
 
     A record that already exists under another service, or a member of a service the release does not
     list, is a ``StoreError`` (``DO NOTHING`` would otherwise let the first one pass unnoticed).
@@ -245,14 +269,14 @@ def _insert_draft(conn: psycopg.Connection, draft: Draft) -> int:
             conn,
             "INSERT INTO record_versions (record_id, content_hash, text_hash, hash_version, record, embed_text, "
             "category, subcategory, heading, lang, source_url, url_kind, official, source_verified, verified_at, "
-            "embedding, embedding_model, source_commit, created_by) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::vector, %s, %s, %s) "
+            "embedding, embedding_model, source_commit, created_by, change_note) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::vector, %s, %s, %s, %s) "
             "RETURNING version_id",
             (
                 v.record_id, v.content_hash, v.text_hash, HASH_VERSION, Jsonb(v.record), v.embed_text,
                 f.category, f.subcategory, f.heading, f.lang, f.source_url, f.url_kind, f.official,
                 f.source_verified, f.verified_at, vector_to_text(v.embedding), draft.embedding_model,
-                draft.source_commit, draft.created_by,
+                draft.source_commit, draft.created_by, draft.note,
             ),
         )[0]
         members.append((version_id, v.record_id))
@@ -310,7 +334,7 @@ FROM (
     JOIN records AS rec ON rec.record_id = v.record_id
     WHERE m.release_id = %(release_id)s AND rec.service_id = %(service_id)s
 ) AS candidates
-ORDER BY distance, record_id
+ORDER BY distance, record_id COLLATE "C"
 LIMIT %(k)s
 """
 
@@ -319,8 +343,10 @@ def search(conn: psycopg.Connection, release_id: int, service_id: str, vector: S
     """At most ``k`` records of one service in one release, nearest to ``vector`` first.
 
     Only members of that release and service are considered. ``sim`` is ``1 - cosine distance``;
-    equal distances come back in ``record_id`` order, so the result is deterministic. ``Hit.text`` is
-    the record's ``embed_text``. (The search is exact: there is no approximate index.)
+    equal distances come back in ``record_id`` order, so the result is deterministic. That order is
+    by code point (``COLLATE "C"``), like ``sorted()`` and ``gsn.retrieval``, whatever the database's
+    default collation does with hyphens and case. ``Hit.text`` is the record's ``embed_text``. (The
+    search is exact: there is no approximate index.)
     """
     if k < 0:
         raise ValueError(f"k must not be negative, got {k}")

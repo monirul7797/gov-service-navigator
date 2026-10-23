@@ -5,8 +5,11 @@ The stack tests share one database across runs, so every test makes its own serv
 tests then also exercise the text round trip of vectors), or are written out by hand where a test
 needs a known cosine similarity. ``release_helpers.py`` holds the helpers shared with the schema tests.
 """
+import dataclasses
+import time
 from datetime import date
 
+import psycopg
 import pytest
 from release_helpers import COMMIT, MODEL, add_record, audit_rows, new_actor, new_tag
 
@@ -131,7 +134,7 @@ def test_create_draft_inserts_everything_in_one_transaction(connect):
         assert (category, subcategory, heading, lang) == ("process_steps", "sub", f"Heading {version.record_id}", "en")
         assert (url, kind, official, verified, verified_at) == (version.fields.source_url, "portal", True, True,
                                                                 date(2026, 7, 12))
-        assert (model, commit, created_by, change_note) == (MODEL, COMMIT, "itest-store", None)
+        assert (model, commit, created_by, change_note) == (MODEL, COMMIT, "itest-store", f"store test {tag}")
         assert store.vector_from_text(embedding) == pytest.approx(version.embedding, abs=1e-7)
 
     assert worker.execute(
@@ -210,6 +213,12 @@ def test_create_draft_reuses_services_records_and_versions(connect):
     )
     second_members = member_versions(worker, second)
     assert second != first
+    notes = dict(worker.execute(
+        "SELECT version_id, change_note FROM record_versions WHERE record_id = ANY(%s)", ([r0, r1, r2],)).fetchall())
+    assert notes[first_members[r0]] == "first"                # a reused version keeps the note it was created with
+    assert notes[first_members[r1]] == "first"
+    assert notes[second_members[r1]] == "second"              # new versions carry the note of the draft that made them
+    assert notes[second_members[r2]] == "second"
     assert second_members[r0] == first_members[r0]            # reused, not copied
     assert second_members[r1] != first_members[r1]            # an edited record gets a new version
     assert set(second_members) == {r0, r1, r2}
@@ -218,6 +227,44 @@ def test_create_draft_reuses_services_records_and_versions(connect):
     assert count(worker, "SELECT count(*) FROM records WHERE service_id = %s", sid) == 3
     assert count(worker, "SELECT count(*) FROM record_versions WHERE record_id = %s", r0) == 1
     assert count(worker, "SELECT count(*) FROM record_versions WHERE record_id = %s", r1) == 2
+
+
+def test_a_draft_without_a_note_gives_its_versions_no_change_note(connect):
+    worker = connect("worker")
+    tag = new_tag()
+    sid = f"svc_{tag}"
+    draft = dataclasses.replace(make_draft(tag, [entry(sid)], [new_version(sid, f"rec_{tag}", "text")]), note=None)
+    release_id = store.create_draft(worker, draft)
+    assert worker.execute("SELECT note FROM releases WHERE release_id = %s", (release_id,)).fetchone() == (None,)
+    assert worker.execute(
+        "SELECT change_note FROM record_versions WHERE record_id = %s", (f"rec_{tag}",)).fetchall() == [(None,)]
+
+
+def test_a_draft_that_only_reuses_versions_is_created_with_all_its_members(connect):
+    """No new versions at all (a rebuild of an unchanged commit): nothing to insert but the release itself."""
+    worker = connect("worker")
+    tag = new_tag()
+    sid = f"svc_{tag}"
+    ids = [f"rec_{tag}_{i}" for i in range(3)]
+    first = store.create_draft(
+        worker, make_draft(tag, [entry(sid)], [new_version(sid, r, f"text of {r}") for r in ids], note="first"))
+    reused = member_versions(worker, first)
+    versions_before = count(worker, "SELECT count(*) FROM record_versions WHERE record_id = ANY(%s)", ids)
+
+    for subset, note in ((ids, "all"), (ids[:2], "some"), (ids[:1], "one")):
+        wanted = {r: reused[r] for r in subset}
+        release_id = store.create_draft(
+            worker, make_draft(tag, [entry(sid)], [], wanted, note=f"{note} reused {tag}"))
+        assert release_id != first
+        assert member_versions(worker, release_id) == wanted
+        assert worker.execute(
+            "SELECT service_id, status FROM release_services WHERE release_id = %s", (release_id,)
+        ).fetchall() == [(sid, "live")]
+        assert worker.execute(
+            "SELECT status, note FROM releases WHERE release_id = %s", (release_id,)
+        ).fetchone() == ("draft", f"{note} reused {tag}")
+    assert count(worker, "SELECT count(*) FROM record_versions WHERE record_id = ANY(%s)", ids) == versions_before
+    assert count(worker, "SELECT count(*) FROM records WHERE service_id = %s", sid) == 3
 
 
 def test_create_draft_records_each_service_with_its_status(connect):
@@ -349,6 +396,46 @@ def test_existing_versions_and_vectors_are_found_by_hash_and_model(connect):
     assert store.existing_versions(worker, keys[:1], MODEL) == {v0.record_id: stored[v0.record_id]}
 
 
+def test_a_stored_vector_reused_in_a_new_version_is_bit_identical(connect):
+    """A6 copies stored vectors into new versions through this module's text form: nothing may move.
+
+    The embedder's values are doubles; PostgreSQL keeps single precision, so the first trip rounds (and
+    must round correctly, to the nearest float32, not to a few digits). From then on a vector read back
+    and written again must be the very same ``vector`` value in the database.
+    """
+    worker = connect("worker")
+    tag = new_tag()
+    sid = f"svc_{tag}"
+    originals = [new_version(sid, f"rec_{tag}_{i}", f"some text number {i} of {tag}") for i in range(25)]
+    first = store.create_draft(worker, make_draft(tag, [entry(sid)], originals, note="first"))
+
+    by_hash = store.existing_vectors(worker, [v.text_hash for v in originals], MODEL)
+    by_release = store.stored_vectors(worker, first)
+    assert len(by_hash) == len(by_release) == 25
+    copies = []
+    for i, v in enumerate(originals):
+        # The first trip rounds to float32 (relative error <= 2**-24) and PostgreSQL prints the shortest
+        # decimal that reads back as that float32 (up to another 2**-24): so within 2**-23, about 1.2e-7.
+        # Keeping only a few digits instead would be off by a factor of 10 to 40 more.
+        assert all(abs(got - want) <= abs(want) * 1.3e-7 for got, want in zip(by_release[v.record_id], v.embedding))
+        assert by_hash[v.text_hash] == by_release[v.record_id]                    # both read paths agree
+        source = by_hash if i % 2 else {v.text_hash: by_release[v.record_id]}     # ...and either may feed a copy
+        copies.append(new_version(sid, v.record_id, v.embed_text, embedding=source[v.text_hash], edited=True))
+    second = store.create_draft(worker, make_draft(tag, [entry(sid)], copies, note="second"))
+
+    assert count(
+        worker,
+        "SELECT count(*) FROM release_members AS m1 "
+        "JOIN release_members AS m2 ON m2.record_id = m1.record_id "
+        "JOIN record_versions AS a ON a.version_id = m1.version_id "
+        "JOIN record_versions AS b ON b.version_id = m2.version_id "
+        "WHERE m1.release_id = %s AND m2.release_id = %s AND a.version_id <> b.version_id "
+        "AND a.embedding = b.embedding AND a.embedding::text = b.embedding::text",
+        first, second,
+    ) == 25
+    assert store.stored_vectors(worker, second) == by_release
+
+
 # --- search ------------------------------------------------------------------------------------
 
 
@@ -374,6 +461,29 @@ def test_search_orders_by_distance_then_record_id(connect):
     assert isinstance(first, store.Hit) and isinstance(first.sim, float)
     assert (first.service_id, first.text, first.category, first.subcategory, first.heading, first.source_url) == (
         sid, same, "process_steps", "sub", f"Heading rec_{tag}_a", f"https://example.test/rec_{tag}_a")
+
+
+def test_search_breaks_ties_in_code_point_order_whatever_the_database_collation(connect):
+    """Equal similarities are ordered like Python's ``sorted()`` (what ``retrieval`` does), not like the
+    database's default collation. glibc's en_US collation ignores hyphens at the first level, so it puts
+    ``-10-a`` before ``-1-b``, and it puts ``_a`` before ``_B``; code point order does the opposite."""
+    worker = connect("worker")
+    tag = new_tag()
+    sid = f"svc_{tag}"
+    ids = [f"rec_{tag}-10-a", f"rec_{tag}-1-b", f"rec_{tag}_a", f"rec_{tag}_B", f"rec_{tag}-2"]
+    database_order = [r[0] for r in worker.execute("SELECT x FROM unnest(%s::text[]) AS x ORDER BY x", (ids,))]
+    if database_order == sorted(ids):
+        pytest.skip("the database's default collation already orders these ids by code point; nothing to tell apart")
+    same = f"one text for all {tag}"
+    versions = [new_version(sid, record_id, same) for record_id in ids]  # inserted in a scrambled order
+    release_id = store.create_draft(worker, make_draft(tag, [entry(sid)], versions))
+    query = EMBEDDER.encode([same])[0]
+
+    hits = store.search(worker, release_id, sid, query, 10)
+
+    assert len({h.sim for h in hits}) == 1                      # a genuine tie
+    assert [h.record_id for h in hits] == sorted(ids)
+    assert [h.record_id for h in store.search(worker, release_id, sid, query, 2)] == sorted(ids)[:2]
 
 
 def test_search_similarity_is_one_minus_cosine_distance_and_returns_at_most_k(connect):
@@ -480,6 +590,54 @@ def test_publish_rollback_wrappers_raise_storeerror_with_the_db_message(connect)
     assert [rid for rid, row in listed.items() if row["is_active"]] == [first]
     assert store.release_row(worker, first)["is_active"] is True
     assert store.release_row(worker, second)["is_active"] is False
+
+
+def killed_connection(connect):
+    """A worker connection whose server backend has been terminated (and is gone)."""
+    victim, killer = connect("worker"), connect("worker")
+    pid = victim.info.backend_pid
+    killer.execute("SELECT pg_terminate_backend(%s)", (pid,))
+    deadline = time.monotonic() + 10
+    while killer.execute("SELECT count(*) FROM pg_stat_activity WHERE pid = %s", (pid,)).fetchone()[0]:
+        assert time.monotonic() < deadline, "the backend did not exit"
+        time.sleep(0.05)
+    return victim
+
+
+@pytest.mark.parametrize("write", [
+    lambda c: store.audit(c, new_actor(), "release.build", "release:1", {}),
+    lambda c: store.publish(c, 1, new_actor()),
+    lambda c: store.rollback(c, new_actor()),
+    lambda c: store.set_gate_result(c, 1, "validated", {}, None),
+], ids=["audit", "publish", "rollback", "set_gate_result"])
+def test_a_dropped_connection_is_not_reported_as_a_refusal(connect, write):
+    """The server reports its own termination with a SQLSTATE (57P01), so having one is not enough to be
+    a refusal: a crash must reach the caller as psycopg's error, not as a ``StoreError``."""
+    with pytest.raises(psycopg.OperationalError) as failure:
+        write(killed_connection(connect))
+    assert not isinstance(failure.value, store.StoreError)
+
+
+def test_writes_commit_alone_on_autocommit_and_join_an_open_transaction_otherwise(connect):
+    worker, web = connect("worker"), connect("web")
+    actor = new_actor()
+    store.audit(worker, actor, "a.one", "t", {})                    # autocommit: committed on return
+    assert len(audit_rows(web, actor)) == 1
+
+    worker.autocommit = False
+    store.audit(worker, actor, "a.two", "t", {})                    # nothing open: begins and commits its own
+    assert len(audit_rows(web, actor)) == 2
+
+    worker.execute("SELECT 1")                                      # now the caller has a transaction open
+    store.audit(worker, actor, "a.three", "t", {})                  # joins it: not committed yet
+    assert len(audit_rows(web, actor)) == 2
+    worker.rollback()
+    assert len(audit_rows(web, actor)) == 2                         # ...and rolled back with it
+
+    worker.execute("SELECT 1")
+    store.audit(worker, actor, "a.four", "t", {})
+    worker.commit()
+    assert [row[0] for row in audit_rows(web, actor)] == ["a.one", "a.two", "a.four"]
 
 
 def test_audit_writes_one_row_with_the_given_details(connect):

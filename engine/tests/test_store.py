@@ -4,9 +4,13 @@ Everything that talks to PostgreSQL is tested against the real roles in ``tests/
 Here a bare ``object()`` stands in for the connection: a check that runs before any SQL must raise
 without touching it (``AttributeError`` would mean the code reached for the connection too early).
 """
+import contextlib
 from datetime import date
+from types import SimpleNamespace
 
+import psycopg
 import pytest
+from psycopg import errors
 
 from gsn import store
 from gsn.embed import FakeEmbedder
@@ -78,3 +82,84 @@ def test_set_gate_result_accepts_only_a_verdict_status():
     for status in ("draft", "active", "", "VALIDATED"):
         with pytest.raises(ValueError, match="status"):
             store.set_gate_result(object(), 1, status, {}, None)
+
+
+# --- which database errors become StoreError ----------------------------------------------------
+
+
+def server_error(cls, message=None):
+    """An error of class ``cls`` as the server would report it, with ``message`` as its primary message."""
+    if message is None:
+        return cls("details that must not be shown")
+    shown = type(cls.__name__, (cls,), {"diag": SimpleNamespace(message_primary=message)})
+    return shown("details that must not be shown")
+
+
+class FailingConnection:
+    """A connection whose first use raises ``error`` (inside the write's own transaction block)."""
+
+    def __init__(self, error):
+        self.error = error
+
+    def transaction(self):
+        return contextlib.nullcontext()
+
+    def cursor(self, *args, **kwargs):
+        raise self.error
+
+
+WRITES = {
+    "create_draft": lambda conn: store.create_draft(conn, make_draft()),
+    "set_gate_result": lambda conn: store.set_gate_result(conn, 7, "validated", {}, None),
+    "publish": lambda conn: store.publish(conn, 7, "owner"),
+    "rollback": lambda conn: store.rollback(conn, "owner"),
+    "audit": lambda conn: store.audit(conn, "owner", "release.build", "release:7", {}),
+}
+REFUSALS = [  # statements the database turned down: state rules, constraints, privileges, bad data
+    errors.RaiseException, errors.UniqueViolation, errors.ForeignKeyViolation, errors.CheckViolation,
+    errors.NotNullViolation, errors.InsufficientPrivilege, errors.InvalidTextRepresentation,
+]
+FAILURES_WITH_A_SQLSTATE = [  # reported by the server, but about the system or the session, not the statement
+    errors.AdminShutdown, errors.CrashShutdown, errors.QueryCanceled, errors.DeadlockDetected,
+    errors.SerializationFailure, errors.OutOfMemory, errors.DiskFull, errors.ConnectionFailure,
+    errors.InternalError_, errors.DataCorrupted, errors.TooManyConnections, errors.IoError,
+]
+FAILURES_WITHOUT_A_SQLSTATE = {
+    "connect_failed": psycopg.OperationalError('connection to server at "db" (10.0.0.5), port 5432 failed'),
+    "server_closed": psycopg.OperationalError("consuming input failed: server closed the connection unexpectedly"),
+    "connection_closed": psycopg.InterfaceError("the connection is closed"),
+}
+FAILURES = {
+    **{cls.__name__: server_error(cls, "terminating connection due to administrator command")
+       for cls in FAILURES_WITH_A_SQLSTATE},
+    **FAILURES_WITHOUT_A_SQLSTATE,
+}
+
+
+@pytest.mark.parametrize("write", WRITES.values(), ids=WRITES.keys())
+@pytest.mark.parametrize("cls", REFUSALS, ids=lambda c: c.__name__)
+def test_a_refusal_from_the_server_becomes_a_storeerror_with_its_message(write, cls):
+    assert cls.sqlstate is not None
+    with pytest.raises(store.StoreError) as raised:
+        write(FailingConnection(server_error(cls, "release 7 is frozen")))
+    assert str(raised.value) == "release 7 is frozen"        # the server's message, none of psycopg's text
+    assert raised.value.__cause__ is None and raised.value.__suppress_context__
+
+
+def test_a_refusal_without_a_message_still_says_what_it_was():
+    with pytest.raises(store.StoreError, match="P0001"):
+        store.audit(FailingConnection(server_error(errors.RaiseException)), "owner", "x", "t", {})
+
+
+@pytest.mark.parametrize("write", WRITES.values(), ids=WRITES.keys())
+@pytest.mark.parametrize("error", FAILURES.values(), ids=FAILURES.keys())
+def test_a_failure_of_the_connection_or_the_server_is_not_turned_into_a_storeerror(write, error):
+    with pytest.raises(psycopg.Error) as raised:
+        write(FailingConnection(error))
+    assert raised.value is error                              # re-raised unchanged
+    assert not isinstance(raised.value, store.StoreError)
+
+
+def test_the_cases_cover_both_kinds_of_error():
+    assert all(c.sqlstate is not None for c in REFUSALS + FAILURES_WITH_A_SQLSTATE)
+    assert all(e.sqlstate is None for e in FAILURES_WITHOUT_A_SQLSTATE.values())
