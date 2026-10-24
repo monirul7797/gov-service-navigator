@@ -588,7 +588,7 @@ def shadowed_worker_session(connect):
             "last_hash pg_catalog.bytea)"
         )
     except InsufficientPrivilege:
-        pytest.skip("TEMP is revoked from the worker: nothing can be shadowed")
+        pytest.skip("TEMP is revoked from PUBLIC on the database (db/init/20-guard.sh, spec 8.3): the worker can no longer create temporary objects, so there is nothing to shadow; the pinned search_path is checked in test_grants.py")
     conn.execute(
         "CREATE TEMP TABLE audit_log (id pg_catalog.int8, at pg_catalog.timestamptz, actor pg_catalog.text, "
         "action pg_catalog.text, target pg_catalog.text, details pg_catalog.jsonb, chain_seq pg_catalog.int8, "

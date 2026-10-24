@@ -3,7 +3,8 @@
 # every script in /docker-entrypoint-initdb.d ONCE, when the data volume is empty. After changing
 # this file or a DB password, reset with: docker compose down -v
 #
-#   gsn_migrate  owns the database and the public schema; used only by `gsn-web migrate`
+#   gsn_migrate  owns the public schema (and creates the database; 20-guard.sh then hands the
+#                database itself to the superuser); used only by `gsn-web migrate`
 #   gsn_web      the public/admin web service
 #   gsn_engine   the engine (read-only; no table grants in M0)
 #   gsn_worker   tracker, OCR, embedding and release workers

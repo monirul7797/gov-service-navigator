@@ -113,8 +113,33 @@ def test_only_the_owner_can_create_objects_in_the_public_schema(connect, role, c
         assert cur.fetchone()[0] is can_create
         cur.execute("SELECT has_schema_privilege(%s, 'public', 'USAGE')", (f"gsn_{role}",))
         assert cur.fetchone()[0] is True
-        cur.execute("SELECT has_database_privilege(%s, 'gsn', 'CREATE')", (f"gsn_{role}",))
-        assert cur.fetchone()[0] is (role == "migrate")  # CREATE on the database: its owner only
+        # The DATABASE belongs to the superuser (db/init/20-guard.sh, spec section 8.3), so no login
+        # role, gsn_migrate included, may create schemas or temporary objects in it.
+        cur.execute(
+            "SELECT has_database_privilege(%s, 'gsn', 'CREATE'), has_database_privilege(%s, 'gsn', 'TEMPORARY'), "
+            "has_database_privilege(%s, 'gsn', 'CONNECT')",
+            (f"gsn_{role}",) * 3,
+        )
+        assert cur.fetchone() == (False, False, True)
+
+
+def test_the_database_is_owned_by_the_superuser_and_the_public_schema_by_migrate(connect):
+    # An owner can re-grant itself anything, so merely revoking CREATE from gsn_migrate would not hold:
+    # the database itself moved to the superuser. Only the public schema stays with gsn_migrate.
+    with connect("web").cursor() as cur:
+        cur.execute(
+            "SELECT r.rolsuper FROM pg_database d JOIN pg_roles r ON r.oid = d.datdba "
+            "WHERE d.datname = current_database()"
+        )
+        assert cur.fetchone()[0] is True
+        cur.execute("SELECT nspowner::regrole::text FROM pg_namespace WHERE nspname = 'public'")
+        assert cur.fetchone()[0] == "gsn_migrate"
+        # no ACL entry for PUBLIC (grantee 0) on the database: neither CONNECT nor TEMPORARY
+        cur.execute(
+            "SELECT count(*) FROM aclexplode((SELECT datacl FROM pg_database WHERE datname = current_database())) "
+            "WHERE grantee = 0"
+        )
+        assert cur.fetchone()[0] == 0
 
 
 def test_public_has_no_rights_on_audit_log(connect):

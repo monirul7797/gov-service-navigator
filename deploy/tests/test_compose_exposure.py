@@ -352,10 +352,22 @@ def test_engine_build_context_ignores_caches_and_build_output():
     assert {".pytest_cache", "*.egg-info", "__pycache__", "tests"} <= lines
 
 
-def test_roles_script_stops_on_errors():
-    text = (ROOT / "db" / "init" / "10-roles.sh").read_text(encoding="utf-8")
+INIT_SCRIPTS = sorted((ROOT / "db" / "init").glob("*.sh"))
+
+
+def test_the_init_scripts_are_the_expected_ones():
+    # PostgreSQL runs them in file name order, once, on an empty volume: roles first, then the guard.
+    assert [path.name for path in INIT_SCRIPTS] == ["10-roles.sh", "20-guard.sh"]
+
+
+@pytest.mark.parametrize("script", INIT_SCRIPTS, ids=lambda path: path.name)
+def test_init_scripts_stop_on_errors(script):
+    text = script.read_text(encoding="utf-8")
     assert text.startswith("#!/bin/bash\n") or text.startswith("#!/usr/bin/env bash\n")
     assert "set -euo pipefail" in text
+    # every psql call stops at the first SQL error (otherwise a half-applied script still "succeeds")
+    calls = re.findall(r"^psql\b[^\n]*", text, re.M)
+    assert calls and all("ON_ERROR_STOP=1" in call for call in calls), calls
 
 
 # --- proof that the guards fail on a compose file that breaks the rules (temporary copies) -----

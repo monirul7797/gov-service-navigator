@@ -147,6 +147,58 @@ migration 1 was "previously applied but has been modified", reset your local dat
 `docker compose down -v`.) The `audit_log` table is
 append-only: UPDATE, DELETE and TRUNCATE are rejected by triggers for every role, including its owner.
 
+### The guard watchdog
+
+The tables that hold the release history and the audit log, and the triggers and functions that
+protect them (the append-only rules, the state rules, the hash chain, publish, rollback and verify),
+are owned by `gsn_migrate`, so that role could drop or switch off a protection. To prevent that, a
+**watchdog** owned by the PostgreSQL superuser checks them after every schema change in the database.
+If a change drops, renames, retypes, disables or replaces a registered object, or gives a protected
+table a rewrite rule or row-level security, the change is rolled back with an error that starts with
+`gsn_guard:`. Adding columns, indexes, views and unrelated tables is not affected, and neither are
+scratch copies of a protected table.
+
+- `db/init/20-guard.sh` creates the watchdog (schema `gsn_guard`: a registry, two registration
+  functions and two event triggers) when the database is first created, and moves the database itself
+  to the superuser, so that `gsn_migrate` can no longer create schemas or temporary objects.
+- `db/migrations/0004_guard_registration.sql` registers the protected tables, their guard triggers and
+  the guard functions. A later migration that adds a guard ends with
+  `SELECT gsn_guard.protect_table('public.new_table', ARRAY['new_table_guard_row']);` or
+  `SELECT gsn_guard.protect_function('public.new_function(bigint)');`. There is no "unregister".
+- Look at the registry with `SELECT kind, name, parent FROM gsn_guard.registry;` as `gsn_migrate`.
+- **One-time upgrade.** `db/init/` runs only on an empty volume, so a local database created before the
+  watchdog existed does not have it, and migration `0004` stops with "database predates the M1 guard".
+  Recreate it once with `docker compose down -v` (the local database holds no real data) and then
+  `docker compose up -d`.
+
+**Break-glass: changing a guard on purpose.** This needs the superuser, which is reachable only from
+a shell on the server (on this PC: `docker compose exec postgres psql -U postgres -d gsn`; the
+connection from inside the container needs no password). `gsn_migrate` cannot do it, by design, so a
+migration can never change a registered object. As the superuser:
+
+```sql
+SET event_triggers = off;      -- this session only: the watchdog does not check what follows
+-- 1. make the change, for example CREATE OR REPLACE FUNCTION public.releases_guard() ...
+-- 2. bring the registry up to date (otherwise the NEXT schema change anyone makes is rolled back):
+UPDATE gsn_guard.protected_functions
+   SET fingerprint = gsn_guard.function_fingerprint(to_regprocedure(signature))
+ WHERE signature = 'public.releases_guard()';
+UPDATE gsn_guard.protected_triggers AS g
+   SET definition = gsn_guard.trigger_definition(t.oid)
+  FROM pg_trigger AS t
+ WHERE t.tgrelid = to_regclass(g.table_name) AND t.tgname = g.trigger_name
+   AND g.table_name = 'public.releases' AND g.trigger_name = 'releases_guard_row';
+-- a changed column list or trigger set: delete the table's rows from gsn_guard.protected_triggers and
+-- gsn_guard.protected_tables, then SELECT gsn_guard.protect_table('public.releases', ARRAY[...]);
+INSERT INTO audit_log (actor, action, target, details)   -- keep a record of why
+VALUES ('owner', 'guard.break-glass', 'public.releases_guard()', '{"why": "..."}');
+RESET event_triggers;
+CREATE TABLE gsn_guard_probe (id int); DROP TABLE gsn_guard_probe;   -- passes when the registry is right
+```
+
+The superuser itself is out of scope of the watchdog: nothing in this repository can protect against
+someone who holds it, which is why it is reachable only from the server console.
+
 ### Full reset, including the database
 
 ```powershell
@@ -154,8 +206,10 @@ docker compose down -v
 ```
 
 `-v` also deletes the `pgdata` volume. Do this after changing anything in `db/init/` or any database
-password in `.env`, because PostgreSQL runs the init scripts (`db/init/10-roles.sh`) only on an empty
-volume. All data in the database is lost.
+password in `.env`, because PostgreSQL runs the init scripts (`db/init/10-roles.sh`, then
+`db/init/20-guard.sh`) only on an empty volume. All data in the database is lost. (The guard watchdog
+arrived after the first local databases were made: recreate an older one once with
+`docker compose down -v`, see "The guard watchdog".)
 
 ### After editing code
 
@@ -331,6 +385,16 @@ Things to know:
   `release.reject` or `release.override`; publish and rollback write their own rows. The draft and its
   `release.build` row are saved together, so a release never exists without its build row. The actor is
   `GSN_ACTOR` (default `owner`); set it in `.env` or the shell to record who ran a command.
+- **Checking the audit log.** Every audit row carries the hash of the row before it, so a changed,
+  removed or forged row breaks the chain. Check it with:
+
+  ```powershell
+  docker compose --profile tools run --rm -T release audit verify
+  ```
+
+  It prints `audit chain ok: <n> rows checked` and exits 0, or `audit chain BROKEN at chain_seq <n>`
+  and exits 1. It runs through a database function, so the worker can verify the log without being
+  able to read it.
 - **The real embedding model** (BAAI/bge-m3, about 2 GB) arrives with task C1. Until then a build
   without `GSN_EMBEDDER` stops with exit code 2 ("real embedder arrives in Task C1"). For tests and
   smoke runs, `-e GSN_EMBEDDER=fake` selects a stand-in whose vectors carry **no meaning**:

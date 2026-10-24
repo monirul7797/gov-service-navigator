@@ -792,7 +792,7 @@ def shadowed_worker_session(connect):
     try:
         conn.execute("CREATE TEMP TABLE active_release (singleton boolean, release_id bigint, switched_at timestamptz)")
     except InsufficientPrivilege:
-        pytest.skip("TEMP is revoked from the worker: nothing can be shadowed")
+        pytest.skip("TEMP is revoked from PUBLIC on the database (db/init/20-guard.sh, spec 8.3): the worker can no longer create temporary objects, so there is nothing to shadow; the pinned search_path is checked in test_grants.py")
     conn.execute(
         "CREATE TEMP TABLE publications (publication_id bigint, release_id bigint, previous_release_id bigint, "
         "action text, at timestamptz, actor text)"
