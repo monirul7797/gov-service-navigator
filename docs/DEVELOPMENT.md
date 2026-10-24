@@ -228,7 +228,9 @@ someone who holds it, which is why it is reachable only from the server console.
 docker compose down -v
 ```
 
-`-v` also deletes the `pgdata` volume. Do this after changing anything in `db/init/` or any database
+`-v` also deletes the `pgdata` volume and the `gsn-models` volume (the 2.3 GB embedding model, see
+"Model download"; use plain `docker compose down` when you only want to stop the stack and keep the
+model). Do this after changing anything in `db/init/` or any database
 password in `.env`, because PostgreSQL runs the init scripts (`db/init/10-roles.sh`, then
 `db/init/20-guard.sh`) only on an empty volume. All data in the database is lost. (The guard watchdog
 arrived after the first local databases were made: recreate an older one once with
@@ -277,6 +279,7 @@ advisory can make a check fail without any change in this repository.
 | Audit | Command |
 |---|---|
 | Python (the locked set in `engine/constraints.txt`) | `.\.venv\Scripts\python -m pip_audit -r engine/constraints.txt --no-deps --disable-pip --progress-spinner off` |
+| Python, release image (`engine/constraints-ml.txt`) | see the note below: the `+cpu` label must be removed first |
 | Frontend, in each of `frontend\public` and `frontend\admin` | `npm audit --audit-level=high` |
 | Rust (`web/Cargo.lock`) | `cargo audit` in CI; see below for running it by hand |
 
@@ -284,6 +287,14 @@ Notes:
 
 - **Python:** the audit reads the lock file, not the packages installed in `.venv`, so it does not
   report the `pip` that ships with Python.
+- **Python, ML tree:** the advisory database knows torch as `2.13.0`, not as `2.13.0+cpu`, so CI strips
+  the label before auditing (`sed 's/+cpu//' engine/constraints-ml.txt > /tmp/ml.txt`). By hand, in
+  PowerShell:
+
+  ```powershell
+  (Get-Content engine\constraints-ml.txt) -replace '\+cpu', '' | Set-Content -Encoding ascii $env:TEMP\ml.txt
+  .\.venv\Scripts\python -m pip_audit -r $env:TEMP\ml.txt --no-deps --disable-pip --progress-spinner off
+  ```
 - **npm:** audit the full tree, without `--omit=dev`. Every package in both apps is listed as a
   development dependency (the build tools), yet the Svelte and SvelteKit code they contain ends up in
   the JavaScript that browsers download, so leaving development packages out would audit nothing. The
@@ -433,9 +444,10 @@ Things to know:
   It prints `audit chain ok: <n> rows checked` and exits 0, or `audit chain BROKEN at chain_seq <n>`
   and exits 1. It runs through a database function, so the worker can verify the log without being
   able to read it.
-- **The real embedding model** (BAAI/bge-m3, about 2 GB) arrives with task C1. Until then a build
-  without `GSN_EMBEDDER` stops with exit code 2 ("real embedder arrives in Task C1"). For tests and
-  smoke runs, `-e GSN_EMBEDDER=fake` selects a stand-in whose vectors carry **no meaning**:
+- **The real embedding model** (BAAI/bge-m3, about 2.3 GB) is what `build`, `eval` and `parity` use
+  when `GSN_EMBEDDER` is not set. Download it once first (see "Model download" below); without it the
+  command stops with exit code 2 and tells you how. For tests and smoke runs, `-e GSN_EMBEDDER=fake`
+  selects a stand-in whose vectors carry **no meaning**:
 
   ```powershell
   docker compose --profile tools run --rm -T -e GSN_EMBEDDER=fake release release build --commit HEAD --override "local smoke"
@@ -453,9 +465,43 @@ Things to know:
 |---|---|
 | 0 | Success (a build that is `validated`, or any other command that worked). |
 | 1 | Runtime error: the database could not be reached or a statement failed (one `error: database: ...` line), or a bug (a traceback is printed). |
-| 2 | Usage or configuration error, or a refusal: a bad argument or ref, a missing `GSN_DB_*` variable, an embedder that cannot be made or does not match the release, secret files in the repository history, or the database said no (`release 7 is not validated`, `nothing to roll back`). The message is printed on stderr. |
+| 2 | Usage or configuration error, or a refusal: a bad argument or ref, a missing `GSN_DB_*` variable, an embedder that cannot be made or does not match the release, the embedding model not downloaded yet, secret files in the repository history, or the database said no (`release 7 is not validated`, `nothing to roll back`). The message is printed on stderr. |
 | 3 | The build finished but the release is `rejected` (for `eval`: the gate would reject). |
 | 4 | Integrity problems in the inputs: the full list is printed and **nothing was written**, not even an audit row. |
+
+### Model download
+
+The real model, BAAI/bge-m3 (about 2.3 GB), is not part of the image. It lives in the `gsn-models`
+volume, mounted at `/models` (`HF_HOME`), and the `release` container is offline
+(`HF_HUB_OFFLINE=1`) so that a build can never fetch anything by surprise. Download the model once,
+with the one command that switches the hub on:
+
+```powershell
+docker compose --profile tools run --rm -T -e HF_HUB_OFFLINE=0 release models fetch
+```
+
+It downloads exactly the ten files of BAAI/bge-m3 at the pinned revision (`5617a9f6...`, the one
+the ChromaDB baseline was made with; the repository's other formats are skipped) and prints the
+snapshot folder, relative to the cache, and the total size in bytes, for example
+`snapshot: models--BAAI--bge-m3/snapshots/5617a9f6...`. Running it again downloads nothing that is
+already there, and an interrupted download is completed by running it again. Without
+`HF_HUB_OFFLINE=0` the command refuses (exit 2) and prints the command to use.
+
+Things to know:
+
+- It needs about 2.3 GB free on the Docker drive (`G:`) and an internet connection; nothing else in the
+  project uses the network at build time.
+- `docker compose down` keeps the volume and `docker compose down -v` deletes it together with the
+  database, so after a full reset run the command again.
+- If a `build`, `eval` or `parity` finds the model missing or incomplete, it stops with exit 2 and one
+  line: `error: the embedding model is not in the model cache; download it once with: docker compose
+  --profile tools run --rm -e HF_HUB_OFFLINE=0 release models fetch`.
+- To check that the model loads and what it produces (prints the model id and the first four numbers
+  of each vector; the sentences are arbitrary):
+
+  ```powershell
+  docker compose --profile tools run --rm -T --entrypoint python release -c "from gsn.embed import get_embedder; e = get_embedder({}); print(e.model_id); [print(len(v), v[:4]) for v in e.encode(['How do I renew my passport?', 'amar birth certificate hariye gese'])]"
+  ```
 
 ## Python constraints (`engine/constraints.txt`)
 
@@ -482,6 +528,86 @@ Then run `.\.venv\Scripts\python -m pytest engine/tests/test_constraints.py -q` 
 harmless in the Linux image. (`.venv-constraints` and `constraints.raw` are in `.gitignore` and
 `.dockerignore` in case a step is interrupted.)
 
+## ML constraints (`engine/constraints-ml.txt`)
+
+The `release` image has what runs the embedding model: `sentence-transformers`, CPU-only `torch` (from
+the PyTorch CPU index, `https://download.pytorch.org/whl/cpu`, so no CUDA libraries) and everything they
+pull in. They are the `ml` extra of `engine/pyproject.toml`, and `engine/constraints-ml.txt` locks what
+the extra adds on top of the runtime image: every package of the ML tree that the engine's runtime
+dependencies do not already bring. (A few of them, such as `packaging` and `filelock`, are also in
+`engine/constraints.txt`, because the dev tree needs them; the versions are always the same.) The
+Dockerfile installs the file with `pip install --no-deps -r constraints-ml.txt` (pip resolves nothing at
+build time) and then runs `pip check`, which fails the build if anything is missing. The Windows `.venv`
+does not install `[ml]` (drive `C:` is small); unit tests there use the fake embedder.
+
+The seven pins in the extra (`torch`, `sentence-transformers`, `transformers`, `tokenizers`,
+`safetensors`, `numpy`, `huggingface-hub`) are the versions of the ChromaDB baseline's environment
+(`docs/reports/m1-parity/chroma_baseline.json`), because the vectors a release stores are compared with
+the baseline's. `engine/tests/test_constraints.py` fails if the file drifts from the baseline or from the
+extra, and Dependabot ignores these libraries. They change only at the M2 engine switch, together with a
+new baseline and a parity re-run.
+
+The file cannot come from the Windows venv: it is generated inside a throw-away Linux container with the
+same Python as the image (`python:3.12.14-slim-bookworm`, the tag of `engine/Dockerfile`). It needs the
+internet (PyPI and download.pytorch.org), downloads a few hundred MB that are discarded with the
+container, and takes a few minutes. From the repository root, in PowerShell (`docker` on `PATH`, see
+Prerequisites):
+
+```powershell
+@'
+import pathlib
+import re
+import shutil
+import subprocess
+
+INDEX = "https://download.pytorch.org/whl/cpu"
+HEADER = [
+    "# Exact versions of everything the engine's `ml` extra needs that the runtime image does not already",
+    "# install: sentence-transformers, CPU-only torch and their dependencies. (A few of them, such as",
+    "# packaging, are also in constraints.txt because the dev tree needs them; the versions are the same.)",
+    "# The release image installs this file with --no-deps (Dockerfile target `release`), so it must list",
+    "# the whole difference. Do not edit by hand; regenerate it inside a Linux container as described in",
+    "# docs/DEVELOPMENT.md (section ML constraints). The pins of torch, sentence-transformers, transformers,",
+    "# tokenizers and numpy are the versions the ChromaDB baseline was made with",
+    "# (docs/reports/m1-parity/chroma_baseline.json); torch carries the +cpu label of the PyTorch CPU index.",
+]
+
+
+def run(*command, **options):
+    return subprocess.run(command, check=True, **options)
+
+
+def installed(name, *pip_args):
+    """Install the engine as the Docker stages do (constraints.txt only) and return its frozen pins by name."""
+    shutil.copytree("/engine", f"/tmp/{name}", ignore=shutil.ignore_patterns("tests", "__pycache__", "*.egg-info"))
+    run("python", "-m", "venv", f"/tmp/{name}-venv")
+    pip = f"/tmp/{name}-venv/bin/pip"
+    run(pip, "install", "--no-cache-dir", "-c", "/engine/constraints.txt", "--extra-index-url", INDEX, *pip_args)
+    frozen = run(pip, "freeze", "--exclude-editable", stdout=subprocess.PIPE, text=True).stdout.split()
+    return {re.sub(r"[-_.]+", "-", line.split("==")[0]).lower(): line for line in frozen}
+
+
+runtime = installed("runtime", "/tmp/runtime")
+with_ml = installed("ml", "-e", "/tmp/ml[ml]")
+pins = sorted((line for name, line in with_ml.items() if name not in runtime), key=str.lower)
+pathlib.Path("/engine/constraints-ml.txt").write_text("\n".join(HEADER + pins) + "\n", encoding="ascii", newline="\n")
+print(len(pins), "packages written to engine/constraints-ml.txt")
+'@ | docker run --rm -i -e PIP_DISABLE_PIP_VERSION_CHECK=1 --mount "type=bind,src=$PWD\engine,dst=/engine" python:3.12.14-slim-bookworm python -
+```
+
+What the program does: it installs the engine twice in the container, each time into a fresh virtual
+environment and under `engine/constraints.txt`, the way the Docker stages do: once as the runtime image
+has it, once with the `ml` extra (the pins in the extra force the baseline's versions). It lists both
+with `pip freeze --exclude-editable`, keeps the packages that only the second environment has, sorts them
+without regard to case and writes them as plain ASCII under a comment header. The only thing it changes
+in your checkout is `engine/constraints-ml.txt`, through the read-write mount. If pip cannot satisfy one
+of the seven pins on Linux the command fails and nothing is written: stop and find out why before
+changing a pin.
+
+Then run `.\.venv\Scripts\python -m pytest engine/tests/test_constraints.py -q`, check
+`git diff engine/constraints-ml.txt`, and rebuild the image with
+`docker compose --profile tools build release` (its `pip check` must stay clean).
+
 ## Dependency updates (Dependabot)
 
 Once a week GitHub's Dependabot (configured in `.github/dependabot.yml`) looks for newer versions of
@@ -490,7 +616,8 @@ the libraries and base images this project uses and opens a pull request for eac
 while major updates come one at a time. These are ordinary pull requests: nothing merges by itself,
 and one is merged only after CI is green and you have approved it. Some updates are ignored on
 purpose, because the toolchains are pinned deliberately and a robot bumping them would either break
-CI or quietly change what runs on the server: new Python minor/major versions (we stay on 3.12;
+CI or quietly change what runs on the server (the ML libraries of the `ml` extra are ignored too, see
+"ML constraints"): new Python minor/major versions (we stay on 3.12;
 patch releases such as 3.12.11 are still proposed), new Node majors (we run 24), any `rust` image
 update, Postgres (pgvector) and Caddy majors (a Postgres major needs a dump and restore of the
 data), and `@types/node` majors (they must match the Node major we actually run). A deliberate

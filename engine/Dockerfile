@@ -2,8 +2,10 @@
 #   docker build --target runtime ./engine   (what compose runs)
 #   docker build --target test    ./engine   (adds the [dev] extra: pytest, httpx2, ...; the
 #                                             integration tests are mounted at run time)
-#   docker build --target release ./engine   (runtime + git: the one-off `release` tool, see below)
-# Every dependency version comes from constraints.txt, so rebuilds are reproducible.
+#   docker build --target release ./engine   (runtime + git + CPU torch and sentence-transformers: the
+#                                             one-off `release` tool, see below)
+# Every dependency version comes from constraints.txt (and, for the release image, constraints-ml.txt),
+# so rebuilds are reproducible.
 
 FROM python:3.12.14-slim-bookworm AS base
 ENV PYTHONUNBUFFERED=1 \
@@ -32,8 +34,12 @@ CMD ["python", "-m", "pytest", "-q"]
 
 # One-off release tool (`docker compose --profile tools run --rm release release build ...`): the runtime
 # image plus git, which `gsn release` uses to read release content from a commit of the repository
-# mounted at /repo.git. Model files live in the /models volume (HF_HOME) and are never fetched at run
-# time (HF_HUB_OFFLINE). Root is used only to install git and prepare /models; the entrypoint is `gsn`.
+# mounted at /repo.git, plus the ML packages that embed text with BAAI/bge-m3 (CPU-only torch from the
+# PyTorch CPU index, sentence-transformers). The ML tree is locked in constraints-ml.txt and installed
+# with --no-deps, so pip resolves nothing here; `pip check` then proves the pieces fit together. Model
+# files live in the /models volume (HF_HOME) and are never fetched at run time (HF_HUB_OFFLINE); only
+# `gsn models fetch`, run with HF_HUB_OFFLINE=0, downloads them. Root is used only to install git and the
+# ML packages and to prepare /models; the entrypoint is `gsn`.
 FROM runtime AS release
 USER root
 RUN apt-get update \
@@ -41,6 +47,10 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir /models \
  && chown gsn:gsn /models
+RUN --mount=type=bind,target=/build,rw \
+    pip install --no-cache-dir --no-deps --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r /build/constraints-ml.txt \
+ && pip check
 ENV HF_HOME=/models \
     HF_HUB_OFFLINE=1 \
     GIT_CONFIG_NOSYSTEM=1 \
