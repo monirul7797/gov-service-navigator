@@ -323,40 +323,43 @@ def test_the_report_is_plain_json_with_sorted_keys_and_does_not_change_between_r
 # --- run_parity: what is searched ---------------------------------------------------------------
 
 
+GOLD_SEARCHES = [(Q_NID, "nid", 4), (Q_BDRIS, "bdris", 4), (Q_OOS, "nid", 4)]     # the world's gold, k = top_k
+
+
 def test_gold_queries_are_run_with_the_recorded_query_and_top_k(world):
     world.baseline["gold"][0]["top_k"] = 2               # the baseline entry is the frozen truth, not a gold file
-    world.baseline["retrieve"] = []
     report = world.run()
-    assert (Q_NID, "nid", 2) in world.searches
-    assert (Q_NID, "nid", 4) not in world.searches
-    assert (Q_BDRIS, "bdris", 4) in world.searches
+    assert world.searches[:3] == [(Q_NID, "nid", 2), (Q_BDRIS, "bdris", 4), (Q_OOS, "nid", 4)]
     assert report["gold"][0]["ok"] is True               # the expected top is cut to the recorded top_k as well
+    assert [e["diff"]["problems"] for e in report["gold"]] == [[], [], []]
 
 
 def test_retrieve_runs_use_their_recorded_queries_and_services(world):
-    world.baseline["gold"] = []
     world.baseline["retrieve"] = [r for r in world.baseline["retrieve"] if r["id"] == "nid/gq_nid_a/scoped"]
     report = world.run()
-    assert report["ok"] is True
+    assert [e["id"] for e in report["retrieve"]] == ["nid/gq_nid_a/scoped"] and report["ok"] is True
     # scoped to one service: only that service is searched, with the wider candidate count of that case
-    assert world.searches == [(Q_NID, "nid", 12)]
+    assert world.searches == GOLD_SEARCHES + [(Q_NID, "nid", 12)]
 
     world.searches.clear()
     world.baseline["retrieve"] = [r for r in _baseline()["retrieve"] if r["id"] == "rc_01"]
-    assert world.run()["ok"] is True
-    assert sorted(world.searches) == sorted(
-        [(Q_NID, "nid", 8), (Q_NID, "bdris", 8), (Q_BDRIS, "nid", 8), (Q_BDRIS, "bdris", 8)]
-    )
+    report = world.run()
+    assert [e["id"] for e in report["retrieve"]] == ["rc_01"] and report["ok"] is True
+    # every query in every service of the case, in the order retrieve() asks
+    assert world.searches == GOLD_SEARCHES + [
+        (Q_NID, "nid", 8), (Q_NID, "bdris", 8), (Q_BDRIS, "nid", 8), (Q_BDRIS, "bdris", 8)]
 
 
 def test_the_releases_own_live_services_are_searched(world):
     world.live = ["nid"]                                  # bdris is not live in this release
-    world.baseline["gold"] = []
+    world.baseline["gold"] = [e for e in world.baseline["gold"] if e["service"] == "nid"]
     world.baseline["retrieve"] = [_baseline()["retrieve"][0]]
     report = world.run()
-    assert {s for _, s, _ in world.searches} == {"nid"}
+    assert {service for _, service, _ in world.searches} == {"nid"}
     assert report["ok"] is False                          # the baseline selected bdris records too
-    assert report["retrieve"][0]["diff"]["problems"]
+    problem = report["retrieve"][0]["diff"]["problems"][0]
+    assert "b1" in problem and "b2" in problem            # the two records of the service that is not served
+    assert [e["ok"] for e in report["gold"]] == [True, True]
 
 
 # --- run_parity: the checks that run first ------------------------------------------------------
@@ -496,9 +499,9 @@ def test_gold_thresholds_are_the_services_ceiling_and_the_queries_min_similarity
     world.baseline["gold"][0]["top"][1]["sim"] = 0.6005
     world.results[(Q_BDRIS, "bdris")] = [("b2", 0.6195), ("b1", 0.65)]
     world.baseline["gold"][1]["top"] = _top(("b2", 0.6195), ("b1", 0.65))
-    world.baseline["retrieve"] = []
     report = world.run()
     lines = report["near_threshold"]
+    assert all(line.startswith("gold ") for line in lines)
     assert any("gq_nid_a" in line and "n2" in line and "0.6" in line for line in lines)
     assert any("gq_bdris_a" in line and "b2" in line and "0.62" in line for line in lines)
     assert len(lines) == 2
@@ -620,3 +623,122 @@ def test_member_text_hashes_maps_each_member_to_the_text_hash_of_its_version():
     assert params == (7,)
     assert "text_hash" in sql and "release_members" in sql and "record_versions" in sql
     assert store.member_text_hashes(_Conn([]), 7) == {}
+
+
+# --- run_parity: a baseline that could make the gate pass vacuously ------------------------------
+
+
+@pytest.mark.parametrize("section", ["gold", "retrieve"])
+def test_a_baseline_with_no_gold_queries_or_no_retrieve_runs_is_refused(world, section):
+    world.baseline[section] = []
+    with pytest.raises(ParityError, match=f"'{section}' is empty"):
+        world.run()
+    assert world.searches == []
+
+
+def test_a_gold_query_listed_twice_is_refused(world):
+    world.baseline["gold"].append(dict(world.baseline["gold"][0]))
+    with pytest.raises(ParityError, match="nid/gq_nid_a"):
+        world.run()
+    assert world.searches == []
+
+
+def test_the_same_query_id_in_two_services_is_not_a_repeat(world):
+    world.baseline["gold"].append(dict(world.baseline["gold"][1], service="nid"))     # nid/gq_bdris_a
+    assert len(world.run()["gold"]) == 4
+
+
+def test_a_retrieve_run_listed_twice_is_refused(world):
+    world.baseline["retrieve"].append(dict(world.baseline["retrieve"][2]))
+    with pytest.raises(ParityError, match="rc_01"):
+        world.run()
+    assert world.searches == []
+
+
+def test_a_live_service_without_gold_queries_in_the_baseline_is_refused(world):
+    world.live = ["bdris", "ereturn", "nid"]
+    with pytest.raises(ParityError) as excinfo:
+        world.run()
+    assert "ereturn" in str(excinfo.value) and "bdris" not in str(excinfo.value)
+    assert world.searches == []
+
+
+def test_gold_queries_of_a_service_the_release_does_not_serve_are_no_reason_to_refuse(world):
+    world.live = ["nid"]
+    assert world.run()["summary"]["gold"]["compared"] == 3
+
+
+# --- run_parity: the source must be the release's commit -----------------------------------------
+
+
+def test_a_source_at_another_commit_than_the_releases_is_refused(world):
+    other = "f" * 40
+    with pytest.raises(ParityError) as excinfo:
+        world.run(DictSource(other, world.files()))
+    assert other in str(excinfo.value) and COMMIT in str(excinfo.value)
+    assert world.searches == []
+
+
+# --- run_parity: a service excluded just below the service minimum -------------------------------
+
+
+def test_a_service_excluded_just_below_the_service_minimum_is_listed(world):
+    world.results[(Q_NID, "bdris")] = [("b1", 0.3995), ("b2", 0.30)]      # bdris misses 0.40 by 0.0005
+    world.baseline["retrieve"][0]["hits"] = _hits(("n1", 0.80), ("n2", 0.61))
+    report = world.run()
+    assert report["ok"] is True
+    assert len(report["near_threshold"]) == 1
+    line = report["near_threshold"][0]
+    assert line.startswith("retrieve nid/gq_nid_a/all:") and "bdris" in line and "0.399500" in line
+    assert "baseline" in line and "not recorded" in line
+    assert report["summary"]["near_threshold"] == 1
+
+
+def test_a_service_excluded_far_below_the_service_minimum_is_not_listed(world):
+    world.results[(Q_NID, "bdris")] = [("b1", 0.3980), ("b2", 0.30)]
+    world.baseline["retrieve"][0]["hits"] = _hits(("n1", 0.80), ("n2", 0.61))
+    report = world.run()
+    assert report["ok"] is True and report["near_threshold"] == []
+
+
+def test_the_best_similarity_of_a_service_is_taken_across_all_queries_of_the_run(world):
+    q_a, q_b = "first question of a run", "second question of a run"
+    world.results.update({
+        (q_a, "nid"): [("n1", 0.80)], (q_a, "bdris"): [("b1", 0.30)],
+        (q_b, "nid"): [("n1", 0.79)], (q_b, "bdris"): [("b2", 0.3995)],
+    })
+    world.baseline["retrieve"] = [_run("multi", [q_a, q_b], None, ("n1", 0.80))]
+    report = world.run()
+    assert report["ok"] is True
+    assert len(report["near_threshold"]) == 1
+    assert report["near_threshold"][0].startswith("retrieve multi:") and "0.399500" in report["near_threshold"][0]
+
+
+def test_a_service_in_the_selected_context_gets_no_extra_line(world):
+    world.results[(Q_NID, "bdris")][0] = ("b1", 0.4005)                 # selected: only the hit itself is listed
+    world.baseline["retrieve"][0]["hits"][2]["sim"] = 0.4005
+    report = world.run()
+    assert len(report["near_threshold"]) == 1 and "not recorded" not in report["near_threshold"][0]
+
+
+# --- compare_ranked and run_parity: record id differences show their similarities ----------------
+
+
+def test_id_set_problems_show_the_similarities_of_the_records_involved():
+    diff = compare_ranked([("rec-a", 0.8), ("rec-b", 0.5000)], [("rec-a", 0.8), ("rec-c", 0.4999)], [])
+    assert not diff.ok
+    missing = next(p for p in diff.problems if "rec-b" in p)
+    unexpected = next(p for p in diff.problems if "rec-c" in p)
+    assert "rec-b (baseline similarity 0.500000)" in missing
+    assert "rec-c (similarity 0.499900)" in unexpected
+
+
+def test_a_boundary_tie_at_the_end_of_a_gold_top_k_can_be_told_from_a_real_miss(world):
+    world.baseline["gold"][0]["top_k"] = 2
+    world.baseline["gold"][0]["top"] = _top(("n1", 0.80), ("n2", 0.6100))
+    world.results[(Q_NID, "nid")] = [("n1", 0.80), ("n3", 0.6095), ("n2", 0.6090)]
+    report = world.run()
+    problems = _entry(report, "gold", "gq_nid_a")["diff"]["problems"]
+    assert any("n2" in p and "0.610000" in p for p in problems)
+    assert any("n3" in p and "0.609500" in p for p in problems)
+    assert report["ok"] is False

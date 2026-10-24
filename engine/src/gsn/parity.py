@@ -19,12 +19,16 @@ against the baseline it was built together with. The comparison, in this order:
 
 A failure in step 1 or 2 does not stop the run: everything is still compared, so one report shows all
 the differences. The run is refused (``ParityError``, exit status 2) before any search when the
-embedder is not the model the release was built with, or the baseline was not recorded with the
-pinned model revision.
+embedder is not the model the release was built with, the ``source`` is not the release's commit, the
+baseline was not recorded with the pinned model revision, or the baseline could make the gate pass
+without proving anything (no gold queries or retrieve runs, a repeated query, a live service that has no
+gold query in it).
 
 ``compare_ranked`` allows a similarity to differ by ``TOLERANCE`` and a pair of records to swap places
 only when their baseline similarities differ by less than that (a *tie swap*: reported, not a failure).
-Every similarity within ``TOLERANCE`` of a decision threshold is listed for a human look.
+Every similarity within ``TOLERANCE`` of a decision threshold is listed for a human look; so is a service
+that ``retrieve`` left out with a best similarity just under ``SERVICE_MIN_SIM`` (the baseline did not
+record that figure, so only the release's side is shown).
 
 The report is a plain dict of strings, integers, booleans, lists and dicts: ``format_report`` prints it
 with sorted keys, and the same inputs always print the same text.
@@ -146,10 +150,13 @@ def compare_ranked(
 
     missing = sorted(want.keys() - got.keys())
     unexpected = sorted(got.keys() - want.keys())
+    # The similarities are shown so that a tie at a cut-off (0.5000 out, 0.4999 in) can be told from a real miss.
     if missing:
-        problems.append(f"in the baseline but not in the result: {_ids(missing)}")
+        problems.append("in the baseline but not in the result: " + _ids(
+            [f"{record_id} (baseline similarity {want[record_id]:.6f})" for record_id in missing]))
     if unexpected:
-        problems.append(f"in the result but not in the baseline: {_ids(unexpected)}")
+        problems.append("in the result but not in the baseline: " + _ids(
+            [f"{record_id} (similarity {got[record_id]:.6f})" for record_id in unexpected]))
 
     for record_id in dict.fromkeys(expected_ids):
         if record_id in got:
@@ -240,6 +247,9 @@ def _load_baseline(source: ContentSource) -> dict:
         _require(isinstance(baseline.get(key), kind), BASELINE_PATH, f"'{key}' must be a {kind.__name__}")
     _require(all(isinstance(k, str) and isinstance(v, str) for k, v in baseline["documents"].items()),
              BASELINE_PATH, "'documents' must map record ids to text hashes")
+    for key in ("gold", "retrieve"):
+        _require(bool(baseline[key]), BASELINE_PATH, f"'{key}' is empty: nothing would be compared, so the "
+                 "gate would pass without proving anything")
     for entry in baseline["gold"]:
         _require(isinstance(entry, dict), BASELINE_PATH, "a gold entry is not an object")
         label = f"gold entry {entry.get('id')!r}"
@@ -262,6 +272,13 @@ def _load_baseline(source: ContentSource) -> dict:
             BASELINE_PATH, f"{label}: 'services' must be null or a list")
         _require(isinstance(run.get("hits"), list) and all(_is_hit(hit, "service") for hit in run["hits"]),
                  BASELINE_PATH, f"{label} needs hits")
+    pairs = [(entry["service"], entry["id"]) for entry in baseline["gold"]]
+    repeated = sorted({pair for pair in pairs if pairs.count(pair) > 1})
+    _require(not repeated, BASELINE_PATH, "gold queries listed more than once: "
+             + ", ".join(f"{service}/{query_id}" for service, query_id in repeated))
+    ids = [run["id"] for run in baseline["retrieve"]]
+    repeated_runs = sorted({run_id for run_id in ids if ids.count(run_id) > 1})
+    _require(not repeated_runs, BASELINE_PATH, "retrieve runs listed more than once: " + ", ".join(repeated_runs))
     return baseline
 
 
@@ -276,6 +293,18 @@ def _load_vectors(source: ContentSource) -> dict[str, list[float]]:
 # --- the run ------------------------------------------------------------------------------------
 
 
+def _recording(search, best: dict[str, float]):
+    """``search`` that also notes, per service, the best similarity it has returned (``best`` is filled in)."""
+
+    def recording_search(service_id: str, vector: list[float], k: int):
+        found = search(service_id, vector, k)
+        for hit in found:
+            best[service_id] = max(best.get(service_id, hit.sim), hit.sim)
+        return found
+
+    return recording_search
+
+
 def _with_problems(diff: RankedDiff, problems: list[str]) -> RankedDiff:
     return diff if not problems else replace(diff, ok=False, problems=[*diff.problems, *problems])
 
@@ -284,10 +313,13 @@ def run_parity(conn, release_id: int, source: ContentSource | None, embedder: Em
     """Compare release ``release_id`` with the committed ChromaDB baseline; returns the report.
 
     ``source`` is where the baseline files are read from, opened at the release's ``source_commit``;
-    ``None`` opens that commit of the mounted repository (as ``gsn eval`` does). Raises ``ParityError``
-    when there is no such release, when ``embedder`` is not the model the release was built with
-    (similarities of two models cannot be compared) or when the baseline was not recorded with the
-    pinned model revision; all before any search. See the module docstring for the comparison.
+    ``None`` opens that commit of the mounted repository (as ``gsn eval`` does); a ``source`` given must be
+    at that very commit. Raises ``ParityError``, all before any search, when there is no such release, when
+    ``embedder`` is not the model the release was built with (similarities of two models cannot be
+    compared), when ``source`` is at another commit, when the baseline cannot be read or could pass
+    vacuously (no gold queries or retrieve runs, a query listed twice, a live service without gold
+    queries) or when it was not recorded with the pinned model revision. See the module docstring for
+    the comparison.
     """
     row = store.release_row(conn, release_id)
     if row is None:
@@ -300,12 +332,25 @@ def run_parity(conn, release_id: int, source: ContentSource | None, embedder: Em
         )
     if source is None:
         source = open_repository(row["source_commit"])
+    if source.commit != row["source_commit"]:
+        raise ParityError(
+            f"the baseline would be read from commit {source.commit}, but release {release_id} was built from "
+            f"commit {row['source_commit']}: parity is judged against the baseline committed with the release"
+        )
     baseline = _load_baseline(source)
     revision = baseline["environment"].get("model_revision")
     if revision != BGE_M3_REVISION:
         raise ParityError(
             f"the baseline was recorded with model revision {revision!r}, but the pinned revision is "
             f"{BGE_M3_REVISION}: it cannot prove parity for the pinned model"
+        )
+    live = store.live_services(conn, release_id)
+    ungated = sorted(set(live) - {entry["service"] for entry in baseline["gold"]})
+    if ungated:
+        raise ParityError(
+            f"release {release_id} serves {', '.join(ungated)}, but the baseline has no gold queries for "
+            f"{'it' if len(ungated) == 1 else 'them'}: parity would say nothing about "
+            f"{'that service' if len(ungated) == 1 else 'those services'}"
         )
     baseline_vectors = _load_vectors(source)
 
@@ -338,10 +383,10 @@ def run_parity(conn, release_id: int, source: ContentSource | None, embedder: Em
             "verdict_expected": entry["legacy_verdict"], "verdict_actual": verdict.verdict, "diff": asdict(diff),
         })
 
-    live = store.live_services(conn, release_id)
     retrieve_report = []
     for run in baseline["retrieve"]:
-        hits = retrieval.retrieve(search, embedder, run["queries"], live, run["services"])
+        best: dict[str, float] = {}
+        hits = retrieval.retrieve(_recording(search, best), embedder, run["queries"], live, run["services"])
         expected = [(hit["id"], hit["sim"]) for hit in run["hits"]]
         diff = compare_ranked(expected, [(hit.record_id, hit.sim) for hit in hits],
                               [SERVICE_MIN_SIM, GROUNDING_FLOOR])
@@ -351,6 +396,17 @@ def run_parity(conn, release_id: int, source: ContentSource | None, embedder: Em
             for hit in hits
             if hit.record_id in recorded_service and recorded_service[hit.record_id] != hit.service_id
         ])
+        # retrieve() drops a service whose best hit is under SERVICE_MIN_SIM, and such a service leaves no hit to
+        # list above. The release's best similarity is shown; the baseline never recorded it (a limit of D1).
+        selected = {hit.service_id for hit in hits}
+        near_misses = [
+            f"service {service}: best similarity {best_sim:.6f} is within {TOLERANCE} of the threshold "
+            f"{SERVICE_MIN_SIM} and the service is not in the selected context (the baseline's best similarity "
+            "for it is not recorded)"
+            for service, best_sim in sorted(best.items())
+            if service not in selected and _near(best_sim, SERVICE_MIN_SIM)
+        ]
+        diff = replace(diff, near_threshold=[*diff.near_threshold, *near_misses])
         collect(f"retrieve {run['id']}", diff)
         retrieve_report.append({"id": run["id"], "ok": diff.ok, "diff": asdict(diff)})
 
