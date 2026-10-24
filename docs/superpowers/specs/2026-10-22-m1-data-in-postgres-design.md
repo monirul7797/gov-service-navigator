@@ -306,12 +306,17 @@ and `CONNECT` on the `postgres` database from `PUBLIC`; revoke `CREATE` on `gsn`
 
 ### 9.1 Images and dependencies
 
-- **Separate release image** (`gsn-release:dev`, Dockerfile target `release`, built `FROM` the
-  runtime stage): adds the `gsn[ml]` extra (`sentence-transformers`, CPU-only `torch` from the
-  PyTorch CPU index, at the PC's versions) and `git`. The engine/worker runtime and test images
-  stay as they are until M2. Expected size ≈ runtime + 1 GB.
+- **Separate release image** (`gsn-release:dev`, Dockerfile target `release`): adds the `gsn[ml]`
+  extra (`sentence-transformers`, CPU-only `torch` from the PyTorch CPU index, at the PC's
+  versions) and `git`. The ML packages are installed in their own `ml` stage built `FROM base`
+  from `constraints-ml.txt` alone, and `release` builds on that stage and installs the engine on
+  top, so editing engine code never rebuilds the ~1.7 GB ML layer (amended 2026-10-25 after the C1
+  review). The engine/worker runtime and test images stay as they are until M2. Expected size ≈
+  runtime + 1.7 GB unpacked.
 - The ML dependency tree is locked in a separate `engine/constraints-ml.txt`, generated **inside a
-  Linux container** by a documented command (it cannot come from the Windows venv). CI audits it
+  Linux container** by a documented command (it cannot come from the Windows venv). It lists what
+  the `ml` extra needs beyond the runtime image (packages that `constraints.txt` pins only for the
+  dev tree are therefore listed too, at the same versions). CI audits it
   and `engine/tests/test_constraints.py` covers the `ml` extra. Dependabot ignores `torch` and
   `sentence-transformers` until the M2 engine switch (an upgrade later means re-running parity).
 - The image creates `/models` owned by the `gsn` user before switching to it, so a fresh
