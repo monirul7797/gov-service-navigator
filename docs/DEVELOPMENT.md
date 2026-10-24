@@ -510,6 +510,48 @@ Things to know:
   docker compose --profile tools run --rm -T --entrypoint python release -c "from gsn.embed import get_embedder; e = get_embedder({}); print(e.model_id); [print(len(v), v[:4]) for v in e.encode(['How do I renew my passport?', 'amar birth certificate hariye gese'])]"
   ```
 
+### Real-model evals
+
+Ordinary CI (`ci.yml`) builds its test release with the fake embedder, whose vectors carry no meaning, so
+it cannot tell whether retrieval still works. The workflow `.github/workflows/evals.yml` ("Evals (real
+model)") does: it builds a release of the checked-out commit with the real BAAI/bge-m3 model and requires
+the release gate to pass, that is, every gold query passes except the ones listed under `known_failures`
+in `data/release_thresholds.json`.
+
+- **When it runs.** On a pull request, and on a push to `master`, that changes one of
+  `engine/src/gsn/embed.py`, `retrieval.py`, `evals.py`, `engine/src/gsn/release/`,
+  `engine/constraints-ml.txt`, `data/`, the `*_gold_queries.json` files, `concept_registry.json` or the
+  workflow itself; and by hand from the Actions tab ("Run workflow"), which GitHub offers once the
+  workflow is on `master`.
+- **What it does.** Builds the images, starts PostgreSQL and applies the migrations, downloads the model
+  if the cache has none, runs `release build --commit HEAD` (the job fails unless the release is
+  `validated`), runs `eval --release <id> --json` for the release it just built, and finishes with
+  `audit verify`. It then throws the database away. Nothing is published.
+- **The model download.** The first run downloads about 2.3 GB from the Hugging Face hub and saves it in
+  the GitHub Actions cache under the key `bge-m3-<revision>`; later runs restore it instead. GitHub
+  deletes a cache nobody used for 7 days, so an idle repository downloads again. The key names the
+  pinned revision: when `MODEL_REVISION` in `engine/src/gsn/embed.py` changes, change `MODEL_CACHE_KEY`
+  in the workflow too.
+- **Where the results are.** The build summary (verdict counts per service, known and unexpected
+  failures) is on the run's summary page. The artifact `release-eval` holds `build.log` and `eval.json`
+  (the result of every gold query), kept for 30 days.
+
+To run the same steps on your own machine, commit your changes first (a release is built from a commit,
+never from the working tree) and start the stack. The model lives in the `gsn-models` volume here, so no
+`-v` is needed:
+
+```powershell
+docker compose --profile tools build
+docker compose up -d
+docker compose --profile tools run --rm -T --no-deps -e HF_HUB_OFFLINE=0 release models fetch   # once, about 2.3 GB
+docker compose --profile tools run --rm -T release release build --commit HEAD
+docker compose --profile tools run --rm -T release eval --release 5 --json   # use the number build printed
+docker compose --profile tools run --rm -T release audit verify
+```
+
+The workflow builds on a fresh database; a local database may already hold releases, so the id that
+`build` prints is not necessarily 1.
+
 ## Python constraints (`engine/constraints.txt`)
 
 `engine/constraints.txt` pins every package in the engine's dependency tree (including the

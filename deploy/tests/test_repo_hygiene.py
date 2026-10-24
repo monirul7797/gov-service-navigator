@@ -7,6 +7,7 @@ can prove, on temporary copies, that each guard really fails when a rule is disa
 """
 import fnmatch
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -14,6 +15,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 LF_GLOBS = ["**/*.sh", "**/*.sql", "**/Dockerfile", "**/Caddyfile"]
@@ -437,3 +439,102 @@ def test_the_collision_is_real_without_the_option(tmp_path):
     result = _pytest_collect(tmp_path, "--import-mode=prepend")
     assert result.returncode != 0
     assert "import file mismatch" in result.stdout + result.stderr
+
+
+# --- every action a workflow runs is pinned to a full commit SHA ----------------------------------
+#
+# A tag such as ``actions/checkout@v4`` can be moved to different code after it was reviewed, and a
+# workflow runs with the repository's token, so every ``uses:`` names a 40-character commit SHA (the
+# release it belongs to goes in a trailing comment; Dependabot keeps both up to date). Actions that
+# live in this repository (``./...``) have no ref to pin and are exempt. A ``docker://`` image is not
+# exempt: it must be replaced by a pinned action, or this check taught about digests first.
+
+WORKFLOWS_DIR = ROOT / ".github" / "workflows"
+PINNED_ACTION = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(/[A-Za-z0-9_./-]+)?@[0-9a-f]{40}")
+
+
+def uses_values(workflow_text):
+    """Every ``uses:`` value of one workflow, job-level (reusable workflows) and step-level."""
+    workflow = yaml.safe_load(workflow_text) or {}
+    values = []
+    for job in (workflow.get("jobs") or {}).values():
+        values.append(job.get("uses"))
+        values += [step.get("uses") for step in job.get("steps") or []]
+    return [str(value) for value in values if value is not None]
+
+
+def unpinned_actions(workflow_text):
+    """The ``uses:`` values that are not ``owner/repo[/path]@<40 lowercase hex>`` (``./`` ones are not reported)."""
+    return [
+        value for value in uses_values(workflow_text)
+        if not value.startswith("./") and not PINNED_ACTION.fullmatch(value)
+    ]
+
+
+def unpinned_in_directory(directory):
+    """``file: value`` for every unpinned action in the ``*.yml`` / ``*.yaml`` workflows of ``directory``."""
+    problems = []
+    for path in sorted([*directory.glob("*.yml"), *directory.glob("*.yaml")]):
+        problems += [f"{path.name}: {value}" for value in unpinned_actions(path.read_text(encoding="utf-8"))]
+    return problems
+
+
+def _workflow_with_step(uses):
+    return f"jobs:\n  j:\n    runs-on: ubuntu-24.04\n    steps:\n      - uses: {uses}\n"
+
+
+def test_every_action_in_the_workflows_is_pinned_to_a_commit_sha():
+    assert unpinned_in_directory(WORKFLOWS_DIR) == []
+
+
+def test_the_pin_check_really_sees_the_actions_of_both_workflows():
+    # Not vacuous: ci.yml and evals.yml exist and the check reads real actions out of each of them.
+    for name, action in [("ci.yml", "actions/checkout@"), ("evals.yml", "actions/cache/restore@")]:
+        values = uses_values((WORKFLOWS_DIR / name).read_text(encoding="utf-8"))
+        assert any(value.startswith(action) for value in values), name
+        assert all(PINNED_ACTION.fullmatch(value) for value in values), name
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "actions/checkout@v4",  # a movable tag
+        "actions/checkout@v4.2.3",
+        "actions/checkout@main",  # a branch
+        "actions/checkout@3d3c42e",  # an abbreviated SHA
+        "actions/checkout@" + "3" * 39,  # one character short
+        "actions/checkout@" + "3" * 41,  # one character too long
+        "actions/checkout@" + "A" * 40,  # upper case: a commit SHA is written in lower case
+        "actions/checkout",  # no ref at all (runs the default branch)
+        "actions/cache/restore@v6",  # an action in a subfolder
+        "docker://alpine:3.20",
+    ],
+)
+def test_an_unpinned_action_is_reported(value):
+    assert unpinned_actions(_workflow_with_step(value)) == [value]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "actions/checkout@" + "3" * 40 + " # v7.0.1",  # the release goes in a trailing comment
+        "actions/cache/restore@" + "0123456789abcdef" * 2 + "01234567",
+        "./.github/actions/local-action",  # in this repository: nothing to pin
+    ],
+)
+def test_a_pinned_or_local_action_is_accepted(value):
+    assert unpinned_actions(_workflow_with_step(value)) == []
+
+
+def test_an_unpinned_reusable_workflow_is_reported():
+    text = "jobs:\n  j:\n    uses: octo/repo/.github/workflows/w.yml@main\n"
+    assert unpinned_actions(text) == ["octo/repo/.github/workflows/w.yml@main"]
+
+
+def test_guard_fails_when_one_action_of_a_real_workflow_is_unpinned(tmp_path):
+    original = (WORKFLOWS_DIR / "ci.yml").read_text(encoding="utf-8")
+    mutated = re.sub(r"@[0-9a-f]{40}", "@v7", original, count=1)  # the first pinned action loses its SHA
+    assert mutated != original
+    (tmp_path / "ci.yml").write_text(mutated, encoding="utf-8", newline="\n")
+    (tmp_path / "other.yaml").write_text(original, encoding="utf-8", newline="\n")  # the intact copy is fine
+    assert unpinned_in_directory(tmp_path) == ["ci.yml: actions/checkout@v7"]
