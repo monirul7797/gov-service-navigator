@@ -1,0 +1,2631 @@
+{
+  "baseline_commit": "564746d13d09fb59b4927a4cdb7819d9db526081",
+  "embedding_model": "BAAI/bge-m3@5617a9f61b028005a4858fdac845db406aefb181",
+  "gold": [
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_001",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_002",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_003",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS (warn)",
+      "verdict_expected": "PASS (warn)"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_004",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS (warn)",
+      "verdict_expected": "PASS (warn)"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_005",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_006",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_007",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_008",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_009",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_010",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "FAIL",
+      "verdict_expected": "FAIL"
+    },
+    {
+      "diff": {
+        "near_threshold": [
+          "cd46a82c47074e76: similarity 0.549286 (baseline 0.549286) is within 0.001 of the threshold 0.55",
+          "cd46a82c47074e76: similarity 0.549286 (baseline 0.549286) is within 0.001 of the threshold 0.55"
+        ],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_011",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_012",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "OBSERVE",
+      "verdict_expected": "OBSERVE"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_013",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_014",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "OBSERVE",
+      "verdict_expected": "OBSERVE"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_015",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS (warn)",
+      "verdict_expected": "PASS (warn)"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_016",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_017",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS (warn)",
+      "verdict_expected": "PASS (warn)"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_nid_018",
+      "ok": true,
+      "service": "nid",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_001",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_002",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_003",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_004",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_005",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_006",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_007",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_008",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_009",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_010",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_011",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_012",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_013",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_014",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_015",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_016",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_017",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "OBSERVE",
+      "verdict_expected": "OBSERVE"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_018",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "OBSERVE",
+      "verdict_expected": "OBSERVE"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_019",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_020",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_ep_021",
+      "ok": true,
+      "service": "epassport",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_001",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_002",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_003",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "FAIL",
+      "verdict_expected": "FAIL"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_004",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_005",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_006",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_007",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_008",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_009",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_010",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_011",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_012",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_013",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_014",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_015",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_016",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "OBSERVE",
+      "verdict_expected": "OBSERVE"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_er_017",
+      "ok": true,
+      "service": "ereturn",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_001",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_002",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_003",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS (warn)",
+      "verdict_expected": "PASS (warn)"
+    },
+    {
+      "diff": {
+        "near_threshold": [
+          "bdris_faq_016: similarity 0.550102 (baseline 0.550102) is within 0.001 of the threshold 0.55"
+        ],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_004",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [
+          "bdris_manual_stage_5_applicant_declaration_documents: similarity 0.600007 (baseline 0.600007) is within 0.001 of the threshold 0.6"
+        ],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_005",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_006",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_007",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS (warn)",
+      "verdict_expected": "PASS (warn)"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_008",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_009",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [
+          "bdris_rules2018_009_domestic_birth: similarity 0.600670 (baseline 0.600669) is within 0.001 of the threshold 0.6"
+        ],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_010",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_011",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_012",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_013",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_014",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_015",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "FAIL",
+      "verdict_expected": "FAIL"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_016",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [
+          "bdris_manual_stage_4_addresses: similarity 0.449948 (baseline 0.449948) is within 0.001 of the threshold 0.45"
+        ],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_017",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "gq_018",
+      "ok": true,
+      "service": "bdris",
+      "verdict_actual": "PASS",
+      "verdict_expected": "PASS"
+    }
+  ],
+  "near_threshold": [
+    "gold nid/gq_nid_011: cd46a82c47074e76: similarity 0.549286 (baseline 0.549286) is within 0.001 of the threshold 0.55",
+    "gold nid/gq_nid_011: cd46a82c47074e76: similarity 0.549286 (baseline 0.549286) is within 0.001 of the threshold 0.55",
+    "gold bdris/gq_004: bdris_faq_016: similarity 0.550102 (baseline 0.550102) is within 0.001 of the threshold 0.55",
+    "gold bdris/gq_005: bdris_manual_stage_5_applicant_declaration_documents: similarity 0.600007 (baseline 0.600007) is within 0.001 of the threshold 0.6",
+    "gold bdris/gq_010: bdris_rules2018_009_domestic_birth: similarity 0.600670 (baseline 0.600669) is within 0.001 of the threshold 0.6",
+    "gold bdris/gq_017: bdris_manual_stage_4_addresses: similarity 0.449948 (baseline 0.449948) is within 0.001 of the threshold 0.45",
+    "retrieve nid/gq_nid_015/all: bdris_rules2018_013_duplicate_certificate: similarity 0.400390 (baseline 0.400390) is within 0.001 of the threshold 0.4",
+    "retrieve nid/gq_nid_018/all: epassport-faq-26-i-have-an-mrp-how-is-the-process-to-get-the-epassport: similarity 0.400828 (baseline 0.400828) is within 0.001 of the threshold 0.4",
+    "retrieve nid/gq_nid_018/scoped: 02a1d96a8c5d587d: similarity 0.420307 (baseline 0.420307) is within 0.001 of the threshold 0.42",
+    "retrieve bdris/gq_003/scoped: bdris_faq_017: similarity 0.399696 (baseline 0.399696) is within 0.001 of the threshold 0.4",
+    "retrieve rc_12: epassport-faq-26-i-have-an-mrp-how-is-the-process-to-get-the-epassport: similarity 0.400828 (baseline 0.400828) is within 0.001 of the threshold 0.4"
+  ],
+  "ok": true,
+  "problems": [],
+  "release_id": 1,
+  "retrieve": [
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_001/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_001/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_002/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_002/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_003/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_003/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_004/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_004/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_005/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_005/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_006/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_006/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_007/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_007/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_008/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_008/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_009/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_009/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_010/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_010/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_011/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_011/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_012/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_012/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_013/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_013/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_014/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_014/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [
+          "bdris_rules2018_013_duplicate_certificate: similarity 0.400390 (baseline 0.400390) is within 0.001 of the threshold 0.4"
+        ],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_015/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_015/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_016/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_016/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_017/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_017/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [
+          "epassport-faq-26-i-have-an-mrp-how-is-the-process-to-get-the-epassport: similarity 0.400828 (baseline 0.400828) is within 0.001 of the threshold 0.4"
+        ],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_018/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [
+          "02a1d96a8c5d587d: similarity 0.420307 (baseline 0.420307) is within 0.001 of the threshold 0.42"
+        ],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "nid/gq_nid_018/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_001/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_001/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_002/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_002/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_003/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_003/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_004/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_004/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_005/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_005/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_006/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_006/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_007/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_007/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_008/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_008/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_009/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_009/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_010/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_010/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_011/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_011/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_012/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_012/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_013/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_013/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_014/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_014/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_015/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_015/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_016/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_016/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_017/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_017/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_018/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_018/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_019/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_019/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_020/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_020/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_021/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "epassport/gq_ep_021/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_001/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_001/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_002/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_002/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_003/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_003/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_004/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_004/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_005/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_005/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_006/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_006/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_007/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_007/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_008/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_008/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_009/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_009/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_010/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_010/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_011/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_011/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_012/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_012/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_013/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_013/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_014/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_014/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_015/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_015/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_016/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_016/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_017/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "ereturn/gq_er_017/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_001/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_001/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_002/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_002/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_003/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [
+          "bdris_faq_017: similarity 0.399696 (baseline 0.399696) is within 0.001 of the threshold 0.4"
+        ],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_003/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_004/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_004/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_005/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_005/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_006/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_006/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_007/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_007/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_008/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_008/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_009/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_009/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_010/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_010/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_011/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_011/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_012/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_012/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_013/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_013/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_014/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_014/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_015/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_015/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_016/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_016/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_017/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_017/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_018/all",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "bdris/gq_018/scoped",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_01",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_02",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_03",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_04",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_05",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_06",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_07",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_08",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_09",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_10",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_11",
+      "ok": true
+    },
+    {
+      "diff": {
+        "near_threshold": [
+          "epassport-faq-26-i-have-an-mrp-how-is-the-process-to-get-the-epassport: similarity 0.400828 (baseline 0.400828) is within 0.001 of the threshold 0.4"
+        ],
+        "ok": true,
+        "problems": [],
+        "tie_swaps": []
+      },
+      "id": "rc_12",
+      "ok": true
+    }
+  ],
+  "source_commit": "e53ff4825579e1eb378a37347c30d1173851fd0b",
+  "summary": {
+    "documents": {
+      "compared": 293,
+      "problems": 0
+    },
+    "gold": {
+      "compared": 74,
+      "ranked_problems": 0,
+      "verdict_mismatches": 0
+    },
+    "near_threshold": 11,
+    "retrieve": {
+      "compared": 160,
+      "problems": 0
+    },
+    "tie_swaps": 0,
+    "vectors": {
+      "compared": 293,
+      "failing": 0
+    }
+  },
+  "tie_swaps": [],
+  "vectors": []
+}
