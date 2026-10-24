@@ -8,10 +8,11 @@
 # which could therefore drop or disable them. Moving them to the superuser would break the migrations
 # that create them, so instead the SUPERUSER owns a watchdog: event triggers that, after every schema
 # change in this database, check a registry of protected objects and raise (which rolls the change
-# back) when one of them was dropped, renamed, retyped, disabled or replaced. gsn_migrate may only
-# ADD objects to the registry (gsn_guard.protect_table / protect_function, called by migration 0004
-# and by later migrations for new guards); nobody can remove an entry. Changing a guard on purpose
-# therefore needs the superuser (a documented break-glass step, see docs/DEVELOPMENT.md). The
+# back) when one of them was dropped, renamed, retyped, disabled, replaced or rewritten. gsn_migrate
+# may only ADD objects to the registry (gsn_guard.protect_table / protect_function, called by
+# migration 0004 and by later migrations for new guards); nobody can remove an entry, and a table is
+# registered with ALL of its triggers at once (there is no "add a trigger" path). Changing a guard on
+# purpose therefore needs the superuser (a documented break-glass step, see docs/DEVELOPMENT.md). The
 # superuser itself is out of scope: it is reachable only from the server console.
 #
 # Step 1 (database postgres): the database changes owner to the superuser, because an owner can
@@ -22,16 +23,22 @@
 #
 # Step 2 (database gsn): schema gsn_guard (superuser; USAGE for gsn_migrate only), the registry tables
 # (no privileges for anybody but the superuser), the registry view that lets gsn_migrate LOOK at the
-# registry, the two registration functions, and the event triggers.
+# registry, the two registration functions, and the three event triggers.
+#
+# Both steps run as ONE TRANSACTION each (psql -1 ... -f -). PostgreSQL runs init scripts only on a
+# data directory it has just created, so a script that stopped half way would leave a database that
+# is never initialised again; this way there is either a complete guard or none, and migration 0004
+# refuses to run on a database whose watchdog is missing or incomplete.
 #
 # SECURITY DEFINER rule: every such function pins `search_path = pg_catalog, gsn_guard, pg_temp`
 # (pg_temp explicitly LAST; unlisted, PostgreSQL searches it FIRST for relation and type names) and
-# writes every relation and type name schema-qualified. They run with the superuser's rights, so none
-# of them builds dynamic SQL, and the registration functions touch nothing but the registry.
+# `quote_all_identifiers = off` (the identities the watchdog compares are spelled with the default
+# quoting rules, whatever the caller's session says), and writes every relation and type name
+# schema-qualified. They run with the superuser's rights, so none of them builds dynamic SQL, and the
+# registration functions touch nothing but the registry.
 set -euo pipefail
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres \
-  -v owner="$POSTGRES_USER" <<'SQL'
+psql -1 -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres -v owner="$POSTGRES_USER" -f - <<'SQL'
 ALTER DATABASE gsn OWNER TO :"owner";
 -- A change of owner rewrites every ACL entry that named the old owner (including the CONNECT that
 -- 10-roles.sh granted to gsn_migrate), so the grants are stated again.
@@ -40,7 +47,7 @@ GRANT CONNECT ON DATABASE gsn TO gsn_migrate, gsn_web, gsn_engine, gsn_worker;
 REVOKE CONNECT ON DATABASE postgres FROM PUBLIC;
 SQL
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname gsn <<'SQL'
+psql -1 -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname gsn -f - <<'SQL'
 CREATE SCHEMA gsn_guard;
 REVOKE ALL ON SCHEMA gsn_guard FROM PUBLIC;
 GRANT USAGE ON SCHEMA gsn_guard TO gsn_migrate;
@@ -63,7 +70,7 @@ CREATE TABLE gsn_guard.protected_triggers (
 );
 
 CREATE TABLE gsn_guard.protected_functions (
-    signature   text PRIMARY KEY,   -- schema-qualified, e.g. public.publish_release(bigint, text)
+    signature   text PRIMARY KEY,   -- schema-qualified, e.g. public.publish_release(bigint,pg_catalog.text)
     fingerprint text NOT NULL       -- gsn_guard.function_fingerprint()
 );
 
@@ -95,13 +102,16 @@ GRANT SELECT ON gsn_guard.registry TO gsn_migrate;
 -- trigger do something else.
 --
 -- A function is recorded by its source, its settings (the pinned search_path), SECURITY DEFINER
--- flag, owner and volatility. (Its name and argument types are the registry key.)
+-- flag, owner (by NAME, not by object id, so the fingerprint survives a restore into a new cluster),
+-- volatility, language (by name), strictness and ACL (so that a widened EXECUTE grant is noticed).
+-- Fields are separated by '|'. (Its name and argument types are the registry key.)
 -- ---------------------------------------------------------------------------------------------
 
 CREATE FUNCTION gsn_guard.trigger_definition(p_trigger pg_catalog.oid) RETURNS pg_catalog.text
 LANGUAGE sql
 STABLE
 SET search_path = pg_catalog, gsn_guard, pg_temp
+SET quote_all_identifiers = off
 AS $$
     SELECT pg_catalog.concat_ws('|',
         t.tgtype::pg_catalog.text,
@@ -121,16 +131,26 @@ CREATE FUNCTION gsn_guard.function_fingerprint(p_function pg_catalog.oid) RETURN
 LANGUAGE sql
 STABLE
 SET search_path = pg_catalog, gsn_guard, pg_temp
+SET quote_all_identifiers = off
 AS $$
-    SELECT pg_catalog.md5(p.prosrc || coalesce(p.proconfig::pg_catalog.text, '') || p.prosecdef::pg_catalog.text
-                          || p.proowner::pg_catalog.text || p.provolatile::pg_catalog.text)
+    SELECT pg_catalog.md5(pg_catalog.concat_ws('|',
+        p.prosrc,
+        coalesce(p.proconfig::pg_catalog.text, ''),
+        p.prosecdef::pg_catalog.text,
+        p.proowner::pg_catalog.regrole::pg_catalog.text,
+        p.provolatile::pg_catalog.text,
+        l.lanname,
+        p.proisstrict::pg_catalog.text,
+        coalesce(p.proacl::pg_catalog.text, '')))
     FROM pg_catalog.pg_proc AS p
+    JOIN pg_catalog.pg_language AS l ON l.oid = p.prolang
     WHERE p.oid = p_function
 $$;
 
 -- ---------------------------------------------------------------------------------------------
 -- Registration. Called by migrations as gsn_migrate; SECURITY DEFINER because only the superuser
--- may write the registry. There is no unregister.
+-- may write the registry. There is no unregister. A table is registered together with ALL of its
+-- triggers: one that is not listed would be refused by the watchdog from the next schema change on.
 -- ---------------------------------------------------------------------------------------------
 
 CREATE FUNCTION gsn_guard.protect_table(p_table pg_catalog.text, p_triggers pg_catalog.text[])
@@ -138,6 +158,7 @@ RETURNS pg_catalog.void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, gsn_guard, pg_temp
+SET quote_all_identifiers = off
 AS $$
 DECLARE
     v_oid         pg_catalog.oid;
@@ -159,7 +180,7 @@ BEGIN
     SELECT c.relkind, c.relpersistence INTO v_relkind, v_persistence
     FROM pg_catalog.pg_class AS c
     WHERE c.oid = v_oid;
-    IF v_relkind NOT IN ('r', 'p') OR v_persistence = 't' THEN
+    IF v_relkind NOT IN ('r', 'p') OR v_persistence <> 'p' THEN
         RAISE EXCEPTION 'gsn_guard: % is not an ordinary permanent table', p_table;
     END IF;
 
@@ -168,6 +189,9 @@ BEGIN
     FROM pg_catalog.pg_identify_object('pg_catalog.pg_class'::pg_catalog.regclass, v_oid, 0) AS i;
     IF EXISTS (SELECT 1 FROM gsn_guard.protected_tables AS t WHERE t.table_name = v_name) THEN
         RAISE EXCEPTION '% is already protected', v_name;
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_catalog.pg_inherits AS i WHERE i.inhrelid = v_oid OR i.inhparent = v_oid) THEN
+        RAISE EXCEPTION 'gsn_guard: table % takes part in inheritance', v_name;
     END IF;
 
     SELECT pg_catalog.jsonb_agg(
@@ -193,6 +217,19 @@ BEGIN
         INSERT INTO gsn_guard.protected_triggers (table_name, trigger_name, definition)
         VALUES (v_name, v_trigger, gsn_guard.trigger_definition(v_trigger_oid));
     END LOOP;
+
+    -- Every trigger of the table must be one of those just registered (foreign-key triggers, which
+    -- PostgreSQL creates and marks internal, are not triggers in this sense).
+    SELECT t.tgname INTO v_trigger
+    FROM pg_catalog.pg_trigger AS t
+    WHERE t.tgrelid = v_oid AND NOT t.tgisinternal
+      AND NOT EXISTS (SELECT 1 FROM gsn_guard.protected_triggers AS g
+                      WHERE g.table_name = v_name AND g.trigger_name = t.tgname)
+    ORDER BY t.tgname
+    LIMIT 1;
+    IF FOUND THEN
+        RAISE EXCEPTION 'gsn_guard: table % has a trigger that is not listed: %', v_name, v_trigger;
+    END IF;
 END;
 $$;
 
@@ -201,6 +238,7 @@ RETURNS pg_catalog.void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, gsn_guard, pg_temp
+SET quote_all_identifiers = off
 AS $$
 DECLARE
     v_oid  pg_catalog.oid;
@@ -215,6 +253,11 @@ BEGIN
     IF v_oid IS NULL THEN
         RAISE EXCEPTION 'gsn_guard: function % does not exist', p_signature;
     END IF;
+    -- A BEGIN ATOMIC body is stored parsed (prosqlbody) and leaves prosrc empty: the fingerprint
+    -- would never notice it being replaced.
+    IF EXISTS (SELECT 1 FROM pg_catalog.pg_proc AS p WHERE p.oid = v_oid AND p.prosqlbody IS NOT NULL) THEN
+        RAISE EXCEPTION 'gsn_guard: % has a BEGIN ATOMIC body, which the fingerprint cannot cover', p_signature;
+    END IF;
 
     SELECT i.identity INTO v_name
     FROM pg_catalog.pg_identify_object('pg_catalog.pg_proc'::pg_catalog.regclass, v_oid, 0) AS i;
@@ -228,20 +271,27 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------------------------------
--- The watchdog. check() runs after every schema change (ddl_command_end) and looks at the STATE of
--- every registered object, so it does not matter which statement caused the change. check_drop()
--- runs when objects are dropped (sql_drop) and names what was dropped. Either raises, and the
--- statement is rolled back. With nothing registered (before migration 0004) both return at once.
--- Event trigger functions are called by PostgreSQL itself, so nobody needs EXECUTE on them.
+-- The watchdog. Three event triggers:
 --
--- SECURITY DEFINER because they read the registry, which gsn_migrate (whose statements they check)
--- cannot read.
+--   check()         after every schema change (ddl_command_end): looks at the STATE of every
+--                   registered object, so it does not matter which statement caused the change;
+--   check_drop()    when objects are dropped (sql_drop): names what was dropped;
+--   check_rewrite() before a table is rewritten (table_rewrite): a rewrite (ALTER COLUMN ... TYPE ...
+--                   USING an expression, a volatile column default, SET LOGGED / UNLOGGED) changes
+--                   every row without firing a row trigger, and leaves name, columns and triggers as
+--                   they were, so no after-the-fact state check could notice it.
+--
+-- Any of them raises, and the statement is rolled back. With nothing registered (before migration
+-- 0004) they return at once. Event trigger functions are called by PostgreSQL itself, so nobody needs
+-- EXECUTE on them. SECURITY DEFINER because they read the registry, which gsn_migrate (whose
+-- statements they check) cannot read.
 -- ---------------------------------------------------------------------------------------------
 
 CREATE FUNCTION gsn_guard.check() RETURNS pg_catalog.event_trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, gsn_guard, pg_temp
+SET quote_all_identifiers = off
 AS $$
 DECLARE
     v_table       pg_catalog.record;
@@ -250,8 +300,10 @@ DECLARE
     v_function    pg_catalog.record;
     v_oid         pg_catalog.oid;
     v_relkind     pg_catalog."char";
+    v_persistence pg_catalog."char";
     v_rls         pg_catalog.bool;
     v_found       pg_catalog.record;
+    v_extra       pg_catalog.text;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM gsn_guard.protected_tables)
        AND NOT EXISTS (SELECT 1 FROM gsn_guard.protected_functions) THEN
@@ -263,17 +315,25 @@ BEGIN
         IF v_oid IS NULL THEN
             RAISE EXCEPTION 'gsn_guard: protected table % is missing (dropped, renamed or moved)', v_table.table_name;
         END IF;
-        SELECT c.relkind, (c.relrowsecurity OR c.relforcerowsecurity) INTO v_relkind, v_rls
+        SELECT c.relkind, c.relpersistence, (c.relrowsecurity OR c.relforcerowsecurity)
+        INTO v_relkind, v_persistence, v_rls
         FROM pg_catalog.pg_class AS c
         WHERE c.oid = v_oid;
         IF v_relkind NOT IN ('r', 'p') THEN
             RAISE EXCEPTION 'gsn_guard: protected table % is no longer an ordinary table', v_table.table_name;
+        END IF;
+        IF v_persistence <> 'p' THEN
+            RAISE EXCEPTION 'gsn_guard: protected table % is no longer LOGGED (permanent)', v_table.table_name;
         END IF;
         IF v_rls THEN
             RAISE EXCEPTION 'gsn_guard: row-level security is switched on for protected table %', v_table.table_name;
         END IF;
         IF EXISTS (SELECT 1 FROM pg_catalog.pg_rewrite AS r WHERE r.ev_class = v_oid AND r.rulename <> '_RETURN') THEN
             RAISE EXCEPTION 'gsn_guard: protected table % has a rewrite rule', v_table.table_name;
+        END IF;
+        -- Rows of a child table skip the guards of the parent yet appear in plain reads of it.
+        IF EXISTS (SELECT 1 FROM pg_catalog.pg_inherits AS i WHERE i.inhrelid = v_oid OR i.inhparent = v_oid) THEN
+            RAISE EXCEPTION 'gsn_guard: protected table % takes part in inheritance', v_table.table_name;
         END IF;
 
         FOR v_column IN
@@ -313,6 +373,21 @@ BEGIN
                     v_trigger.trigger_name, v_table.table_name;
             END IF;
         END LOOP;
+
+        -- A trigger that is not registered could fire after a guard has approved a row and change it.
+        -- (Foreign-key triggers are internal and stay allowed.) There is deliberately no function that
+        -- lets gsn_migrate register a trigger afterwards.
+        SELECT t.tgname INTO v_extra
+        FROM pg_catalog.pg_trigger AS t
+        WHERE t.tgrelid = v_oid AND NOT t.tgisinternal
+          AND NOT EXISTS (SELECT 1 FROM gsn_guard.protected_triggers AS g
+                          WHERE g.table_name = v_table.table_name AND g.trigger_name = t.tgname)
+        ORDER BY t.tgname
+        LIMIT 1;
+        IF FOUND THEN
+            RAISE EXCEPTION 'gsn_guard: protected table % has a trigger that is not registered: %',
+                v_table.table_name, v_extra;
+        END IF;
     END LOOP;
 
     FOR v_function IN
@@ -333,6 +408,7 @@ CREATE FUNCTION gsn_guard.check_drop() RETURNS pg_catalog.event_trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, gsn_guard, pg_temp
+SET quote_all_identifiers = off
 AS $$
 DECLARE
     v_dropped pg_catalog.record;
@@ -353,6 +429,25 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION gsn_guard.check_rewrite() RETURNS pg_catalog.event_trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, gsn_guard, pg_temp
+SET quote_all_identifiers = off
+AS $$
+DECLARE
+    v_identity pg_catalog.text;
+BEGIN
+    SELECT i.identity INTO v_identity
+    FROM pg_catalog.pg_identify_object(
+             'pg_catalog.pg_class'::pg_catalog.regclass, pg_catalog.pg_event_trigger_table_rewrite_oid(), 0) AS i;
+    IF EXISTS (SELECT 1 FROM gsn_guard.protected_tables AS t WHERE t.table_name = v_identity) THEN
+        RAISE EXCEPTION 'gsn_guard: protected table % would be rewritten (a rewrite changes rows without firing their triggers)',
+            v_identity;
+    END IF;
+END;
+$$;
+
 -- ---------------------------------------------------------------------------------------------
 -- Grants. Functions are executable by PUBLIC unless revoked. Only gsn_migrate may register; the
 -- event trigger functions and the two definition helpers are for PostgreSQL and the superuser.
@@ -366,4 +461,5 @@ GRANT EXECUTE ON FUNCTION gsn_guard.protect_function(pg_catalog.text) TO gsn_mig
 -- so nothing is enforced until migration 0004 registers the protected objects).
 CREATE EVENT TRIGGER gsn_guard_check ON ddl_command_end EXECUTE FUNCTION gsn_guard.check();
 CREATE EVENT TRIGGER gsn_guard_check_drop ON sql_drop EXECUTE FUNCTION gsn_guard.check_drop();
+CREATE EVENT TRIGGER gsn_guard_check_rewrite ON table_rewrite EXECUTE FUNCTION gsn_guard.check_rewrite();
 SQL

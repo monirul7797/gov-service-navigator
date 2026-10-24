@@ -12,7 +12,9 @@ change back) when one of these holds:
 * a registered trigger is missing, redefined (``CREATE OR REPLACE TRIGGER`` included) or not enabled in
   a mode that fires in normal sessions (``tgenabled`` ``O`` or ``A``);
 * a registered function is missing or changed (``CREATE OR REPLACE``, ``ALTER FUNCTION``);
-* a protected table has a rewrite rule, or row-level security is switched on for it.
+* a protected table has a rewrite rule, or row-level security is switched on for it;
+* a protected table is rewritten (``ALTER COLUMN ... TYPE ... USING`` to the same type, a volatile column
+  default), is no longer ``LOGGED``, has a trigger that is not registered, or takes part in inheritance.
 
 Every attempted change below runs as ``gsn_migrate`` inside a transaction that is rolled back, so no
 test alters the shared database. Each forbidden statement is preceded, in the same transaction, by a
@@ -63,6 +65,10 @@ PROTECTED_FUNCTIONS = {
 }
 
 NOOP_FUNCTION = "$$BEGIN RETURN NEW; END$$"
+
+# Every function of the gsn_guard schema pins these settings (pg_temp last; identifiers never force-quoted,
+# because the identities the watchdog compares are spelled with the default quoting rules).
+GUARD_CONFIG = ["search_path=pg_catalog, gsn_guard, pg_temp", "quote_all_identifiers=off"]
 
 
 @contextmanager
@@ -143,8 +149,72 @@ FORBIDDEN = [
     ("rename-function", "ALTER FUNCTION gsn_reject_change() RENAME TO gsn_reject_change_old"),
     ("drop-function-cascade", "DROP FUNCTION rollback_release(text) CASCADE"),
     ("drop-verification-core", "DROP FUNCTION audit_verify_rows(regclass, bigint, bytea)"),
+    # table rewrites: the type and the name stay, so a state check alone would pass, yet every row is
+    # rewritten without a row trigger firing
+    (
+        "rewrite-releases-using",
+        "ALTER TABLE releases ALTER COLUMN status TYPE text "
+        "USING CASE WHEN status = 'draft' THEN 'validated' ELSE status END",
+    ),
+    ("rewrite-audit-log-using", "ALTER TABLE audit_log ALTER COLUMN actor TYPE text USING upper(actor)"),
+    ("rewrite-by-volatile-default", "ALTER TABLE releases ADD COLUMN itest_r double precision DEFAULT random()"),
+    ("rewrite-chain-head", "ALTER TABLE audit_chain ALTER COLUMN last_seq TYPE bigint USING last_seq + 1"),
+    ("set-unlogged", "ALTER TABLE publications SET UNLOGGED"),
+    # triggers that are not registered (a later-firing one could change a row after the guard approved it)
+    (
+        "extra-trigger-on-releases",
+        "CREATE TRIGGER zz_late BEFORE UPDATE ON releases FOR EACH ROW "
+        "EXECUTE FUNCTION suppress_redundant_updates_trigger()",
+    ),
+    (
+        "extra-trigger-on-audit-log",
+        "CREATE TRIGGER zz_late BEFORE UPDATE ON audit_log FOR EACH ROW "
+        "EXECUTE FUNCTION suppress_redundant_updates_trigger()",
+    ),
+    (
+        "extra-trigger-on-the-chain-head",
+        "CREATE TRIGGER zz_late BEFORE UPDATE ON audit_chain FOR EACH ROW "
+        "EXECUTE FUNCTION suppress_redundant_updates_trigger()",
+    ),
+    (
+        "extra-constraint-trigger",
+        "CREATE CONSTRAINT TRIGGER zz_late AFTER INSERT ON release_members DEFERRABLE INITIALLY DEFERRED "
+        "FOR EACH ROW EXECUTE FUNCTION suppress_redundant_updates_trigger()",
+    ),
+    # inheritance: rows of a child skip the guards of the parent but appear in plain reads of it
+    (
+        "inheriting-child-of-a-protected-table",
+        "CREATE TABLE public.itest_child (extra int) INHERITS (public.release_members)",
+    ),
+    # the function fingerprint also covers the ACL, strictness and language
+    ("grant-execute-on-publish", "GRANT EXECUTE ON FUNCTION publish_release(bigint, text) TO gsn_web"),
+    ("revoke-execute-on-publish", "REVOKE EXECUTE ON FUNCTION publish_release(bigint, text) FROM gsn_worker"),
+    ("grant-execute-to-public", "GRANT EXECUTE ON FUNCTION audit_verify() TO PUBLIC"),
+    ("make-strict", "ALTER FUNCTION audit_log_chain() STRICT"),
     # everything at once
     ("drop-owned", "DROP OWNED BY gsn_migrate CASCADE"),
+]
+
+# Forbidden changes that need a scratch table or function first. The setup statements are allowed and must
+# succeed; then the last statement is refused.
+FORBIDDEN_AFTER_SETUP = [
+    (
+        "inherit-a-scratch-table-into-a-protected-parent",
+        ["CREATE TABLE public.itest_scratch (LIKE public.publications INCLUDING CONSTRAINTS)"],
+        "ALTER TABLE public.itest_scratch INHERIT public.publications",
+    ),
+    (
+        "make-a-protected-table-the-child-of-a-scratch-table",
+        ["CREATE TABLE public.itest_parent (LIKE public.publications INCLUDING CONSTRAINTS)"],
+        "ALTER TABLE public.publications INHERIT public.itest_parent",
+    ),
+    (
+        "late-trigger-with-a-function-of-its-own",
+        [
+            "CREATE FUNCTION public.itest_noop() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RETURN NEW; END$$",
+        ],
+        "CREATE TRIGGER zz_late BEFORE INSERT ON releases FOR EACH ROW EXECUTE FUNCTION public.itest_noop()",
+    ),
 ]
 
 
@@ -152,6 +222,20 @@ FORBIDDEN = [
 def test_watchdog_rejects(connect, ddl):
     with rolled_back(connect) as migrate:
         harmless(migrate)  # the transaction works, so the next failure is the watchdog's own
+        with pytest.raises(RaiseException) as caught:
+            migrate.execute(ddl)
+    assert caught.value.diag.message_primary.startswith("gsn_guard:"), caught.value.diag.message_primary
+
+
+@pytest.mark.parametrize(
+    "setup, ddl",
+    [pytest.param(setup, sql, id=name) for name, setup, sql in FORBIDDEN_AFTER_SETUP],
+)
+def test_watchdog_rejects_after_setup(connect, setup, ddl):
+    with rolled_back(connect) as migrate:
+        harmless(migrate)
+        for statement in setup:
+            migrate.execute(statement)
         with pytest.raises(RaiseException) as caught:
             migrate.execute(ddl)
     assert caught.value.diag.message_primary.startswith("gsn_guard:"), caught.value.diag.message_primary
@@ -183,6 +267,23 @@ MESSAGES = [
     ),
     ("CREATE RULE keep AS ON DELETE TO record_versions DO INSTEAD NOTHING", r"public\.record_versions has a rewrite rule"),
     ("ALTER TABLE releases ENABLE ROW LEVEL SECURITY", r"row-level security is switched on for protected table public\.releases"),
+    (
+        "ALTER TABLE audit_log ALTER COLUMN actor TYPE text USING upper(actor)",
+        r"protected table public\.audit_log would be rewritten",
+    ),
+    ("ALTER TABLE publications SET UNLOGGED", r"public\.publications"),
+    (
+        "CREATE TRIGGER zz_late BEFORE UPDATE ON releases FOR EACH ROW EXECUTE FUNCTION suppress_redundant_updates_trigger()",
+        r"protected table public\.releases has a trigger that is not registered: zz_late",
+    ),
+    (
+        "CREATE TABLE public.itest_child (extra int) INHERITS (public.release_members)",
+        r"protected table public\.release_members takes part in inheritance",
+    ),
+    (
+        "GRANT EXECUTE ON FUNCTION publish_release(bigint, text) TO gsn_web",
+        r"protected function public\.publish_release\(bigint,pg_catalog\.text\) was changed",
+    ),
 ]
 
 
@@ -214,6 +315,15 @@ ALLOWED = [
     ("scratch-copy-of-a-state-table", "CREATE TABLE public.itest_guard_copy AS SELECT * FROM public.releases"),
     ("drop-scratch-table", "DROP TABLE public.itest_guard_old"),
     ("grant", "GRANT SELECT ON audit_log TO gsn_web"),
+    # no rewrite: a constant default is stored in the catalog only
+    ("add-column-with-a-constant-default", "ALTER TABLE releases ADD COLUMN itest_note text DEFAULT 'a'"),
+    # a scratch table that references a protected one adds internal foreign-key triggers to the protected table
+    (
+        "scratch-table-referencing-a-protected-table",
+        "CREATE TABLE public.itest_ref (s text REFERENCES public.services (service_id))",
+    ),
+    ("add-a-check-constraint", "ALTER TABLE audit_log ADD CONSTRAINT itest_check CHECK (actor <> '') NOT VALID"),
+    ("set-logged-no-op", "ALTER TABLE publications SET LOGGED"),
 ]
 
 
@@ -283,7 +393,9 @@ def test_registration_is_not_callable_by_other_roles(connect):
             "SELECT p.proname, has_function_privilege(p.oid, 'EXECUTE') FROM pg_proc p "
             "WHERE p.pronamespace = 'gsn_guard'::regnamespace"
         ).fetchall()
-        assert {name for name, _ in rows} >= {"protect_table", "protect_function", "check", "check_drop"}
+        assert {name for name, _ in rows} >= {
+            "protect_table", "protect_function", "check", "check_drop", "check_rewrite",
+        }
         assert [name for name, executable in rows if executable] == [], role
 
 
@@ -297,7 +409,7 @@ def test_only_the_migrate_role_may_register(connect):
     # The event trigger functions are invoked by PostgreSQL itself, regardless of grants; the two
     # definition helpers are for the superuser's own functions.
     assert {name for name, can in executable.items() if can} == {"protect_table", "protect_function"}
-    assert {"check", "check_drop", "trigger_definition", "function_fingerprint"} <= set(executable)
+    assert {"check", "check_drop", "check_rewrite", "trigger_definition", "function_fingerprint"} <= set(executable)
 
 
 @pytest.mark.parametrize(
@@ -317,6 +429,36 @@ def test_registration_refuses(connect, call, message):
     with rolled_back(connect) as migrate:
         with pytest.raises(RaiseException, match=message.replace("(", r"\(").replace(")", r"\)")):
             migrate.execute(call)
+
+
+def test_registration_refuses_a_function_the_fingerprint_cannot_cover(connect):
+    # A BEGIN ATOMIC body is stored parsed (prosqlbody) and leaves prosrc empty, so a fingerprint of prosrc
+    # would never notice it being replaced.
+    with rolled_back(connect) as migrate:
+        migrate.execute("CREATE FUNCTION public.itest_atomic() RETURNS int LANGUAGE sql BEGIN ATOMIC SELECT 1; END")
+        with pytest.raises(RaiseException, match="gsn_guard: .*itest_atomic.*BEGIN ATOMIC"):
+            migrate.execute("SELECT gsn_guard.protect_function('public.itest_atomic()')")
+
+
+def test_registration_refuses_a_table_with_unlisted_triggers_or_inheritance_or_no_logging(connect):
+    with rolled_back(connect) as migrate:
+        migrate.execute("CREATE TABLE public.itest_guard_t (id int)")
+        migrate.execute(f"CREATE FUNCTION public.itest_guard_t_fn() RETURNS trigger LANGUAGE plpgsql AS {NOOP_FUNCTION}")
+        migrate.execute(
+            "CREATE TRIGGER itest_guard_t_trg BEFORE INSERT ON public.itest_guard_t "
+            "FOR EACH ROW EXECUTE FUNCTION public.itest_guard_t_fn()"
+        )
+        with pytest.raises(RaiseException, match="has a trigger that is not listed: itest_guard_t_trg"):
+            with migrate.transaction():
+                migrate.execute("SELECT gsn_guard.protect_table('public.itest_guard_t', ARRAY[]::text[])")
+        migrate.execute("CREATE TABLE public.itest_guard_u () INHERITS (public.itest_guard_t)")
+        with pytest.raises(RaiseException, match="takes part in inheritance"):
+            with migrate.transaction():
+                migrate.execute("SELECT gsn_guard.protect_table('public.itest_guard_t', ARRAY['itest_guard_t_trg'])")
+        migrate.execute("CREATE UNLOGGED TABLE public.itest_guard_v (id int)")
+        with pytest.raises(RaiseException, match="not an ordinary permanent table"):
+            with migrate.transaction():
+                migrate.execute("SELECT gsn_guard.protect_table('public.itest_guard_v', ARRAY[]::text[])")
 
 
 def test_registration_refuses_a_missing_or_disabled_trigger(connect):
@@ -410,14 +552,66 @@ def test_every_trigger_and_definer_function_of_the_schema_is_registered(connect)
 def test_the_registry_fingerprints_match_the_functions(connect):
     with connect("migrate").cursor() as cur:
         cur.execute(
-            "SELECT g.name, g.detail, md5(p.prosrc || coalesce(p.proconfig::text, '') || p.prosecdef::text "
-            "|| p.proowner::text || p.provolatile::text) "
-            "FROM gsn_guard.registry g JOIN pg_proc p ON p.oid = to_regprocedure(g.name) WHERE g.kind = 'function'"
+            # the formula of gsn_guard.function_fingerprint(): role and language by NAME (restore-proof), the
+            # ACL and strictness included
+            "SELECT g.name, g.detail, md5(concat_ws('|', p.prosrc, coalesce(p.proconfig::pg_catalog.text, ''), "
+            "p.prosecdef::pg_catalog.text, p.proowner::pg_catalog.regrole::pg_catalog.text, "
+            "p.provolatile::pg_catalog.text, l.lanname, p.proisstrict::pg_catalog.text, "
+            "coalesce(p.proacl::pg_catalog.text, ''))) "
+            "FROM gsn_guard.registry g JOIN pg_proc p ON p.oid = to_regprocedure(g.name) "
+            "JOIN pg_language l ON l.oid = p.prolang WHERE g.kind = 'function'"
         )
         rows = cur.fetchall()
     assert len(rows) == len(PROTECTED_FUNCTIONS)
     for name, recorded, computed in rows:
         assert recorded == computed, name
+
+
+# --- the protected functions cannot be captured by an overload in the public schema ---------------------
+
+
+def test_an_overload_in_public_cannot_capture_calls_in_the_audit_functions(connect):
+    # gsn_migrate owns the public schema and may create functions there (the watchdog allows it). Had the
+    # audit functions kept `public` in their search_path, a public.convert_to(text, text) would win over
+    # pg_catalog.convert_to(text, name) for the literal 'UTF8' (text is the preferred string type), and
+    # every hash would be computed by the attacker's function. The functions pin pg_catalog, pg_temp only.
+    with rolled_back(connect) as migrate:
+        migrate.execute(
+            "CREATE FUNCTION public.convert_to(pg_catalog.text, pg_catalog.text) RETURNS pg_catalog.bytea "
+            "LANGUAGE sql AS $$ SELECT '\\x00'::pg_catalog.bytea $$"
+        )
+        # canary: in this very session the look-alike really wins, so the checks below are meaningful
+        assert migrate.execute("SELECT convert_to('x', 'UTF8')").fetchone()[0] == b"\x00"
+        assert migrate.execute("SELECT ok FROM public.audit_verify()").fetchone()[0] is True
+        migrate.execute(
+            "INSERT INTO public.audit_log (actor, action) VALUES ('itest-overload', 'itest.overload')"
+        )
+        assert migrate.execute("SELECT ok FROM public.audit_verify()").fetchone()[0] is True
+        # With the look-alike gone the row must still verify: its hash was made by the real function.
+        migrate.execute("DROP FUNCTION public.convert_to(pg_catalog.text, pg_catalog.text)")
+        assert migrate.execute("SELECT ok FROM public.audit_verify()").fetchone()[0] is True
+
+
+def test_an_overload_in_public_cannot_defeat_the_release_guard(connect):
+    # releases_guard() compares to_jsonb(NEW) with to_jsonb(OLD); public.to_jsonb(public.releases) is an
+    # exact-type match that would beat pg_catalog.to_jsonb(anyelement) if `public` were searched, and a
+    # constant answer makes every change look like "nothing else changed".
+    with rolled_back(connect) as migrate:
+        (release_id,) = migrate.execute(
+            "INSERT INTO public.releases (source_commit, manifest, registry, registry_sha256, thresholds, "
+            "embedding_model, created_by) VALUES (repeat('a', 40), '{}', '{}', 'x', '{}', 'm', 'itest') "
+            "RETURNING release_id"
+        ).fetchone()
+        migrate.execute(
+            "CREATE FUNCTION public.to_jsonb(public.releases) RETURNS pg_catalog.jsonb "
+            "LANGUAGE sql AS $$ SELECT '{}'::pg_catalog.jsonb $$"
+        )
+        assert migrate.execute("SELECT to_jsonb(r) FROM public.releases AS r LIMIT 1").fetchone()[0] == {}  # canary
+        with pytest.raises(RaiseException, match="is frozen except for one change"):
+            migrate.execute(
+                "UPDATE public.releases SET status = 'validated', note = 'sneaky' WHERE release_id = %s",
+                (release_id,),
+            )
 
 
 # --- who owns what, and what the schema looks like ---------------------------------------------------
@@ -435,8 +629,9 @@ def test_the_guard_schema_and_its_event_triggers_belong_to_the_superuser(connect
             "ORDER BY e.evtevent"
         )
         assert cur.fetchall() == [
-            ("gsn_guard_check", "ddl_command_end", "O", True, True, ["search_path=pg_catalog, gsn_guard, pg_temp"]),
-            ("gsn_guard_check_drop", "sql_drop", "O", True, True, ["search_path=pg_catalog, gsn_guard, pg_temp"]),
+            ("gsn_guard_check", "ddl_command_end", "O", True, True, GUARD_CONFIG),
+            ("gsn_guard_check_drop", "sql_drop", "O", True, True, GUARD_CONFIG),
+            ("gsn_guard_check_rewrite", "table_rewrite", "O", True, True, GUARD_CONFIG),
         ]
         cur.execute(
             "SELECT p.oid::regprocedure::text, r.rolsuper, p.prosecdef, p.proconfig FROM pg_proc p "
@@ -447,13 +642,14 @@ def test_the_guard_schema_and_its_event_triggers_belong_to_the_superuser(connect
     assert functions, "no functions in gsn_guard"
     for signature, superuser, _definer, config in functions:
         assert superuser is True, signature
-        assert config == ["search_path=pg_catalog, gsn_guard, pg_temp"], signature  # pg_temp last, always
+        assert config == GUARD_CONFIG, signature  # pg_temp last, always
     definers = {signature for signature, _s, definer, _c in functions if definer}
     assert {
         "gsn_guard.protect_table(text,text[])",
         "gsn_guard.protect_function(text)",
         'gsn_guard."check"()',  # CHECK is a keyword, so PostgreSQL quotes it
         "gsn_guard.check_drop()",
+        "gsn_guard.check_rewrite()",
     } <= definers
 
 
@@ -483,6 +679,9 @@ def test_migrate_can_neither_read_nor_write_the_registry_tables_nor_add_to_the_s
         "DROP EVENT TRIGGER gsn_guard_check_drop",
         "ALTER EVENT TRIGGER gsn_guard_check DISABLE",
         "ALTER EVENT TRIGGER gsn_guard_check_drop DISABLE",
+        "ALTER EVENT TRIGGER gsn_guard_check_rewrite DISABLE",
+        "DROP EVENT TRIGGER gsn_guard_check_rewrite",
+        "DROP FUNCTION gsn_guard.check_rewrite()",
         "ALTER FUNCTION gsn_guard.check() SET search_path = public",
         "DROP FUNCTION gsn_guard.check_drop()",
         "CREATE OR REPLACE FUNCTION gsn_guard.check() RETURNS event_trigger LANGUAGE plpgsql AS $$BEGIN NULL; END$$",

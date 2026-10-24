@@ -3,14 +3,17 @@
 -- The watchdog itself (schema gsn_guard, its registry, the registration functions and the event
 -- triggers) is created by db/init/20-guard.sh, as the superuser, when the database is first created.
 -- From the moment this migration has run, every schema change in the database is checked against
--- what is registered here, and is rolled back when it drops, renames, retypes, disables or replaces
--- one of these objects. Adding columns, indexes and unrelated tables stays possible; changing a guard
--- on purpose needs the superuser (the break-glass procedure in docs/DEVELOPMENT.md).
+-- what is registered here, and is rolled back when it drops, renames, retypes, disables, replaces or
+-- rewrites one of these objects, adds a trigger or inheritance to a protected table, or changes the
+-- EXECUTE grants of a protected function. Adding columns (without a volatile default), indexes and
+-- unrelated tables stays possible; changing a guard on purpose needs the superuser (the break-glass
+-- procedure in docs/DEVELOPMENT.md).
 --
 -- Registration is by schema-qualified NAME (never by object id), so it survives pg_dump / pg_restore.
 -- A table is recorded with its column names and types at this moment, and with the triggers that
--- guard it (their definitions, not just their names). A function is recorded by a fingerprint of its
--- source, settings (the pinned search_path), SECURITY DEFINER flag, owner and volatility.
+-- guard it (their definitions, not just their names), and registration fails unless ALL of its
+-- triggers are listed. A function is recorded by a fingerprint of its source, settings (the pinned
+-- search_path), SECURITY DEFINER flag, owner and language (by name), volatility, strictness and ACL.
 --
 -- Later migrations register what they add the same way, as their last step, for example:
 --     SELECT gsn_guard.protect_table('public.new_table', ARRAY['new_table_guard_row']);
@@ -18,11 +21,32 @@
 
 -- Preflight. db/init/ runs only on an EMPTY data volume, so a database created before the watchdog
 -- existed does not have it, and cannot get it from a migration (only the superuser may create event
--- triggers). Stop with a clear message instead of failing on the first registration.
+-- triggers). A guard that is only partly there (an init script that stopped half way, an event trigger
+-- switched off) would look fine yet protect nothing, so the three event triggers must all exist, call
+-- the right functions and be enabled ('O': they fire in normal sessions). Stop with a clear message
+-- instead of failing on the first registration, or worse, registering into a watchdog that is not
+-- watching.
 DO $$
+DECLARE
+    v_missing pg_catalog.text;
 BEGIN
     IF pg_catalog.to_regnamespace('gsn_guard') IS NULL THEN
         RAISE EXCEPTION 'database predates the M1 guard (db/init/20-guard.sh); recreate it: docker compose down -v';
+    END IF;
+
+    SELECT pg_catalog.string_agg(w.evtname, ', ' ORDER BY w.evtname) INTO v_missing
+    FROM (VALUES ('gsn_guard_check', 'ddl_command_end', 'check'),
+                 ('gsn_guard_check_drop', 'sql_drop', 'check_drop'),
+                 ('gsn_guard_check_rewrite', 'table_rewrite', 'check_rewrite')) AS w (evtname, evtevent, proname)
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM pg_catalog.pg_event_trigger AS e
+        JOIN pg_catalog.pg_proc AS p ON p.oid = e.evtfoid
+        WHERE e.evtname = w.evtname AND e.evtevent = w.evtevent AND e.evtenabled = 'O'
+          AND p.proname = w.proname AND p.pronamespace = 'gsn_guard'::pg_catalog.regnamespace
+    );
+    IF v_missing IS NOT NULL THEN
+        RAISE EXCEPTION 'the M1 guard is incomplete (event trigger missing, disabled or wrong: %); recreate it: docker compose down -v', v_missing;
     END IF;
 END
 $$;

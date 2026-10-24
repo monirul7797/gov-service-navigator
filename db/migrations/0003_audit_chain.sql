@@ -25,10 +25,11 @@
 -- Callers cannot choose any chain column: the column-level INSERT grants of 0001 (actor, action, target,
 -- details) do not include them, and the trigger overwrites whatever a more privileged inserter gives.
 --
--- Name resolution (see the header of 0002): every function pins `search_path = pg_catalog, public,
--- pg_temp` (pg_temp explicitly LAST), writes every type name schema-qualified (pg_catalog.text, ...)
--- and every relation public.-qualified (or, in the verification core, resolved from a regclass), so a
--- caller's temporary tables and domains cannot stand in for the real ones.
+-- Name resolution (see the header of 0002): every function pins `search_path = pg_catalog, pg_temp`
+-- (pg_temp explicitly LAST, and no `public`, so that no function created there can capture a call),
+-- writes every type name schema-qualified (pg_catalog.text, ...) and every relation public.-qualified
+-- (or, in the verification core, resolved from a regclass, whose text form is then always
+-- schema-qualified), so a caller's temporary tables and domains cannot stand in for the real ones.
 
 -- ---------------------------------------------------------------------------------------------
 -- The chain head: one row holding the position and hash of the latest chained row. No login role has
@@ -61,7 +62,7 @@ ALTER TABLE public.audit_log
 CREATE FUNCTION public.audit_log_chain() RETURNS pg_catalog.trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, pg_temp
 AS $$
 DECLARE
     v_last_seq  pg_catalog.int8;
@@ -154,7 +155,7 @@ RETURNS TABLE (ok pg_catalog.bool, rows_checked pg_catalog.int8, first_bad_seq p
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, pg_temp
 AS $$
 DECLARE
     v_table pg_catalog.text := format('%s', p_rows);
@@ -238,7 +239,7 @@ RETURNS TABLE (ok pg_catalog.bool, rows_checked pg_catalog.int8, first_bad_seq p
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, pg_temp
 AS $$
     SELECT v.ok, v.rows_checked, v.first_bad_seq
     FROM (SELECT 1) AS one

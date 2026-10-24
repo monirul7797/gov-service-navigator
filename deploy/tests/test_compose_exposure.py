@@ -370,6 +370,30 @@ def test_init_scripts_stop_on_errors(script):
     assert calls and all("ON_ERROR_STOP=1" in call for call in calls), calls
 
 
+def test_the_guard_init_is_all_or_nothing():
+    # PostgreSQL skips the init scripts on a data directory that already exists, so a script that fails
+    # half way must not leave a half-built guard behind: every psql call of 20-guard.sh is one transaction
+    # (`-1` only takes effect together with -f / -c, hence `-f -` for the statements on stdin).
+    text = (ROOT / "db" / "init" / "20-guard.sh").read_text(encoding="utf-8")
+    calls = re.findall(r"^psql\b[^\n]*", text, re.M)
+    assert len(calls) == 2
+    for call in calls:
+        assert re.search(r"\s-1\s", call) and re.search(r"\s-f\s+-(\s|$)", call), call
+
+
+def test_the_guard_preflight_demands_the_whole_watchdog():
+    # Migration 0004 stops, with a clear message, on a database whose watchdog is missing or incomplete:
+    # the schema and ALL THREE event triggers must exist and be enabled ('O').
+    text = (ROOT / "db" / "migrations" / "0004_guard_registration.sql").read_text(encoding="utf-8")
+    preflight = text.split("DO $$", 1)[1].split("$$;", 1)[0]
+    assert "database predates the M1 guard (db/init/20-guard.sh); recreate it: docker compose down -v" in preflight
+    for name in ("gsn_guard_check", "gsn_guard_check_drop", "gsn_guard_check_rewrite"):
+        assert f"'{name}'" in preflight, name
+    assert "evtenabled" in preflight and "'O'" in preflight
+    # the registrations come after the preflight
+    assert "SELECT gsn_guard.protect_table(" in text.split("$$;", 1)[1]
+
+
 # --- proof that the guards fail on a compose file that breaks the rules (temporary copies) -----
 
 

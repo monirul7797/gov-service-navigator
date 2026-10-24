@@ -153,10 +153,22 @@ The tables that hold the release history and the audit log, and the triggers and
 protect them (the append-only rules, the state rules, the hash chain, publish, rollback and verify),
 are owned by `gsn_migrate`, so that role could drop or switch off a protection. To prevent that, a
 **watchdog** owned by the PostgreSQL superuser checks them after every schema change in the database.
-If a change drops, renames, retypes, disables or replaces a registered object, or gives a protected
-table a rewrite rule or row-level security, the change is rolled back with an error that starts with
-`gsn_guard:`. Adding columns, indexes, views and unrelated tables is not affected, and neither are
-scratch copies of a protected table.
+The change is rolled back, with an error that starts with `gsn_guard:`, if it:
+
+- drops, renames, moves, retypes or disables a registered table, column, trigger or function, or
+  replaces one (`CREATE OR REPLACE`, `ALTER FUNCTION`, also for a trigger that keeps its name);
+- **rewrites** a protected table: `ALTER COLUMN ... TYPE ... USING <expression>` (even to the same
+  type), a column with a volatile default (`DEFAULT random()`), `SET UNLOGGED`. A rewrite changes
+  every row without firing a row trigger, which no after-the-fact check could notice;
+- adds a **trigger** to a protected table (a trigger that fires after a guard could change a row the
+  guard had approved), gives it a rewrite rule or row-level security, or makes it part of an
+  **inheritance** tree (rows of a child skip the parent's guards yet show up in plain reads);
+- changes who may execute a protected function (`GRANT` / `REVOKE`), its owner, language,
+  strictness, settings or body.
+
+Not affected: adding columns (with no default or a constant one), indexes, views and unrelated
+tables, a scratch table that references a protected table (foreign-key triggers are internal),
+scratch copies of a protected table (`CREATE TABLE ... AS SELECT`), and writes to `audit_chain`.
 
 - `db/init/20-guard.sh` creates the watchdog (schema `gsn_guard`: a registry, two registration
   functions and two event triggers) when the database is first created, and moves the database itself
@@ -164,12 +176,17 @@ scratch copies of a protected table.
 - `db/migrations/0004_guard_registration.sql` registers the protected tables, their guard triggers and
   the guard functions. A later migration that adds a guard ends with
   `SELECT gsn_guard.protect_table('public.new_table', ARRAY['new_table_guard_row']);` or
-  `SELECT gsn_guard.protect_function('public.new_function(bigint)');`. There is no "unregister".
+  `SELECT gsn_guard.protect_function('public.new_function(bigint)');`. A table is registered with
+  **all** of its triggers at once, and registration refuses a table with an unlisted trigger, so
+  create the triggers first and register last. There is no "unregister" and no "add a trigger".
+  A function that lives in `public` pins `SET search_path = pg_catalog, pg_temp` (never `public`:
+  `gsn_migrate` owns that schema, and a look-alike function created there would win the call).
 - Look at the registry with `SELECT kind, name, parent FROM gsn_guard.registry;` as `gsn_migrate`.
 - **One-time upgrade.** `db/init/` runs only on an empty volume, so a local database created before the
   watchdog existed does not have it, and migration `0004` stops with "database predates the M1 guard".
   Recreate it once with `docker compose down -v` (the local database holds no real data) and then
-  `docker compose up -d`.
+  `docker compose up -d`. The same migration also stops if the watchdog is only partly there (one of
+  its three event triggers missing or disabled).
 
 **Break-glass: changing a guard on purpose.** This needs the superuser, which is reachable only from
 a shell on the server (on this PC: `docker compose exec postgres psql -U postgres -d gsn`; the
@@ -188,8 +205,10 @@ UPDATE gsn_guard.protected_triggers AS g
   FROM pg_trigger AS t
  WHERE t.tgrelid = to_regclass(g.table_name) AND t.tgname = g.trigger_name
    AND g.table_name = 'public.releases' AND g.trigger_name = 'releases_guard_row';
--- a changed column list or trigger set: delete the table's rows from gsn_guard.protected_triggers and
+-- a changed column list or a new trigger: delete the table's rows from gsn_guard.protected_triggers and
 -- gsn_guard.protected_tables, then SELECT gsn_guard.protect_table('public.releases', ARRAY[...]);
+-- (list ALL of its triggers). A changed GRANT on a protected function is picked up by the
+-- function_fingerprint UPDATE above.
 INSERT INTO audit_log (actor, action, target, details)   -- keep a record of why
 VALUES ('owner', 'guard.break-glass', 'public.releases_guard()', '{"why": "..."}');
 RESET event_triggers;

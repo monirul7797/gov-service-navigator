@@ -327,12 +327,12 @@ def test_security_definer_functions_pin_their_search_path(connect):
             cur.execute("SELECT prosecdef, proconfig FROM pg_proc WHERE oid = %s::regprocedure", (signature,))
             definer, config = cur.fetchone()
             assert definer is True, signature
-            assert config == ["search_path=pg_catalog, public, pg_temp"], signature
+            assert config == ["search_path=pg_catalog, pg_temp"], signature
         # The guards are plain functions that run with the caller's rights (inside publish/rollback,
         # with the owner's); their search_path is pinned the same way.
         for signature in TRIGGER_FUNCTIONS:
             cur.execute("SELECT prosecdef, proconfig FROM pg_proc WHERE oid = %s::regprocedure", (signature,))
-            assert cur.fetchone() == (False, ["search_path=pg_catalog, public, pg_temp"]), signature
+            assert cur.fetchone() == (False, ["search_path=pg_catalog, pg_temp"]), signature
 
 
 # --- migration 0003: the audit hash chain (spec section 8.2) -----------------------------------------

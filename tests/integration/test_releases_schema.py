@@ -747,7 +747,7 @@ EVENTS = {
     "release_services": STATE_RULE_EVENTS,
     "active_release": STATE_RULE_EVENTS,
 }
-GUARD_SEARCH_PATH = ["search_path=pg_catalog, public, pg_temp"]
+GUARD_SEARCH_PATH = ["search_path=pg_catalog, pg_temp"]
 
 
 def test_guard_triggers_have_the_registered_names_and_fire_for_normal_sessions(connect):

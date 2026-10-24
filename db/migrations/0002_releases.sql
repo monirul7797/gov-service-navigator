@@ -118,19 +118,27 @@ CREATE TABLE publications (
 -- role, the table owner included (inside publish_release / rollback_release that is gsn_migrate).
 -- Names of the triggers are fixed (see the header).
 --
--- Name resolution (applies to every function below, SECURITY DEFINER or not): PostgreSQL searches
--- the session's temporary schema, pg_temp, FIRST for relation and type names unless search_path
--- lists it. A caller who may create temporary objects could therefore shadow a type name such as
--- `text` with a temporary DOMAIN whose CHECK calls a function of theirs, and PL/pgSQL would run that
--- function, with the owner's rights, when it initialises a variable of that type. So every function
--- pins `search_path = pg_catalog, public, pg_temp` (pg_temp explicitly LAST) and writes every type
--- and relation name schema-qualified. (Functions and operators are never looked up in pg_temp.)
+-- Name resolution (applies to every function below, SECURITY DEFINER or not):
+--
+--  * PostgreSQL searches the session's temporary schema, pg_temp, FIRST for relation and type names
+--    unless search_path lists it. A caller who may create temporary objects could therefore shadow a
+--    type name such as `text` with a temporary DOMAIN whose CHECK calls a function of theirs, and
+--    PL/pgSQL would run that function, with the owner's rights, when it initialises a variable of
+--    that type. So pg_temp is listed explicitly and LAST.
+--  * The schema `public` is NOT in the search_path: gsn_migrate owns it and may create functions
+--    there, and a function call is resolved among ALL visible candidates by argument types, not
+--    schema order. A `public.to_jsonb(public.releases)` (exact type) would beat
+--    `pg_catalog.to_jsonb(anyelement)`, and a `public.convert_to(text, text)` would beat
+--    `pg_catalog.convert_to(text, name)` for the literal 'UTF8' (text is the preferred string type).
+--    Every function therefore pins `search_path = pg_catalog, pg_temp`, so only pg_catalog functions
+--    and operators are ever called, and writes every type and relation name schema-qualified
+--    (`pg_catalog.text`, `public.releases`).
 -- ---------------------------------------------------------------------------------------------
 
 -- Append-only tables: any UPDATE, DELETE or TRUNCATE is refused.
 CREATE FUNCTION public.gsn_reject_change() RETURNS pg_catalog.trigger
 LANGUAGE plpgsql
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, pg_temp
 AS $$
 BEGIN
     RAISE EXCEPTION '% is append-only', TG_TABLE_NAME;
@@ -143,7 +151,7 @@ $$;
 -- row as JSON means a column added later is frozen by default). Releases are never removed.
 CREATE FUNCTION public.releases_guard() RETURNS pg_catalog.trigger
 LANGUAGE plpgsql
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, pg_temp
 AS $$
 BEGIN
     IF TG_OP = 'TRUNCATE' THEN
@@ -183,7 +191,7 @@ $$;
 -- sees its committed result, so a member cannot slip into a release that has just been validated.
 CREATE FUNCTION public.release_children_guard() RETURNS pg_catalog.trigger
 LANGUAGE plpgsql
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, pg_temp
 AS $$
 DECLARE
     v_release_id pg_catalog.int8;
@@ -220,7 +228,7 @@ $$;
 -- table is written by publish_release / rollback_release only; this stops the owner's mistakes.)
 CREATE FUNCTION public.active_release_guard() RETURNS pg_catalog.trigger
 LANGUAGE plpgsql
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, pg_temp
 AS $$
 DECLARE
     v_status pg_catalog.text;
@@ -323,7 +331,7 @@ CREATE FUNCTION public.publish_release(p_release_id pg_catalog.int8, p_actor pg_
 RETURNS pg_catalog.void
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, pg_temp
 AS $$
 DECLARE
     v_status   pg_catalog.text;
@@ -372,7 +380,7 @@ $$;
 CREATE FUNCTION public.rollback_release(p_actor pg_catalog.text) RETURNS pg_catalog.int8
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
+SET search_path = pg_catalog, pg_temp
 AS $$
 DECLARE
     v_target  pg_catalog.int8;
