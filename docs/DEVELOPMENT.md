@@ -518,11 +518,15 @@ model)") does: it builds a release of the checked-out commit with the real BAAI/
 the release gate to pass, that is, every gold query passes except the ones listed under `known_failures`
 in `data/release_thresholds.json`.
 
-- **When it runs.** On a pull request, and on a push to `master`, that changes one of
-  `engine/src/gsn/embed.py`, `retrieval.py`, `evals.py`, `engine/src/gsn/release/`,
-  `engine/constraints-ml.txt`, `data/`, the `*_gold_queries.json` files, `concept_registry.json` or the
-  workflow itself; and by hand from the Actions tab ("Run workflow"), which GitHub offers once the
-  workflow is on `master`.
+- **When it runs.** On a pull request, and on a push to `master`, that changes anything the gate
+  measures: the `gsn` package (`engine/src/gsn/`, except its `engine/` and `worker/` apps, which the gate
+  does not use), `engine/Dockerfile`, `engine/constraints.txt`, `engine/constraints-ml.txt`,
+  `engine/pyproject.toml`, `db/migrations/`, `compose.yaml`, `data/`, the `*_gold_queries.json` files,
+  `concept_registry.json`, the ChromaDB baseline in `docs/reports/m1-parity/` or the workflow itself;
+  and by hand from the Actions tab ("Run workflow"), which GitHub offers once the workflow is on
+  `master`. Pull requests and pushes use the same list (a test in `deploy/tests/test_repo_hygiene.py`
+  keeps them equal), so a change that does not touch these paths, such as an edit of this guide, does
+  not download or rebuild anything.
 - **What it does.** Builds the images, starts PostgreSQL and applies the migrations, downloads the model
   if the cache has none, runs `release build --commit HEAD` (the job fails unless the release is
   `validated`), runs `eval --release <id> --json` for the release it just built, and finishes with
@@ -531,7 +535,14 @@ in `data/release_thresholds.json`.
   the GitHub Actions cache under the key `bge-m3-<revision>`; later runs restore it instead. GitHub
   deletes a cache nobody used for 7 days, so an idle repository downloads again. The key names the
   pinned revision: when `MODEL_REVISION` in `engine/src/gsn/embed.py` changes, change `MODEL_CACHE_KEY`
-  in the workflow too.
+  in the workflow too (a test in `deploy/tests/test_repo_hygiene.py` fails until you do).
+- **Who can use the cache.** A cache created by a pull request run can only be read by runs of that
+  same pull request, so every new pull request downloads the model once, until a run on `master` has
+  saved it (a push to `master` that touches the paths above, such as the merge of the first pull
+  request). Runs on pull requests can always read what `master` saved. The repository's caches share a
+  10 GB limit with the Rust build cache (`rust-cache` in `ci.yml`) and the pip and npm caches; when it is
+  full, GitHub deletes the least recently used caches first, and the model (about 2.3 GB) can be among
+  them, in which case the next run downloads it again.
 - **Where the results are.** The build summary (verdict counts per service, known and unexpected
   failures) is on the run's summary page. The artifact `release-eval` holds `build.log` and `eval.json`
   (the result of every gold query), kept for 30 days.

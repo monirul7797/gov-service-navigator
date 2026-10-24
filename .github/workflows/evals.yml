@@ -4,7 +4,7 @@
 # requires the release gate to pass: the 74 gold queries may fail only where data/release_thresholds.json
 # lists them under known_failures. The same steps by hand are in docs/DEVELOPMENT.md ("Real-model evals").
 #
-# It runs when something that can change retrieval changes (the paths below), and on demand.
+# It runs when something that can change what the gate measures changes (the paths below), and on demand.
 # Same supply-chain rules as ci.yml: every action is pinned to a full commit SHA with its release in a
 # trailing comment (deploy/tests/test_repo_hygiene.py checks it), the token can only read the
 # repository, and no job uses a secret.
@@ -12,28 +12,45 @@ name: Evals (real model)
 
 on:
   workflow_dispatch:
+  # push and pull_request take the same list (deploy/tests/test_repo_hygiene.py checks it; it is written
+  # out twice because the YAML anchors that would share it are not used in this repository). The list
+  # is everything that changes what the gate measures: the gsn package (store.py holds the search SQL;
+  # the engine and worker apps are left out, the gate does not use them), the release image and its
+  # locked packages, the migrations and compose.yaml, the data and gold queries, and the committed
+  # ChromaDB baseline. GitHub reads the patterns in order: a "!" pattern removes what the patterns
+  # before it matched, so the two exclusions must stay after "engine/src/gsn/**".
   push:
     branches: [master]
     paths:
-      - "engine/src/gsn/embed.py"
-      - "engine/src/gsn/retrieval.py"
-      - "engine/src/gsn/evals.py"
-      - "engine/src/gsn/release/**"
+      - "engine/src/gsn/**"
+      - "!engine/src/gsn/engine/**"
+      - "!engine/src/gsn/worker/**"
+      - "engine/Dockerfile"
+      - "engine/constraints.txt"
       - "engine/constraints-ml.txt"
+      - "engine/pyproject.toml"
+      - "db/migrations/**"
+      - "compose.yaml"
       - "data/**"
       - "*_gold_queries.json"
       - "concept_registry.json"
+      - "docs/reports/m1-parity/**"
       - ".github/workflows/evals.yml"
   pull_request:
     paths:
-      - "engine/src/gsn/embed.py"
-      - "engine/src/gsn/retrieval.py"
-      - "engine/src/gsn/evals.py"
-      - "engine/src/gsn/release/**"
+      - "engine/src/gsn/**"
+      - "!engine/src/gsn/engine/**"
+      - "!engine/src/gsn/worker/**"
+      - "engine/Dockerfile"
+      - "engine/constraints.txt"
       - "engine/constraints-ml.txt"
+      - "engine/pyproject.toml"
+      - "db/migrations/**"
+      - "compose.yaml"
       - "data/**"
       - "*_gold_queries.json"
       - "concept_registry.json"
+      - "docs/reports/m1-parity/**"
       - ".github/workflows/evals.yml"
 
 permissions:
@@ -162,9 +179,11 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
-      - name: Container state and logs (only when something failed)
+      # df first: a full runner disk (images, the model, the cache archive) looks like many other failures.
+      - name: Container state, disk and logs (only when something failed)
         if: failure()
         run: |
+          df -h /
           docker compose ps -a
           docker compose logs --no-color
 
