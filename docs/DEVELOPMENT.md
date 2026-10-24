@@ -143,9 +143,18 @@ docker compose logs migrate          # "migrations applied"
 Never edit a migration that has already been applied anywhere (the recorded checksum would no longer
 match and `migrate` refuses to run); add a new numbered file instead. (`0001_audit_log.sql` was edited
 once in place, before it existed anywhere but on local development stacks; if `migrate` says that
-migration 1 was "previously applied but has been modified", reset your local database with
-`docker compose down -v`.) The `audit_log` table is
+migration 1 was "previously applied but has been modified", reset your local database, see "Resetting
+the database".) The `audit_log` table is
 append-only: UPDATE, DELETE and TRUNCATE are rejected by triggers for every role, including its owner.
+
+**Every new table, view, sequence or function needs an explicit ACL.** The migration that creates the
+object has to say who may use it: PostgreSQL's default would let PUBLIC execute a new function, and
+`tests/integration/test_grants.py` fails for an object whose ACL was left at the default. Write the ACL
+down (for example `REVOKE ALL ON ... FROM PUBLIC;`, then only the `GRANT`s a role really needs). If any
+role is granted anything, also add an entry for the object to `EXPECTED` in
+`tests/integration/test_grants.py`: an object that is not listed there is expected to be closed to
+everybody but its owner, so a `GRANT` without an entry (or an entry without its `GRANT`) fails the
+integration tests.
 
 ### The guard watchdog
 
@@ -188,8 +197,8 @@ scratch copies of a protected table (`CREATE TABLE ... AS SELECT`), and writes t
 - Look at the registry with `SELECT kind, name, parent FROM gsn_guard.registry;` as `gsn_migrate`.
 - **One-time upgrade.** `db/init/` runs only on an empty volume, so a local database created before the
   watchdog existed does not have it, and migration `0004` stops with "database predates the M1 guard".
-  Recreate it once with `docker compose down -v` (the local database holds no real data) and then
-  `docker compose up -d`. The same migration also stops if the watchdog is only partly there (one of
+  Recreate the database once (see "Resetting the database"; the local database holds no real data) and
+  then `docker compose up -d`. The same migration also stops if the watchdog is only partly there (one of
   its three event triggers missing or disabled).
 
 **Break-glass: changing a guard on purpose.** This needs the superuser, which is reachable only from
@@ -222,19 +231,24 @@ CREATE TABLE gsn_guard_probe (id int); DROP TABLE gsn_guard_probe;   -- passes w
 The superuser itself is out of scope of the watchdog: nothing in this repository can protect against
 someone who holds it, which is why it is reachable only from the server console.
 
-### Full reset, including the database
+### Resetting the database
 
 ```powershell
-docker compose down -v
+docker compose down
+docker volume rm gsn_pgdata
 ```
 
-`-v` also deletes the `pgdata` volume and the `gsn-models` volume (the 2.3 GB embedding model, see
-"Model download"; use plain `docker compose down` when you only want to stop the stack and keep the
-model). Do this after changing anything in `db/init/` or any database
-password in `.env`, because PostgreSQL runs the init scripts (`db/init/10-roles.sh`, then
+This deletes the database and nothing else; the next `docker compose up -d` creates a fresh one.
+(Compose names a volume after the project, `name: gsn` in `compose.yaml`, so the `pgdata` volume is
+`gsn_pgdata`; `docker volume ls` lists it.) Do this after changing anything in `db/init/` or any
+database password in `.env`, because PostgreSQL runs the init scripts (`db/init/10-roles.sh`, then
 `db/init/20-guard.sh`) only on an empty volume. All data in the database is lost. (The guard watchdog
-arrived after the first local databases were made: recreate an older one once with
-`docker compose down -v`, see "The guard watchdog".)
+arrived after the first local databases were made: recreate an older one once this way, see "The guard
+watchdog".)
+
+> **Warning: do not use `docker compose down -v` to reset the database.** `-v` deletes every named volume
+> of the stack, not only the database: it also deletes the `gsn-models` volume, the 2.3 GB embedding model
+> (see "Model download"), and you would have to download it again. Use `-v` only when you want both gone.
 
 ### After editing code
 
@@ -344,8 +358,9 @@ docker compose -f compose.yaml -f compose.test.yaml build itest
 ```
 
 They check that each of the four database roles can log in and has exactly the rights it should
-(`gsn_web` reads and appends `audit_log`, `gsn_worker` only appends, `gsn_engine` has no access, no
-role except the owner can create tables). `tests/integration/test_grants.py` lists the database
+(`gsn_web` reads and appends `audit_log`, `gsn_worker` only appends, `gsn_engine` cannot touch `audit_log`
+or any table and reads only the three `engine_active_*` views, which show the active release and nothing
+else; no role except the owner can create tables). `tests/integration/test_grants.py` lists the database
 catalog and compares, against one table of expectations, the table, column and sequence privileges and
 the EXECUTE right that `gsn_migrate`, `gsn_web`, `gsn_worker`, `gsn_engine` and PUBLIC hold on every
 table, view, sequence and function in the `public` schema (an object nobody listed is expected to be
@@ -369,8 +384,11 @@ connection string including the password. `tests/integration/test_connection_err
 with a random canary value.
 
 `itest` receives all four role passwords, and every run adds a few rows to `audit_log` (rows can
-never be deleted). Run it only against this local development stack; `docker compose down -v`
-resets the database. Never run it against a server that holds real data.
+never be deleted). It also builds and **publishes fake releases** (made with the fake embedder), so a
+run replaces whatever release is active in the database it runs against, and the release history keeps
+the extra entries. Run it only against this local development stack, and expect to rebuild and publish
+your own release afterwards (or reset the database, see "Resetting the database"). Never run it against
+a server that holds real data.
 
 ## Releases (the data in PostgreSQL)
 
@@ -390,10 +408,12 @@ finished migrations and talks to `postgres`:
 docker compose --profile tools build
 ```
 
-Every command has the form `docker compose --profile tools run --rm -T release release <command>` (the
-container's entry point is `gsn`, so the first `release` is the compose service and the second is the
-`gsn` subcommand; `-T` switches off the pseudo-terminal, which keeps the output clean when you save or
-pipe it). The commands:
+The `release` commands have the form `docker compose --profile tools run --rm -T release release <command>`
+(the container's entry point is `gsn`, so the first `release` is the compose service and the second is
+the `gsn` subcommand; `-T` switches off the pseudo-terminal, which keeps the output clean when you save or
+pipe it). `eval`, `parity`, `audit` and `models` are `gsn` subcommands of their own and follow the service
+name directly, for example `docker compose --profile tools run --rm -T release eval --release 5`. The
+commands:
 
 | Command | What it does |
 |---|---|
@@ -403,6 +423,8 @@ pipe it). The commands:
 | `release list` | One line per release; the active one is marked `yes`. |
 | `release show ID` | The release as JSON, with its gate report and the records added, removed and changed compared with the active release (changed: the release holds a different version of the record, which includes a changed derivation such as a new `verified_at_field` mapping, not only edited content). |
 | `eval --release ID [--json]` | Runs the gold queries against any existing release (queries are read from that release's own commit). |
+| `parity --release ID` | Compares the release with the committed ChromaDB baseline and prints the report as JSON (see "Parity with ChromaDB"). |
+| `audit verify` | Checks the hash chain of the audit log (see "Checking the audit log" below). |
 
 For example, a build, a look at what changed, and the switch (use the number `build` printed):
 
@@ -442,8 +464,9 @@ Things to know:
   ```
 
   It prints `audit chain ok: <n> rows checked` and exits 0, or `audit chain BROKEN at chain_seq <n>`
-  and exits 1. It runs through a database function, so the worker can verify the log without being
-  able to read it.
+  and exits 6. (Exit 1 means the check itself could not run, for example the database was down, so a
+  script can tell a tampered log from an outage.) It runs through a database function, so the worker
+  can verify the log without being able to read it.
 - **The real embedding model** (BAAI/bge-m3, about 2.3 GB) is what `build`, `eval` and `parity` use
   when `GSN_EMBEDDER` is not set. Download it once first (see "Model download" below); without it the
   command stops with exit code 2 and tells you how. For tests and smoke runs, `-e GSN_EMBEDDER=fake`
@@ -456,18 +479,57 @@ Things to know:
 
   A release built that way is stamped `fake-sha256-v1`, its gold queries fail (hence `--override`), and
   `publish` refuses it unless you add `--allow-fake`. `GSN_EMBEDDER=fake` is for tests only; never
-  publish such a release on a server that serves real users. `docker compose down -v` wipes the
-  smoke data along with the rest of the local database.
+  publish such a release on a server that serves real users. Resetting the local database (see
+  "Resetting the database") wipes the smoke data along with the rest of it.
 
 **Exit codes** (scripts and CI read these):
 
-| Code | Meaning |
-|---|---|
-| 0 | Success (a build that is `validated`, or any other command that worked). |
-| 1 | Runtime error: the database could not be reached or a statement failed (one `error: database: ...` line), or a bug (a traceback is printed). |
-| 2 | Usage or configuration error, or a refusal: a bad argument or ref, a missing `GSN_DB_*` variable, an embedder that cannot be made or does not match the release, the embedding model not downloaded yet, secret files in the repository history, or the database said no (`release 7 is not validated`, `nothing to roll back`). The message is printed on stderr. |
-| 3 | The build finished but the release is `rejected` (for `eval`: the gate would reject). |
-| 4 | Integrity problems in the inputs: the full list is printed and **nothing was written**, not even an audit row. |
+| Code | Used by | Meaning |
+|---|---|---|
+| 0 | every command | Success: a build that is `validated`, an `eval` whose gate passes, a `parity` report that is ok, an intact audit chain, or any other command that worked. |
+| 1 | every command | Runtime error: the database could not be reached or a statement failed (one `error: database: ...` line); git could not be run or broke while reading the repository (one `error: git: ...` line: no git binary, a timeout, a corrupt object); a model download that failed; or a bug (a traceback is printed). For `release build` a git failure while reading the inputs is exit 1, never 4: nothing is wrong with the inputs. |
+| 2 | every command | Usage or configuration error, or a refusal: a bad argument or a ref git cannot resolve, a missing `GSN_DB_*` variable, an embedder that cannot be made or does not match the release, the embedding model not downloaded yet, secret files in the repository history, a `parity` run that cannot be made (see "Parity with ChromaDB"), or the database said no (`release 7 is not validated`, `nothing to roll back`). The message is printed on stderr. |
+| 3 | `release build`, `eval` | `build`: it finished but the release is `rejected`. `eval`: the gate would reject (so an overridden release evals to 3). |
+| 4 | `release build` | Integrity problems in the inputs: the full list is printed and **nothing was written**, not even an audit row. |
+| 5 | `parity` | The parity report is not ok. The report is still printed; its `problems` say what differs. |
+| 6 | `audit verify` | The audit chain is broken (or a row is not chained). The first bad `chain_seq` is printed. |
+
+### Parity with ChromaDB
+
+```powershell
+docker compose --profile tools run --rm -T release parity --release 1
+```
+
+`parity --release ID` answers one question: does this release retrieve what the old ChromaDB store
+retrieved? It compares the release with a frozen **baseline**, recorded once from ChromaDB by
+`tools/m1/export_chroma_baseline.py` and committed in `docs/reports/m1-parity/` (`chroma_baseline.json`
+and `chroma_vectors.json.gz`). It makes four comparisons in this order, and a failure in one does not
+stop the others, so a single report shows every difference:
+
+1. **Documents.** The text of every record in the release (compared by hash) and the set of record ids
+   are the baseline's.
+2. **Vectors.** Every stored vector has a cosine similarity of at least 0.9999 with ChromaDB's vector
+   for the same record.
+3. **Gold queries.** Every gold query recorded in the baseline is run again against the release: the
+   verdict must equal the legacy script's, and the top-k records must be the baseline's, with
+   similarities within 0.001.
+4. **Retrieve runs.** Every recorded `answer.retrieve` run is replayed, and the context it selects must
+   be the baseline's.
+
+The baseline is read from **the release's own commit** of the mounted repository (as `eval` reads its
+gold queries), so a release is always judged against the baseline that was committed with it; today's
+gold files play no part. The command needs the real embedding model (see "Model download"), because
+similarities from two different models cannot be compared. It takes about a minute.
+
+It prints the report on stdout as JSON with sorted keys, so the same inputs always print the same text:
+`ok`, `problems` (empty when ok), `summary` (counts per comparison, plus `tie_swaps` and
+`near_threshold`, which are listed for a human look and never fail the run) and the details `vectors`,
+`gold` and `retrieve`. The exit code is 0 when the report is ok and 5 when it is not (the report is still
+printed). A run that cannot be made is a refusal, exit 2, before any search: there is no such release,
+the embedder is not the model the release was built with (a release built with `GSN_EMBEDDER=fake` is
+one), the baseline is missing or unreadable at the release's commit, or it was not recorded with the
+pinned model revision. Exit 1 is a runtime failure (the database, git). The result for release 1 is in
+`docs/reports/2026-10-25-m1-parity.md`.
 
 ### Model download
 
@@ -497,8 +559,8 @@ Things to know:
 
 - It needs about 2.3 GB free on the Docker drive (`G:`) and an internet connection; nothing else in the
   project uses the network at build time.
-- `docker compose down` keeps the volume and `docker compose down -v` deletes it together with the
-  database, so after a full reset run the command again.
+- `docker compose down` and the database-only reset (see "Resetting the database") keep the volume;
+  `docker compose down -v` deletes it together with the database, so after that run the command again.
 - If a `build`, `eval` or `parity` finds the model missing or incomplete, it stops with exit 2 and one
   line: `error: the embedding model is not in the model cache; download it once with: docker compose
   --profile tools run --rm --no-deps -e HF_HUB_OFFLINE=0 release models fetch`. For `build` this happens
@@ -600,8 +662,9 @@ Dockerfile has a separate `ml` stage that mounts only this file and installs it 
 `pip install --no-deps -r constraints-ml.txt` (pip resolves nothing at build time). The `release` stage is
 built on it: it installs the engine the way the runtime stage does, under both lock files, adds git and
 `/models`, and runs `pip check`, which fails the build if anything is missing. Because the `ml` stage sees
-nothing but the lock file, editing engine code rebuilds only the small `release` layers, not the 1.7 GB
-ML layer (BuildKit prints `CACHED` for it); it is rebuilt only when `constraints-ml.txt` changes. The
+nothing but the lock file, editing engine code rebuilds only the small `release` layers, not the ML layer
+(about 1.4 GB, which makes the image about 1.7 GB bigger once unpacked; BuildKit prints `CACHED` for it);
+it is rebuilt only when `constraints-ml.txt` changes. The
 Windows `.venv` does not install `[ml]` (drive `C:` is small); unit tests there use the fake embedder.
 
 The seven pins in the extra (`torch`, `sentence-transformers`, `transformers`, `tokenizers`,
@@ -701,12 +764,13 @@ Dependabot edits only `engine/pyproject.toml`, so check out that branch, regener
 - **`password authentication failed for user "gsn_..."` in the logs of `migrate`, `web` or `worker`
   (or the database role or password seems wrong after editing `.env`)** - the database roles are
   created, with the passwords from `.env`, only when the `pgdata` volume is empty. If `.env` was
-  recreated or edited while the volume survived (for example after `docker compose down` without
-  `-v`), the database still holds the old passwords and rejects the new ones. Run
-  `docker compose down -v` (this deletes the local database) and start again.
+  recreated or edited while the volume survived (for example after a plain `docker compose down`, which
+  keeps it), the database still holds the old passwords and rejects the new ones. Reset the database
+  (`docker compose down`, then `docker volume rm gsn_pgdata`; this deletes the local database, see
+  "Resetting the database") and start again.
 - **`migrate` fails with "migration 1 was previously applied but has been modified"** - your local
-  database was created from an older version of `0001_audit_log.sql`. Reset it with
-  `docker compose down -v` (this deletes the local database) and start again.
+  database was created from an older version of `0001_audit_log.sql`. Reset the database as above (this
+  deletes the local database) and start again.
 - **Port 80 is already in use** - another program holds it (IIS, Skype, another web server). Stop
   that program; the compose file deliberately does not move Caddy to another port.
 - **`docker` errors such as "read-only file system" or "input/output error"** - Docker's virtual disk

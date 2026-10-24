@@ -2,8 +2,9 @@
 
 This file sorts first on purpose: the tests share one database, and once any test has published a
 release (or rolled one back) ``publications`` is no longer empty. CI starts every run from an empty
-database, so these checks run there; a local database that was used before skips them (reset it
-with ``docker compose down -v``).
+database, so these checks run there; a local database that was used before skips them (reset it:
+``docker compose down``, then ``docker volume rm gsn_pgdata``; not ``down -v``, which also deletes the
+embedding model).
 """
 import pytest
 from psycopg.errors import RaiseException

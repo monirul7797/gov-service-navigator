@@ -35,8 +35,8 @@ CMD ["python", "-m", "pytest", "-q"]
 # The ML packages for the release tool: CPU-only torch (PyTorch CPU index) and sentence-transformers, with
 # the rest of their tree, exactly as locked in constraints-ml.txt and installed with --no-deps, so pip
 # resolves nothing here. This stage mounts ONLY that file, not the engine sources: its layer is rebuilt only
-# when constraints-ml.txt changes, never because engine code did (the layer is about 1.7 GB). The engine
-# comes in the next stage, on top of it.
+# when constraints-ml.txt changes, never because engine code did (the layer is about 1.4 GB; unpacked, the
+# image grows by about 1.7 GB). The engine comes in the next stage, on top of it.
 FROM base AS ml
 RUN --mount=type=bind,source=constraints-ml.txt,target=/constraints-ml.txt \
     pip install --no-cache-dir --no-deps --extra-index-url https://download.pytorch.org/whl/cpu \

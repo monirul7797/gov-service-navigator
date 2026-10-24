@@ -59,9 +59,10 @@ Parent: `docs/superpowers/specs/2026-10-20-system-architecture-design.md` §6, �
 - Database settings as separate `GSN_DB_*` variables (never a URL); vectors are passed to
   PostgreSQL as text (`'[x,y,…]'::vector`) — no `pgvector` Python package, no numpy in the core
   image.
-- `gsn` CLI exit codes: `0` success (build validated); `1` runtime error; `2` usage/configuration
-  error (including embedder/model mismatch); `3` build finished but `rejected`; `4` integrity
-  problems (nothing written); `5` parity failed.
+- `gsn` CLI exit codes: `0` success (build validated); `1` runtime error (including a git failure
+  while reading); `2` usage/configuration error (including embedder/model mismatch); `3` build
+  finished but `rejected`; `4` integrity problems (nothing written); `5` parity failed; `6` audit
+  chain broken (`gsn audit verify`).
 - Audit actions written by M1: `release.build`, `release.validate`, `release.reject`,
   `release.override`, `release.publish`, `release.rollback`; actor from `GSN_ACTOR` (default
   `owner`); target `release:<id>`.
@@ -704,4 +705,10 @@ The plan ran in four reviewed stages, with these changes. The full log is in the
 - **CI.** The real-model workflow runs on pull requests (manual dispatch only works once it is on
   `master`). Its path filter covers every file the gate depends on.
 - **Exit codes.** `gsn eval` exits 3 when the gate would reject, so an overridden release evals
-  to 3.
+  to 3. After the final review: `gsn audit verify` exits 6 for a broken chain (1 stays "the check
+  could not run"), and a git runtime failure (`GitRuntimeError`: no binary, timeout, corrupt object)
+  is exit 1, never an integrity problem (4); an unknown ref or unreadable repository stays a refusal
+  (2).
+- **Release gate.** After the final review the integrity rules also refuse a live service with no
+  records or no gold queries, a gold query without a non-empty `query` string, and a gold file whose
+  `top_k` is not a positive integer, all before anything is written.

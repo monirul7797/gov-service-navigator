@@ -97,8 +97,10 @@ New migrations (`db/migrations/0002_…` onwards; applied migrations are never e
 | `gsn_web` | nothing new (release list and Rollback arrive with the admin panel in M6) |
 | `gsn_migrate` | owns the tables, views and functions; registers protected objects (§8). `CREATE` on the database is revoked (no new schemas are needed; re-granted deliberately if that changes). |
 
-All `SECURITY DEFINER` functions pin `SET search_path = pg_catalog, <their schema>`, qualify every
-object name, have `EXECUTE` revoked from `PUBLIC`, and are granted only to the roles listed.
+All `SECURITY DEFINER` functions pin `SET search_path = pg_catalog, <their schema>, pg_temp` (`pg_temp`
+last, so a caller's temporary objects cannot shadow anything), and `pg_catalog, pg_temp` for functions in
+`public` (a schema `gsn_migrate` owns and could plant a look-alike in), qualify every object name, have
+`EXECUTE` revoked from `PUBLIC`, and are granted only to the roles listed.
 
 ## 4. Committed inputs
 
@@ -109,7 +111,11 @@ One entry per service: `service_id`, `name_bn`, `name_en`, `status` (`live` | `h
 M1 contents: the four live services, corpora `data/chunks/{nid,epassport,ereturn,bdris}.jsonl`
 (BDRIS: the merged file the embed script uses), gold files `*_gold_queries.json`.
 
-Adding a service later = corpus → gold queries → registry entry → manifest entry → release.
+Adding a service later = corpus → gold queries → registry entry → manifest entry → release. The
+service also needs an entry in `gsn.evals.RULES`: the verdict rule that judges its gold queries (which
+gold field is the gate, which hit field it is compared with, the similarity ceiling of an out-of-scope
+probe). A build refuses a live service that has none. *Follow-up:* the rule could move into the manifest,
+so that adding a service touches no Python; decide this in the data-workflow milestone.
 
 ### 4.2 `data/release_thresholds.json`
 
