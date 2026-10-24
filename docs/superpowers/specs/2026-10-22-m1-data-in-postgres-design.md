@@ -256,7 +256,17 @@ by the baseline) and the model revision the PC uses
     dropping, renaming or retyping a registered column is not);
   - every registered trigger exists and is enabled in a mode that fires in normal sessions
     (`tgenabled` `O` or `A`; `D` disabled and `R` replica-only are violations);
-  - no registered function was dropped or replaced (`CREATE OR REPLACE`).
+  - no registered function was dropped or replaced (`CREATE OR REPLACE`). The function fingerprint
+    uses role *names* (`proowner::regrole`), field separators and the ACL, so it survives a restore
+    and also catches a widened EXECUTE grant;
+  - (added 2026-10-23 after the B2 review) no table rewrite of a protected table (a `table_rewrite`
+    event trigger: `ALTER COLUMN … TYPE … USING` to the same type would otherwise rewrite rows
+    without firing row triggers); protected tables stay `LOGGED`; no unregistered non-internal
+    trigger on a protected table (a later-firing trigger could change a row after the guard
+    approved it); no inheritance parent or child for a protected table (rows in a child skip the
+    guards but appear in plain reads).
+- Protected functions in `public` pin `search_path = pg_catalog, pg_temp` (every relation is
+  already qualified), so no overload created in `public` can capture a call inside them.
 - Name-based registration survives `pg_dump`/`pg_restore` (object IDs change on restore); the M4
   restore test includes a watchdog check.
 - Changing a guard later needs the superuser, by design (documented break-glass procedure). The
