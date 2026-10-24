@@ -89,7 +89,7 @@ you go, and ask before anything hard to reverse.
 - Embeddings: BAAI/bge-m3; vector store: ChromaDB, one collection per service; live collections
   are allowlisted in `answer.py::ALLOWED_COLLECTIONS` (Visa is NOT live yet).
 
-### New system (milestone M0, branch `feat/m0-foundations`)
+### New system (milestones M0–M1)
 
 The legacy Python above stays at the repo root. The public-site system lives in new folders; the
 full PowerShell guide is `docs/DEVELOPMENT.md`.
@@ -97,25 +97,44 @@ full PowerShell guide is `docs/DEVELOPMENT.md`.
 | Folder | Holds |
 |---|---|
 | `web/` | Rust `gsn-web`: public site, admin listener, API edge (`rust-toolchain.toml` pins 1.99.1) |
-| `engine/` | Python package `gsn` (engine app, worker, CLI); `constraints.txt` pins the whole tree |
+| `engine/` | Python package `gsn` (engine app, worker, CLI, release builder); `constraints.txt` pins the core tree, `constraints-ml.txt` the ML tree (release image only) |
+| `data/release_manifest.json`, `data/release_thresholds.json` | which services a release contains and their `verified_at` field; the gold queries allowed to FAIL, with reasons |
+| `docs/reports/m1-parity/` | ChromaDB baseline (gold, retrieve runs, stored vectors) and release 1's parity report |
 | `frontend/` | SvelteKit apps `public/` (Bangla) and `admin/` (English) |
-| `db/` | `init/` (roles, first start only) and `migrations/` (numbered SQL, never edit applied ones) |
+| `db/` | `init/` (roles and the superuser-owned guard watchdog, first start only) and `migrations/` (numbered SQL, never edit applied ones) |
 | `deploy/` | `Caddyfile`, `make_env.py`, `smoke.py`, `check_exposure.py` and their tests |
-| `tools/` | `cargo_docker.py` (runs cargo in Docker) |
+| `tools/` | `cargo_docker.py` (runs cargo in Docker); `m1/export_chroma_baseline.py` (one-off ChromaDB baseline, global Python) |
 | `contracts/` | shared JSON API examples that every implementation's tests assert against |
 | `tests/integration/` | tests that run inside the stack (the `itest` job) |
 
-- Stack (`compose.yaml`: `caddy`, `web`, `engine`, `worker`, `postgres`, plus one-shot `migrate`):
-  `python deploy/make_env.py` once, then `docker compose build`, `docker compose up -d`,
-  `python deploy/smoke.py --url http://localhost/readyz --timeout 300`, `docker compose down`
-  (`-v` also wipes the local database).
+- Stack (`compose.yaml`: `caddy`, `web`, `engine`, `worker`, `postgres`, plus one-shot `migrate` and,
+  in profile `tools`, `release`): `python deploy/make_env.py` once, then `docker compose --profile
+  tools build`, `docker compose up -d`, `python deploy/smoke.py --url http://localhost/readyz
+  --timeout 300`, `docker compose down`. **`down -v` also deletes the `gsn-models` volume (the
+  2.3 GB model)**; to reset only the database remove the `gsn_pgdata` volume.
+- Releases (milestone M1; content is read only from a commit, via the repository's `.git` mounted
+  read-only): `docker compose --profile tools run --rm -T release release build|publish|rollback|
+  list|show`, `… release eval --release N`, `… release parity --release N`, `… release audit
+  verify`; first time only: `docker compose --profile tools run --rm --no-deps -e
+  HF_HUB_OFFLINE=0 release models fetch`. ML packages (torch, sentence-transformers) live only in
+  `gsn-release:dev`, never in `.venv`; `GSN_EMBEDDER=fake` is for tests only (publish refuses fake
+  releases without `--allow-fake`).
+- Database guards: a superuser-owned watchdog refuses any DDL that drops, renames, disables,
+  rewrites or adds triggers to protected tables or replaces protected functions; changing a guard
+  needs the superuser (break-glass in `docs/DEVELOPMENT.md`). Every new table, view or function
+  needs an explicit ACL and, if any role is granted anything, an entry in
+  `tests/integration/test_grants.py::EXPECTED`. SECURITY DEFINER functions pin `search_path` with
+  `pg_temp` last (`pg_catalog, pg_temp` for functions in `public`) and qualify every name.
 - Tests: Python in `.venv` (never the global Python):
   `.venv\Scripts\python -m pytest engine/tests deploy/tests tools/tests -q`; Rust, only via Docker:
   `python tools/cargo_docker.py test` (also `fmt --check`, `clippy --all-targets --locked -- -D
   warnings`); frontend, in each of `frontend/public` and `frontend/admin`: `npm ci --cache
   G:/gsn-cache/npm`, `npm run lint`, `npm run check`, `npm run test:build`; stack:
   `docker compose -f compose.yaml -f compose.test.yaml run --rm itest` (local stack only; it adds
-  `audit_log` rows). `.github/workflows/ci.yml` runs all of this on every push and pull request.
+  `audit_log` rows). After changing engine code also run `docker compose -f compose.yaml -f
+  compose.test.yaml build itest`. `.github/workflows/ci.yml` runs all of this on pushes to `master`
+  and on pull requests; `.github/workflows/evals.yml` builds a release with the real model and runs
+  the 74 gold queries when release-relevant paths change.
 - Rust is compiled only inside Docker on this machine (no MSVC): never run host `cargo`. If `docker`
   is not on PATH, add `G:\Docker\DockerDesktop\resources\bin`. Keep at least 10 GB free on the
   Docker drive (`G:`); `docker builder prune -f` reclaims the build cache.

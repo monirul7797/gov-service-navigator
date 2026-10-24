@@ -675,3 +675,33 @@ git commit -m "ci(m1): real-model eval workflow"
 3. Routing tests pass on C; release 1's `registry_sha256` matches the committed file.
 4. Stack integration tests (schema, store, build, audit chain, guard, grants) and CI (including the real-model workflow) are green.
 5. The parity report and status updates are committed after the run.
+
+## As built (2026-10-25)
+
+The plan ran in four reviewed stages, with these changes. The full log is in the local ledger
+`.superpowers/sdd/2026-10-22-m1-data-in-postgres/progress.md`.
+
+- **Order.** A5, D1 and D2 ran early, while Docker or disk space was unavailable. A5 created
+  `gsn/retrieval.py` including `Hit`.
+- **Secret scan.** It uses plumbing (`rev-list --all --reflog` + `diff-tree -m --root`). It also
+  strips inherited `GIT_*` variables, sets `GIT_NO_REPLACE_OBJECTS`, and matches names
+  case-insensitively.
+- **Inputs.** `verified_at_field` is restricted. Duplicate JSON keys and non-finite numbers are
+  rejected. Gold ids must be unique release-wide, and `known_failures` ids must be gold ids.
+- **Version identity.** It adds `fields_hash` (the derived columns), and the reuse key is
+  `(record_id, content_hash, fields_hash, model)`. `release show` diffs by version id. Vectors are
+  reused by `text_hash`.
+- **SECURITY DEFINER.** `search_path` puts `pg_temp` last; functions in `public` pin
+  `pg_catalog, pg_temp`. Every type is qualified. Worker INSERTs are column-level.
+- **Audit chain.** Every row must be chained. Verification runs on a core
+  (`audit_verify_rows`, owner-only), so tamper tests use scratch copies.
+- **Watchdog.** It also blocks table rewrites, `UNLOGGED`, unregistered triggers, inheritance, and
+  ACL changes on registered functions. The fingerprint is restore-proof (role names). The init is
+  one transaction, and the preflight checks all three event triggers.
+- **Release image.** The `ml` stage is built `FROM base` (lock file only); `release` is built
+  `FROM ml`. The model always loads locally, and a preflight runs before any write.
+  `constraints-ml.txt` lists what the extra needs beyond the runtime image.
+- **CI.** The real-model workflow runs on pull requests (manual dispatch only works once it is on
+  `master`). Its path filter covers every file the gate depends on.
+- **Exit codes.** `gsn eval` exits 3 when the gate would reject, so an overridden release evals
+  to 3.
