@@ -171,8 +171,9 @@ tables, a scratch table that references a protected table (foreign-key triggers 
 scratch copies of a protected table (`CREATE TABLE ... AS SELECT`), and writes to `audit_chain`.
 
 - `db/init/20-guard.sh` creates the watchdog (schema `gsn_guard`: a registry, two registration
-  functions and two event triggers) when the database is first created, and moves the database itself
-  to the superuser, so that `gsn_migrate` can no longer create schemas or temporary objects.
+  functions and three event triggers, on `ddl_command_end`, `sql_drop` and `table_rewrite`) when the
+  database is first created, and moves the database itself to the superuser, so that `gsn_migrate` can
+  no longer create schemas or temporary objects.
 - `db/migrations/0004_guard_registration.sql` registers the protected tables, their guard triggers and
   the guard functions. A later migration that adds a guard ends with
   `SELECT gsn_guard.protect_table('public.new_table', ARRAY['new_table_guard_row']);` or
@@ -180,7 +181,10 @@ scratch copies of a protected table (`CREATE TABLE ... AS SELECT`), and writes t
   **all** of its triggers at once, and registration refuses a table with an unlisted trigger, so
   create the triggers first and register last. There is no "unregister" and no "add a trigger".
   A function that lives in `public` pins `SET search_path = pg_catalog, pg_temp` (never `public`:
-  `gsn_migrate` owns that schema, and a look-alike function created there would win the call).
+  `gsn_migrate` owns that schema, and a look-alike function created there would win the call). Every
+  function in `public` does, including `audit_log_reject_change()` from the applied migration `0001`,
+  which can no longer be edited: migration `0004` pins it (and closes it to PUBLIC) just before it
+  registers it.
 - Look at the registry with `SELECT kind, name, parent FROM gsn_guard.registry;` as `gsn_migrate`.
 - **One-time upgrade.** `db/init/` runs only on an empty volume, so a local database created before the
   watchdog existed does not have it, and migration `0004` stops with "database predates the M1 guard".
@@ -245,6 +249,13 @@ arrived after the first local databases were made: recreate an older one once wi
 | Rust lint (inside Docker) | `python tools/cargo_docker.py clippy --all-targets --locked -- -D warnings` |
 | Stack integration tests (running stack) | `docker compose -f compose.yaml -f compose.test.yaml run --rm itest` |
 | Routing regression (legacy code; no database or LLM; global Python) | `$env:PYTHONIOENCODING = "utf-8"; python test_multiturn.py` |
+
+The Python command finds its settings in `engine/pyproject.toml` (pytest looks for the first
+configuration file above the first argument that has one; `deploy/tests` and `tools/tests` have none
+of their own). Those settings include `--import-mode=importlib`, so test files in different folders may
+share a file name (as `engine/tests/test_store.py` and `tests/integration/test_store.py` do);
+`deploy/tests/test_repo_hygiene.py` guards it. Keep `engine/tests` among the arguments when you run
+the other two folders together, or add `--import-mode=importlib` yourself.
 
 Frontend, once per app (`frontend\public` and `frontend\admin`); `npm ci` always comes first:
 
@@ -323,8 +334,16 @@ docker compose -f compose.yaml -f compose.test.yaml build itest
 
 They check that each of the four database roles can log in and has exactly the rights it should
 (`gsn_web` reads and appends `audit_log`, `gsn_worker` only appends, `gsn_engine` has no access, no
-role except the owner can create tables; `tests/integration/test_grants.py` compares the complete
-privilege matrix read from the database catalog), that callers can insert only `actor`, `action`,
+role except the owner can create tables). `tests/integration/test_grants.py` lists the database
+catalog and compares, against one table of expectations, the table, column and sequence privileges and
+the EXECUTE right that `gsn_migrate`, `gsn_web`, `gsn_worker`, `gsn_engine` and PUBLIC hold on every
+table, view, sequence and function in the `public` schema (an object nobody listed is expected to be
+closed to everybody but its owner, so a stray `GRANT` in a later migration fails there); that
+`gsn_migrate` owns all of them; that no ACL is left at its default or has an entry for PUBLIC; that
+every function pins its `search_path`; and the rights on the database and the `public` schema. It does
+not cover the `gsn_guard` schema (`test_guard.py`), types, or default privileges for objects created
+later. Its last tests break a rolled-back copy of the database on purpose to prove that the comparison
+notices. The same stack tests also check that callers can insert only `actor`, `action`,
 `target` and `details` (they cannot backdate `at` or choose `id`), that `audit_log` rejects UPDATE,
 DELETE and TRUNCATE even for its owner, and that the stack answers correctly over HTTP (health and
 readiness, no admin routes on the public side, security headers through Caddy). The build of the

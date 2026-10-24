@@ -539,3 +539,89 @@ def test_itest_secrets_come_from_the_environment_file():
     for key, value in passwords.items():
         assert re.fullmatch(r"\$\{" + key + r":\?[^}]*\}", value), key
     assert "POSTGRES_PASSWORD" not in yaml.safe_dump(_compose_test())
+
+
+# --- every secret compose requires has a placeholder in .env.example, and the other way round ------
+#
+# `python deploy/make_env.py` builds .env from .env.example by replacing each `change-me*` value with a
+# random secret. A variable that compose requires (`${VAR:?message}`) but .env.example lacks would make
+# `docker compose` stop with "run python deploy/make_env.py first" even after running it; a placeholder
+# that nothing requires would be generated and then never read, hiding a rename. Variables with a default
+# (`${VAR:-x}`) are optional settings and are neither.
+
+ENV_EXAMPLE = ROOT / ".env.example"
+REQUIRED_VARIABLE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*):?\?")
+
+
+def required_variables(node):
+    """Names of every ``${VAR:?...}`` / ``${VAR?...}`` found in the string values of a parsed compose file."""
+    if isinstance(node, str):
+        return set(REQUIRED_VARIABLE.findall(node))
+    if isinstance(node, dict):
+        return set().union(*(required_variables(value) for value in node.values()), set())
+    if isinstance(node, list):
+        return set().union(*(required_variables(item) for item in node), set())
+    return set()
+
+
+def placeholder_variables(env_example_text):
+    """Names in ``.env.example`` whose value make_env.py would replace by a secret (``change-me*``)."""
+    import make_env  # deploy/make_env.py, importable through deploy/tests/conftest.py
+
+    names = set()
+    for line in env_example_text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        name, _, value = stripped.partition("=")
+        if make_env._is_placeholder(value):
+            names.add(name.strip())
+    return names
+
+
+def env_example_problems(required, placeholders):
+    return [f"{name}: required by compose, but .env.example has no change-me placeholder for it"
+            for name in sorted(required - placeholders)] + [
+        f"{name}: has a change-me placeholder in .env.example, but no compose file requires it"
+        for name in sorted(placeholders - required)]
+
+
+def test_env_example_and_the_compose_files_agree_on_the_required_secrets():
+    required = required_variables(_compose()) | required_variables(_compose_test())
+    placeholders = placeholder_variables(ENV_EXAMPLE.read_text(encoding="utf-8-sig"))
+    assert required, "no ${VAR:?...} found: the scan is broken"
+    assert env_example_problems(required, placeholders) == []
+
+
+def test_the_scan_finds_the_passwords_and_ignores_optional_settings():
+    compose = {"services": {"a": {"environment": {
+        "P": "${POSTGRES_PASSWORD:?run python deploy/make_env.py first}",
+        "Q": "${GSN_VERSION:-dev}",
+        "R": "${PLAIN}",
+        "S": "${NO_COLON?message}",
+    }, "ports": ["${GSN_ADMIN_PUBLISH:-127.0.0.1:8081}:8081"], "command": ["x", "${IN_A_LIST:?m}"]}}}
+    assert required_variables(compose) == {"POSTGRES_PASSWORD", "NO_COLON", "IN_A_LIST"}
+
+
+@pytest.mark.parametrize(
+    "required, env_text, expected",
+    [
+        # a new secret that compose requires but .env.example does not list
+        ({"A_PASSWORD", "NEW_PASSWORD"}, "A_PASSWORD=change-me-a\n",
+         ["NEW_PASSWORD: required by compose, but .env.example has no change-me placeholder for it"]),
+        # a placeholder nobody requires any more (a renamed variable)
+        ({"A_PASSWORD"}, "A_PASSWORD=change-me-a\nOLD_PASSWORD=change-me-old\n",
+         ["OLD_PASSWORD: has a change-me placeholder in .env.example, but no compose file requires it"]),
+        # the entry exists but holds a real-looking value, so make_env.py would not replace it
+        ({"A_PASSWORD"}, "A_PASSWORD=hunter2\n",
+         ["A_PASSWORD: required by compose, but .env.example has no change-me placeholder for it"]),
+        # a commented-out placeholder is not an entry
+        ({"A_PASSWORD"}, "# A_PASSWORD=change-me-a\n",
+         ["A_PASSWORD: required by compose, but .env.example has no change-me placeholder for it"]),
+        # quoted placeholders count (make_env.py replaces them), plain settings are neither required nor placeholders
+        ({"A_PASSWORD"}, 'A_PASSWORD="change-me-a"\nGSN_VERSION=dev\n', []),
+    ],
+    ids=["missing-from-example", "unused-placeholder", "not-a-placeholder", "commented-out", "quoted-ok"],
+)
+def test_the_env_example_check_notices_a_mismatch(required, env_text, expected):
+    assert env_example_problems(required, placeholder_variables(env_text)) == expected

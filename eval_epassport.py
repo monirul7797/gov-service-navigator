@@ -19,9 +19,10 @@ WHAT COUNTS AS PASS/FAIL:
   - min_similarity is a soft floor — WARN, not FAIL.
 
 One record in this gold set (epassport-notice-dhaka-cantonment-jurisdiction)
-is already flagged source_url_unverified: true in the corpus itself — gq_ep_010
-targets it specifically to check it's at least retrievable, independent of
-the separate open question of whether its source URL is confirmed.
+used to be flagged source_url_unverified: true in the corpus; its URL
+(https://www.epassport.gov.bd/landing/notices/158) was verified in commit
+1ae2e0d and the flag is now false. gq_ep_010 still targets it specifically, to
+check that this record is retrievable.
 
 Run (after embed_epassport.py):
     python eval_epassport.py

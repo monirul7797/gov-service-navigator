@@ -1,5 +1,4 @@
-"""The guard watchdog (db/init/20-guard.sh, migration 0004; spec section 8.1) and the database ownership
-that goes with it (spec section 8.3), checked as the real roles.
+"""The guard watchdog (db/init/20-guard.sh, migration 0004; spec section 8.1), checked as the real roles.
 
 The tables and functions that protect the release history and the audit log (append-only triggers,
 state rules, the hash chain, publish/rollback/verify) are owned by ``gsn_migrate``, which could simply
@@ -701,31 +700,14 @@ def test_other_roles_cannot_even_see_the_guard_schema(connect):
             connect(role).execute("SELECT * FROM gsn_guard.registry")
 
 
-# --- database ownership (spec section 8.3) -------------------------------------------------------------
-
-
-def test_the_database_belongs_to_the_superuser_and_the_schema_to_migrate(connect):
-    with connect("web").cursor() as cur:
-        cur.execute(
-            "SELECT r.rolname, r.rolsuper FROM pg_database d JOIN pg_roles r ON r.oid = d.datdba "
-            "WHERE d.datname = current_database()"
-        )
-        ((owner, superuser),) = cur.fetchall()
-        assert superuser is True and owner not in {f"gsn_{role}" for role in ("migrate", "web", "engine", "worker")}
-        cur.execute("SELECT nspowner::regrole::text FROM pg_namespace WHERE nspname = 'public'")
-        assert cur.fetchone()[0] == "gsn_migrate"  # only the database moved; migrations still create tables
+# --- database ownership (spec section 8.3): what the roles can no longer DO ----------------------------------
+#
+# Who owns the database and the schema, and every right on them (CONNECT, CREATE, TEMPORARY; the postgres
+# database; PUBLIC), is read from the catalog in test_grants.py. These tests only try the statements.
 
 
 @pytest.mark.parametrize("role", ["migrate", "web", "engine", "worker"])
 def test_no_login_role_can_create_schemas_or_temporary_objects(connect, role):
-    with connect("web").cursor() as cur:
-        cur.execute(
-            "SELECT has_database_privilege(%s, current_database(), 'CREATE'), "
-            "has_database_privilege(%s, current_database(), 'TEMPORARY'), "
-            "has_database_privilege(%s, current_database(), 'CONNECT')",
-            (f"gsn_{role}",) * 3,
-        )
-        assert cur.fetchone() == (False, False, True)  # all four still connect
     conn = connect(role)
     with conn.transaction(force_rollback=True):  # should a refusal ever fail, nothing is left behind
         with pytest.raises(InsufficientPrivilege):
@@ -734,19 +716,3 @@ def test_no_login_role_can_create_schemas_or_temporary_objects(connect, role):
         with pytest.raises(InsufficientPrivilege):
             with conn.transaction():
                 conn.execute("CREATE SCHEMA itest_forbidden_schema")
-
-
-def test_the_public_pseudo_role_has_no_temporary_privilege_on_the_database(connect):
-    with connect("web").cursor() as cur:
-        cur.execute(
-            "SELECT count(*) FROM aclexplode((SELECT datacl FROM pg_database WHERE datname = current_database())) "
-            "WHERE grantee = 0"
-        )
-        assert cur.fetchone()[0] == 0  # neither CONNECT nor TEMPORARY for PUBLIC
-
-
-@pytest.mark.parametrize("role", ["migrate", "web", "engine", "worker"])
-def test_public_cannot_connect_to_the_postgres_database(connect, role):
-    with connect("web").cursor() as cur:
-        cur.execute("SELECT has_database_privilege(%s, 'postgres', 'CONNECT')", (f"gsn_{role}",))
-        assert cur.fetchone()[0] is False

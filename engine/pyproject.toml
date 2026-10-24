@@ -33,3 +33,8 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Import test modules by file path instead of by bare module name, so two folders may hold a test file
+# of the same name (engine/tests/test_store.py and tests/integration/test_store.py already do). This file
+# is the one pytest finds for `python -m pytest engine/tests deploy/tests tools/tests`, so the option
+# applies to all three folders; deploy/tests/test_repo_hygiene.py guards it.
+addopts = ["--import-mode=importlib"]

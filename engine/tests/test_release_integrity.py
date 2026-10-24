@@ -339,8 +339,21 @@ def test_gold_expected_id_removed_from_the_corpus_by_a_data_edit():
 
 
 def test_gold_expected_id_null_or_absent_is_not_checked():
-    # The clean fixture already has one null and one absent expected_id.
-    assert _check(_state()) == []
+    # Distinct from test_clean_inputs_have_no_problems, which only happens to pass over the fixture's
+    # queries: here the two shapes are set up and asserted explicitly, on queries that DO name a category
+    # (a category-only query, or one whose id was cleared), so nothing depends on how the fixture is cut.
+    state = _state()
+    queries = state["gold"]["nid"]["queries"]
+    explicit_null, absent = queries[0], queries[2]
+    explicit_null["expected_id"] = None
+    absent.pop("expected_id", None)
+    assert "expected_id" in explicit_null and explicit_null["expected_id"] is None
+    assert "expected_id" not in absent
+    assert explicit_null["expected_category"] and absent["expected_category"]
+    assert _check(state) == []
+    # not vacuous: the very same query is reported once it names an id that is not in the corpus
+    absent["expected_id"] = "nid-99"
+    _only(_check(state), absent["id"], "nid-99")
 
 
 def test_gold_expected_id_that_is_not_a_string():

@@ -88,6 +88,15 @@ SELECT gsn_guard.protect_table('public.active_release',
 -- Functions: the trigger functions, the hash chain, and publish / rollback / verify
 -- ---------------------------------------------------------------------------------------------
 
+-- audit_log_reject_change() comes from the applied migration 0001, which cannot be edited, and 0001
+-- left it without the settings every other protected function in `public` carries: no pinned
+-- search_path (an overload created in `public` could capture a call inside it) and the default
+-- EXECUTE right for PUBLIC. Both are put right here, BEFORE the function is registered, so the
+-- fingerprint that registration records (settings and ACL are part of it) is the corrected one.
+-- A trigger function is never called by name, and firing a trigger does not check EXECUTE.
+ALTER FUNCTION public.audit_log_reject_change() SET search_path = pg_catalog, pg_temp;
+REVOKE EXECUTE ON FUNCTION public.audit_log_reject_change() FROM PUBLIC;
+
 SELECT gsn_guard.protect_function('public.audit_log_reject_change()');
 SELECT gsn_guard.protect_function('public.audit_log_chain()');
 SELECT gsn_guard.protect_function('public.audit_verify()');

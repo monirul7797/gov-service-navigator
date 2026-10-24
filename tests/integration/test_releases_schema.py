@@ -240,7 +240,7 @@ def test_releases_are_never_deleted_or_truncated_even_while_draft(connect):
 
 def test_a_release_can_only_be_created_as_a_draft(connect):
     worker = connect("worker")
-    with pytest.raises(RaiseException, match="draft"):
+    with pytest.raises(RaiseException, match="a release must be created as a draft"):  # the status branch
         worker.execute(
             "INSERT INTO releases (status, source_commit, manifest, registry, registry_sha256, thresholds, "
             "embedding_model, created_by) VALUES ('validated', %s, '{}', '{}', 'x', '{}', 'm', 'itest')",
@@ -254,8 +254,10 @@ def test_a_release_can_only_be_created_as_a_draft(connect):
 )
 def test_a_release_is_created_without_a_verdict(connect, column, value):
     # The verdict (gate_report, override_reason) is written once, by the draft -> validated/rejected
-    # change; a release cannot be created already carrying one.
-    with pytest.raises(RaiseException, match="draft"):
+    # change; a release cannot be created already carrying one. The status here is the default (draft),
+    # so only the verdict branch of releases_guard() can refuse; "draft" alone would also match the
+    # message of the status branch ("a release must be created as a draft (not ...)").
+    with pytest.raises(RaiseException, match="without gate_report or override_reason"):
         connect("worker").execute(
             "INSERT INTO releases (source_commit, manifest, registry, registry_sha256, thresholds, "
             f"embedding_model, created_by, {column}) VALUES (%s, '{{}}', '{{}}', 'x', '{{}}', 'm', 'itest', %s)",

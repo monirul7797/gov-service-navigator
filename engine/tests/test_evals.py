@@ -326,7 +326,10 @@ def verdict(query_id, service_id, kind):
 def test_gate_passes_when_nothing_fails():
     result = gate([verdict("a", "nid", "PASS"), verdict("b", "nid", "PASS (warn)"),
                    verdict("c", "nid", "OBSERVE")], {})
-    assert result == GateResult(True, [], [], result.counts)
+    # the counts are spelled out: comparing them with `result.counts` would only compare a value with itself
+    assert result == GateResult(
+        True, [], [], {"nid": {"PASS": 1, "PASS (warn)": 1, "OBSERVE": 1, "FAIL": 0}}
+    )
 
 
 def test_gate_blocks_on_an_unlisted_failure():

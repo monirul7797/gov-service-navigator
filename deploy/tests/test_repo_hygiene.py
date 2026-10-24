@@ -8,6 +8,9 @@ can prove, on temporary copies, that each guard really fails when a rule is disa
 import fnmatch
 import os
 import shutil
+import subprocess
+import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -332,3 +335,105 @@ def test_scanner_skips_vcs_third_party_and_review_bundle_dirs(tmp_path):
     (tmp_path / "kept").mkdir()
     (tmp_path / "kept" / "x.sh").write_bytes(b"echo\r\n")
     assert find_crlf_files(tmp_path) == ["kept/x.sh"]
+
+
+# --- the shell scripts PostgreSQL runs at first start must be executable in git -----------------
+#
+# The postgres image runs every ``*.sh`` in /docker-entrypoint-initdb.d directly when it is executable,
+# and SOURCES it into the entrypoint's own shell when it is not (which then inherits ``set -e`` and
+# the script's variables). The folder is mounted read-only from the checkout, so what the container
+# sees is the mode recorded in git: a checkout on Windows cannot show it, ``git ls-files -s`` does.
+
+INIT_DIR = "db/init"
+EXECUTABLE_MODE = "100755"
+
+
+def non_executable_scripts(ls_files_stage):
+    """``path (mode)`` of every ``*.sh`` in ``git ls-files -s`` output whose recorded mode is not 100755."""
+    offenders = []
+    for line in ls_files_stage.splitlines():
+        meta, _, path = line.partition("\t")
+        mode = meta.split(" ", 1)[0]
+        if path.endswith(".sh") and mode != EXECUTABLE_MODE:
+            offenders.append(f"{path} ({mode})")
+    return offenders
+
+
+def _tracked_init_scripts():
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(ROOT), "ls-files", "-s", "--", INIT_DIR],
+            capture_output=True, text=True, check=False,
+        )
+    except FileNotFoundError:
+        pytest.skip("git is not installed: the recorded file modes cannot be read")
+    if result.returncode != 0:
+        pytest.skip(f"not a git checkout: {result.stderr.strip()}")
+    return result.stdout
+
+
+def test_db_init_scripts_are_recorded_as_executable_in_git():
+    listing = _tracked_init_scripts()
+    scripts = [line.partition("\t")[2] for line in listing.splitlines() if line.endswith(".sh")]
+    # not vacuous: both init scripts are tracked (test_compose_exposure.py pins their names and order)
+    assert scripts == [f"{INIT_DIR}/10-roles.sh", f"{INIT_DIR}/20-guard.sh"]
+    assert non_executable_scripts(listing) == []
+
+
+@pytest.mark.parametrize(
+    "mode, offends",
+    [("100755", False), ("100644", True), ("120000", True), ("100664", True)],
+)
+def test_the_mode_check_flags_anything_but_100755(mode, offends):
+    listing = f"{mode} fb2ac5add22a4d0e75c787e62cc361cf49950d04 0\tdb/init/10-roles.sh\n"
+    assert non_executable_scripts(listing) == ([f"db/init/10-roles.sh ({mode})"] if offends else [])
+
+
+def test_the_mode_check_ignores_files_that_are_not_shell_scripts():
+    listing = "100644 58573a5aa60a65051ebe48fece11f6c7d17109a1 0\tdb/init/README.md\n"
+    assert non_executable_scripts(listing) == []
+
+
+# --- pytest imports test modules by file path, so same-named modules in different folders coexist --
+#
+# In the default ("prepend") import mode a test module is imported under its bare file name, so
+# engine/tests/test_store.py and tests/integration/test_store.py (or any future pair) cannot be
+# collected in one run: "import file mismatch". engine/pyproject.toml therefore sets
+# ``--import-mode=importlib``; ``python -m pytest engine/tests deploy/tests tools/tests`` (the documented
+# command and the CI step) finds that file first, so the option applies to deploy/tests and tools/tests too.
+
+ENGINE_PYPROJECT = ROOT / "engine" / "pyproject.toml"
+
+
+def _pytest_collect(tmp_path, *extra):
+    """Collect two same-named test files from two folders with the settings of engine/pyproject.toml."""
+    for folder in ("a", "b"):
+        (tmp_path / folder).mkdir()
+        (tmp_path / folder / "test_same_name.py").write_text(f"def test_in_{folder}():\n    pass\n", encoding="utf-8")
+    return subprocess.run(
+        [
+            sys.executable, "-m", "pytest", "-c", str(ENGINE_PYPROJECT), "--rootdir", str(tmp_path),
+            "-p", "no:cacheprovider", "--collect-only", "-q", *extra, str(tmp_path / "a"), str(tmp_path / "b"),
+        ],
+        capture_output=True, text=True, check=False, cwd=tmp_path,
+    )
+
+
+def test_pytest_options_in_engine_pyproject_import_by_path():
+    options = tomllib.loads(ENGINE_PYPROJECT.read_text(encoding="utf-8"))["tool"]["pytest"]["ini_options"]
+    addopts = options.get("addopts", [])
+    addopts = addopts.split() if isinstance(addopts, str) else addopts
+    assert "--import-mode=importlib" in addopts
+
+
+def test_same_named_test_modules_in_two_folders_can_be_collected_together(tmp_path):
+    result = _pytest_collect(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "test_in_a" in result.stdout and "test_in_b" in result.stdout
+
+
+def test_the_collision_is_real_without_the_option(tmp_path):
+    # Control for the test above: the same two files do collide in the default import mode.
+    result = _pytest_collect(tmp_path, "--import-mode=prepend")
+    assert result.returncode != 0
+    assert "import file mismatch" in result.stdout + result.stderr
