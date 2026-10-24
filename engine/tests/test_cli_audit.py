@@ -63,9 +63,29 @@ def test_audit_verify_exit_codes(world, capsys):
     code, out, err = world.run(capsys, "audit", "verify")
     assert (code, out, err) == (0, "audit chain ok: 12 rows checked\n", "")
 
+    # a broken chain has its own code (6): a script can tell it from a failed run (1) or bad configuration (2)
     world.status = AuditStatus(False, 4, 5)
     code, out, err = world.run(capsys, "audit", "verify")
-    assert (code, out, err) == (1, "audit chain BROKEN at chain_seq 5 (4 rows checked)\n", "")
+    assert (code, out, err) == (6, "audit chain BROKEN at chain_seq 5 (4 rows checked)\n", "")
+    assert code == cli.EXIT_AUDIT_BROKEN
+
+
+def test_a_broken_chain_is_not_confused_with_a_failed_run_or_a_configuration_error(world, capsys, monkeypatch):
+    world.status = AuditStatus(False, 0, 1)  # an unchained row counts as a break at the position it would take
+    broken = world.run(capsys, "audit", "verify")[0]
+    world.status = RuntimeError("boom")
+    failed = world.run(capsys, "audit", "verify")[0]
+    monkeypatch.delenv("GSN_DB_USER")
+    misconfigured = world.run(capsys, "audit", "verify")[0]
+    assert (broken, failed, misconfigured) == (6, 1, 2)
+
+
+def test_the_help_text_names_the_exit_codes(capsys):
+    with pytest.raises(SystemExit) as stopped:
+        cli.main(["audit", "verify", "--help"])
+    assert stopped.value.code == 0
+    text = " ".join(capsys.readouterr().out.split())
+    assert "exit 0 when intact" in text and "6 when broken" in text
 
 
 def test_an_empty_chain_is_ok(world, capsys):

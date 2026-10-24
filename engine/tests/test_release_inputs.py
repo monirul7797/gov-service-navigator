@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from gsn.gitsource import DictSource, GitSource
+from gsn.gitsource import DictSource, GitRuntimeError, GitSource, GitSourceError
 from gsn.release.inputs import (
     MANIFEST_PATH,
     REGISTRY_PATH,
@@ -406,3 +406,49 @@ def test_a_hidden_service_still_needs_its_listed_files():
     assert [e.status for e in _load(files).manifest] == ["hidden", "live"]
     del files[NID_CORPUS]
     assert any(NID_CORPUS in p for p in _problems(files))
+
+
+# --- git failures while reading (final review M2) --------------------------------------------------
+
+
+class _FailingSource:
+    """A source whose ``read`` fails with ``error`` for the paths in ``failing`` and serves the rest."""
+
+    def __init__(self, error: Exception, failing: set[str]) -> None:
+        self.commit = COMMIT
+        self._error, self._failing, self._files = error, failing, _files()
+
+    def read(self, path: str) -> bytes:
+        if path in self._failing:
+            raise self._error
+        return self._files[path]
+
+
+@pytest.mark.parametrize("path", [MANIFEST_PATH, THRESHOLDS_PATH, REGISTRY_PATH, NID_CORPUS, NID_GOLD])
+def test_a_git_runtime_failure_is_not_an_input_problem(path):
+    with pytest.raises(GitRuntimeError):
+        load_inputs(_FailingSource(GitRuntimeError("could not run git (TimeoutExpired)"), {path}))
+
+
+def test_a_git_runtime_failure_wins_over_ordinary_input_problems():
+    files = _files()
+    del files[BDRIS_CORPUS]  # an ordinary problem, found before the git failure is hit
+    source = _FailingSource(GitRuntimeError("could not run git (OSError)"), {NID_GOLD})
+    source._files = files
+    with pytest.raises(GitRuntimeError):
+        load_inputs(source)
+
+
+def test_a_git_refusal_while_reading_is_an_input_problem():
+    # e.g. the manifest names a directory, which git cannot read as a file: the owner fixes the manifest
+    source = _FailingSource(GitSourceError("path 'data/chunks/nid.jsonl' at commit abc is not a file"), {NID_CORPUS})
+    with pytest.raises(InputError) as caught:
+        load_inputs(source)
+    assert len(caught.value.problems) == 1
+    assert caught.value.problems[0].startswith(f"{NID_CORPUS}: cannot be read") and "is not a file" in caught.value.problems[0]
+
+
+def test_files_missing_at_the_commit_are_still_input_problems():
+    files = _files()
+    del files[NID_GOLD]
+    assert _problems(files) == [f"{NID_GOLD}: not found at this commit"]

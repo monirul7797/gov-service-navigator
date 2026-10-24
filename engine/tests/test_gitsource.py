@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from gsn import gitsource
-from gsn.gitsource import ContentSource, DictSource, GitSource, GitSourceError
+from gsn.gitsource import ContentSource, DictSource, GitRuntimeError, GitSource, GitSourceError
 
 _FULL_SHA = re.compile(r"[0-9a-f]{40}")
 
@@ -163,6 +163,107 @@ def test_missing_git_binary_is_a_gitsourceerror_not_filenotfound(tmp_repo, monke
         source.read("data/a.txt")  # must not look like a missing *path*
     with pytest.raises(GitSourceError):
         GitSource(_git_dir(tmp_repo))
+
+
+# --- refusals and runtime failures are told apart (final review M2) --------------------------------------
+
+
+def test_a_runtime_failure_is_still_a_gitsourceerror():
+    assert issubclass(GitRuntimeError, GitSourceError)  # code that catches the base class keeps working
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        FileNotFoundError(2, "No such file or directory"),  # no git binary
+        PermissionError(13, "Permission denied"),
+        OSError(5, "Input/output error"),
+        subprocess.TimeoutExpired(["git"], 120),
+        subprocess.SubprocessError("odd"),
+        ValueError("embedded null byte"),
+    ],
+    ids=lambda failure: type(failure).__name__,
+)
+def test_git_that_cannot_be_run_is_a_runtime_error(tmp_repo, monkeypatch, failure):
+    source = GitSource(_git_dir(tmp_repo))
+
+    def broken(*args, **kwargs):
+        raise failure
+
+    monkeypatch.setattr(gitsource.subprocess, "run", broken)
+    with pytest.raises(GitRuntimeError) as read_error:
+        source.read("data/a.txt")
+    assert "data/a.txt" in str(read_error.value) and type(failure).__name__ in str(read_error.value)
+    with pytest.raises(GitRuntimeError):
+        source.secret_paths_in_history()
+    with pytest.raises(GitRuntimeError):
+        GitSource(_git_dir(tmp_repo))
+
+
+def _completed(returncode: int, stdout: bytes = b"", stderr: bytes = b"") -> subprocess.CompletedProcess:
+    return subprocess.CompletedProcess(["git"], returncode, stdout, stderr)
+
+
+def _fake_git(monkeypatch, answers: dict[str, subprocess.CompletedProcess]) -> None:
+    """Every git call whose subcommand is a key of ``answers`` gets that answer; the rest run for real."""
+    real_run = subprocess.run
+
+    def fake(argv, **kwargs):
+        sub = _subcommand(argv)
+        return answers[sub] if sub in answers else real_run(argv, **kwargs)
+
+    monkeypatch.setattr(gitsource.subprocess, "run", fake)
+
+
+def test_an_unexpected_git_error_while_reading_an_object_is_a_runtime_error(tmp_repo, monkeypatch):
+    source = GitSource(_git_dir(tmp_repo))
+    # cat-file fails, and the follow-up probe is neither "found" (0) nor "does not exist" (1): git itself broke
+    _fake_git(monkeypatch, {
+        "cat-file": _completed(128, stderr=b"error: inflate: data stream error"),
+        "rev-parse": _completed(128, stderr=b"fatal: bad object"),
+    })
+    with pytest.raises(GitRuntimeError) as exc:
+        source.read("data/a.txt")
+    assert "data/a.txt" in str(exc.value) and "inflate" in str(exc.value)
+
+
+def test_an_unusable_answer_for_a_ref_that_resolved_is_a_runtime_error(tmp_repo, monkeypatch):
+    _fake_git(monkeypatch, {"rev-parse": _completed(0, stdout=b"not-a-sha\n")})
+    with pytest.raises(GitRuntimeError, match="not a 40-hex"):
+        GitSource(_git_dir(tmp_repo))
+
+
+def test_a_failing_rev_list_is_a_runtime_error(tmp_repo, monkeypatch):
+    source = GitSource(_git_dir(tmp_repo))  # the ref resolved, so the repository is fine: a later failure is not a refusal
+    _fake_git(monkeypatch, {"rev-list": _completed(128, stderr=b"fatal: oops")})
+    with pytest.raises(GitRuntimeError, match="oops"):
+        source.secret_paths_in_history()
+
+
+def test_a_failing_diff_tree_is_a_runtime_error(tmp_repo, monkeypatch):
+    source = GitSource(_git_dir(tmp_repo))
+    _fake_git(monkeypatch, {
+        "rev-list": _completed(0, stdout=source.commit.encode() + b"\n"),
+        "diff-tree": _completed(128, stderr=b"fatal: oops"),
+    })
+    with pytest.raises(GitRuntimeError, match="oops"):
+        source.secret_paths_in_history()
+
+
+def test_refusals_are_not_runtime_errors(tmp_repo, tmp_path):
+    git_dir = _git_dir(tmp_repo)
+    source = GitSource(git_dir)
+    cases = {
+        "an unknown ref": lambda: GitSource(git_dir, "no-such-branch"),
+        "an option-like ref": lambda: GitSource(git_dir, "--all"),
+        "an empty ref": lambda: GitSource(git_dir, ""),
+        "a directory read as a file": lambda: source.read("data"),
+        "a directory that is not a repository": lambda: GitSource(str(tmp_path / "nowhere.git")),
+    }
+    for what, call in cases.items():
+        with pytest.raises(GitSourceError) as exc:
+            call()
+        assert not isinstance(exc.value, GitRuntimeError), what
 
 
 def test_every_git_call_is_hardened(tmp_repo, monkeypatch):

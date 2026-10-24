@@ -418,6 +418,26 @@ def test_a_service_that_moved_is_an_integrity_failure(world):
     assert world.writes() == []
 
 
+@pytest.mark.parametrize(
+    "damage, fragment",
+    [
+        (lambda s: s["gold"]["alpha"]["queries"][0].pop("query"), "gq_alpha_1"),
+        (lambda s: s["gold"]["beta"].update(top_k=0), "top_k"),
+        (lambda s: s["gold"]["beta"].update(queries=[]), "no gold queries"),
+        (lambda s: s["corpora"].update(beta=[]), "no records"),
+    ],
+)
+def test_empty_or_malformed_gold_data_is_refused_before_anything_is_written(world, damage, fragment):
+    # Before the gate learned these rules, a gold query without a "query" crashed run_gold AFTER the draft
+    # and its audit row were written.
+    damage(world.state)
+    result = world.build()
+    assert result.status == "integrity_failed" and result.release_id is None
+    assert any(fragment in p for p in result.problems), result.problems
+    assert world.writes() == [] and world.embedder.batches == []
+    assert "existing_versions" not in world.log
+
+
 def test_the_date_limit_is_the_given_today(world):
     world.state["corpora"]["alpha"][0]["fetched_at"] = "2026-10-24T01:00:00"
     assert world.build(today=date(2026, 10, 23)).status == "integrity_failed"

@@ -16,7 +16,8 @@ import gsn.cli as cli
 from gsn import store
 from gsn.embed import FakeEmbedder, ModelMissingError
 from gsn.evals import GateResult
-from gsn.gitsource import GitSource, GitSourceError
+from gsn import gitsource
+from gsn.gitsource import GitRuntimeError, GitSource, GitSourceError
 from gsn.release import commands
 from gsn.release.build import BuildResult, dhaka_today
 
@@ -50,11 +51,12 @@ class FakeRepo:
 
     secrets: list[str] = []
     error: str | None = None
+    error_type: type[GitSourceError] = GitSourceError
     created: list = []
 
     def __init__(self, git_dir, ref="HEAD"):
         if self.error:
-            raise GitSourceError(self.error)
+            raise self.error_type(self.error)
         self.git_dir, self.ref, self.commit = git_dir, ref, COMMIT
         FakeRepo.created.append(self)
 
@@ -74,6 +76,7 @@ class World:
         self.embedders: list = []
         self.result = _result()
         FakeRepo.secrets, FakeRepo.error, FakeRepo.created = [], None, []
+        FakeRepo.error_type = GitSourceError
         monkeypatch.setattr(cli.psycopg, "connect", self._connect)
         monkeypatch.setattr(commands, "GitSource", FakeRepo)
         monkeypatch.setattr(cli, "get_embedder", self._get_embedder)
@@ -235,6 +238,74 @@ def test_a_clean_real_repository_gets_as_far_as_the_build(world, capsys, real_re
     monkeypatch.setattr(commands, "GitSource", GitSource)
     code, _, _ = world.run(capsys, "release", "build", "--commit", "main")
     assert code == 0 and len(world.builds[0][1].commit) == 40
+
+
+# --- git runtime failures are exit 1, refusals stay exit 2 (final review M2) --------------------
+
+
+RUNTIME_MESSAGE = "could not run git for ref 'HEAD' (TimeoutExpired)"
+
+
+def test_a_git_runtime_failure_opening_the_repository_is_exit_1_with_one_line(world, capsys):
+    FakeRepo.error, FakeRepo.error_type = RUNTIME_MESSAGE, GitRuntimeError
+    code, out, err = world.run(capsys, "release", "build")
+    assert code == 1 and out == ""
+    assert err.splitlines() == [f"error: git: {RUNTIME_MESSAGE}"]
+    assert world.embedders == [] and world.connections == [] and world.builds == []
+
+
+def test_a_multi_line_git_message_is_cut_to_one_line(world, capsys):
+    world.result = GitRuntimeError("cannot read path 'a' at commit c: error: inflate:\n  data stream error\n")
+    code, out, err = world.run(capsys, "release", "build")
+    assert code == 1 and out == ""
+    assert err.splitlines() == ["error: git: cannot read path 'a' at commit c: error: inflate: data stream error"]
+    assert [c.closed for c in world.connections] == [True]
+
+
+def test_a_git_failure_while_reading_inputs_during_the_build_is_exit_1_not_integrity(world, capsys):
+    world.result = GitRuntimeError(RUNTIME_MESSAGE)
+    assert world.run(capsys, "release", "build")[0] == 1  # not 4: no integrity problem was found
+
+
+def test_a_git_failure_during_eval_is_exit_1(world, capsys, monkeypatch):
+    def fail(conn, release_id, embedder, **kwargs):
+        raise GitRuntimeError(RUNTIME_MESSAGE)
+
+    monkeypatch.setattr(commands, "eval_release", fail)
+    code, out, err = world.run(capsys, "eval", "--release", "7")
+    assert code == 1 and out == "" and err.splitlines() == [f"error: git: {RUNTIME_MESSAGE}"]
+    assert [c.closed for c in world.connections] == [True]
+
+
+def test_a_git_refusal_during_eval_is_still_exit_2(world, capsys, monkeypatch):
+    def refuse(conn, release_id, embedder, **kwargs):
+        raise GitSourceError("cannot resolve ref 'abc' to a commit in /repo.git")
+
+    monkeypatch.setattr(commands, "eval_release", refuse)
+    code, out, err = world.run(capsys, "eval", "--release", "7")
+    assert code == 2 and "cannot resolve ref 'abc'" in err
+
+
+def test_a_git_failure_during_parity_is_exit_1(world, capsys, monkeypatch):
+    def fail(conn, release_id, source, embedder):
+        raise GitRuntimeError(RUNTIME_MESSAGE)
+
+    monkeypatch.setattr(cli.parity, "run_parity", fail)
+    code, out, err = world.run(capsys, "parity", "--release", "7")
+    assert code == 1 and out == "" and err.splitlines() == [f"error: git: {RUNTIME_MESSAGE}"]
+
+
+def test_a_missing_git_binary_with_a_real_repository_is_exit_1(world, capsys, real_repo, monkeypatch):
+    monkeypatch.setattr(commands, "GitSource", GitSource)
+
+    def no_git(*args, **kwargs):
+        raise FileNotFoundError(2, "No such file or directory")
+
+    monkeypatch.setattr(gitsource.subprocess, "run", no_git)
+    code, out, err = world.run(capsys, "release", "build")
+    assert code == 1 and out == ""
+    assert err.startswith("error: git: could not run git") and "FileNotFoundError" in err
+    assert world.builds == [] and world.connections == []
 
 
 def test_missing_database_settings_are_exit_2_and_never_print_the_password(world, capsys, monkeypatch):

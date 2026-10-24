@@ -7,6 +7,14 @@ fsmonitor, no hooks, plumbing commands only, no replace refs, no system or globa
 prompts and none of the parent's inherited ``GIT_*`` variables. Failures raise
 ``GitSourceError`` naming the ref or path involved; the process environment is never put in a message.
 
+Two kinds of failure are told apart. A *refusal* is a plain ``GitSourceError``: the owner asked for
+something git cannot give (an unknown or option-like ref, a directory that is not a repository, a path
+that is a directory). A *runtime failure* is ``GitRuntimeError`` (a subclass, so code that catches the
+base class still catches it): git could not run (no binary, a timeout, an ``OSError``) or answered in
+a way a working repository never does (corrupt object, a history scan that fails after the ref
+resolved). The CLI maps a refusal to exit 2 and a runtime failure to exit 1, and the release inputs
+never turn a runtime failure into an integrity problem.
+
 ``ContentSource`` is the small interface the release code depends on, so tests can use ``DictSource``.
 """
 from __future__ import annotations
@@ -26,6 +34,11 @@ _MAX_DETAIL = 300
 
 class GitSourceError(Exception):
     """git could not be run, or a ref or path could not be resolved. Names the ref or path involved."""
+
+
+class GitRuntimeError(GitSourceError):
+    """git failed at run time rather than refusing the request: it could not be run (missing binary,
+    timeout, ``OSError``) or it broke while reading a repository that had already resolved the ref."""
 
 
 class ContentSource(Protocol):
@@ -93,7 +106,7 @@ class GitSource:
             )
         except (OSError, ValueError, subprocess.SubprocessError) as exc:
             # OSError includes FileNotFoundError (no git binary): never let that pass for a missing path.
-            raise GitSourceError(f"could not run git for {what} ({type(exc).__name__})") from None
+            raise GitRuntimeError(f"could not run git for {what} ({type(exc).__name__})") from None
 
     def _resolve(self, ref: str) -> str:
         if not ref or ref.startswith("-"):
@@ -104,7 +117,7 @@ class GitSource:
         if proc.returncode != 0:
             raise GitSourceError(f"cannot resolve {what} to a commit in {self.git_dir}{_detail(proc)}")
         if not _FULL_SHA.fullmatch(sha):
-            raise GitSourceError(f"{what} resolved to {sha!r}, which is not a 40-hex commit id")
+            raise GitRuntimeError(f"{what} resolved to {sha!r}, which is not a 40-hex commit id")
         return sha
 
     def read(self, path: str) -> bytes:
@@ -119,7 +132,8 @@ class GitSource:
             raise FileNotFoundError(path)
         if probe.returncode == 0:
             raise GitSourceError(f"{what} is not a file")
-        raise GitSourceError(f"cannot read {what}{_detail(proc)}")
+        # cat-file failed, yet the object is neither there (0) nor reported missing (1): git itself broke
+        raise GitRuntimeError(f"cannot read {what}{_detail(proc)}")
 
     def secret_paths_in_history(self) -> list[str]:
         """Every path that looks like a secrets file in any commit the repository still holds.
@@ -134,7 +148,7 @@ class GitSource:
         what = "secret-path scan"
         listing = self._run(["rev-list", "--all", "--reflog"], what)
         if listing.returncode != 0:
-            raise GitSourceError(f"cannot list commits in {self.git_dir}{_detail(listing)}")
+            raise GitRuntimeError(f"cannot list commits in {self.git_dir}{_detail(listing)}")
         if not listing.stdout.strip():
             return []
         touched = self._run(
@@ -143,7 +157,7 @@ class GitSource:
             stdin=listing.stdout,
         )
         if touched.returncode != 0:
-            raise GitSourceError(f"cannot list changed paths in {self.git_dir}{_detail(touched)}")
+            raise GitRuntimeError(f"cannot list changed paths in {self.git_dir}{_detail(touched)}")
         paths = {p for p in touched.stdout.decode("utf-8", "replace").split("\0") if p}
         return sorted(p for p in paths if _SECRET_PATH.search(p))
 

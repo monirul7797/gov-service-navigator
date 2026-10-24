@@ -194,6 +194,50 @@ def _gold_expected_ids(inputs: ReleaseInputs) -> list[str]:
     return problems
 
 
+def _empty_live_services(inputs: ReleaseInputs) -> list[str]:
+    """A live service must publish something and be judged by something: a corpus with no records, or a
+    gold file with no queries, would let the gate pass over a service that answers nothing (or is never
+    tested). A hidden service is exempt: it is carried in the manifest but neither served nor judged."""
+    problems = []
+    for entry in inputs.manifest:
+        if entry.status != "live":
+            continue
+        if not inputs.corpora.get(entry.service_id):
+            problems.append(f"service {entry.service_id}: live, but its corpus ({entry.corpus}) has no records")
+        if not inputs.gold.get(entry.service_id, {}).get("queries"):
+            problems.append(f"service {entry.service_id}: live, but its gold file ({entry.gold}) has no gold queries")
+    return problems
+
+
+def _gold_query_texts(inputs: ReleaseInputs) -> list[str]:
+    """Every gold query, hidden services included, needs the text that is embedded and searched for;
+    without it ``run_gold`` would fail with a ``KeyError`` after the draft release had been written."""
+    problems = []
+    for entry in inputs.manifest:
+        for query in inputs.gold.get(entry.service_id, {}).get("queries", []):
+            if not _non_empty(query.get("query")):
+                problems.append(
+                    f"gold query {query.get('id')} ({entry.service_id}): query is missing or not a non-empty string"
+                )
+    return problems
+
+
+def _gold_top_k(inputs: ReleaseInputs) -> list[str]:
+    """``top_k`` is optional in a gold file; when it is there it must be a positive integer (a ``bool`` is
+    an ``int`` to Python, but ``true`` is not a number of hits)."""
+    problems = []
+    for entry in inputs.manifest:
+        gold = inputs.gold.get(entry.service_id)
+        if gold is None or "top_k" not in gold:
+            continue
+        top_k = gold["top_k"]
+        if isinstance(top_k, bool) or not isinstance(top_k, int) or top_k < 1:
+            problems.append(
+                f"service {entry.service_id}: top_k in {entry.gold} must be a positive integer, got {top_k!r}"
+            )
+    return problems
+
+
 def _duplicate_gold_ids(inputs: ReleaseInputs) -> list[str]:
     """Gold query ids are unique across the whole release: ``known_failures`` is keyed by the bare id."""
     where: dict[str, list[str]] = {}
@@ -247,6 +291,9 @@ def check_integrity(
         *_unused_verified_at_fields(inputs),
         *_moved_records(inputs, stored_record_services),
         *_changed_service_names(inputs, stored_service_names),
+        *_empty_live_services(inputs),
+        *_gold_query_texts(inputs),
+        *_gold_top_k(inputs),
         *_gold_expected_ids(inputs),
         *_duplicate_gold_ids(inputs),
         *_unknown_known_failures(inputs),

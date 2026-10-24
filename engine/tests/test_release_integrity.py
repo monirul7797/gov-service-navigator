@@ -362,6 +362,98 @@ def test_gold_expected_id_that_is_not_a_string():
     _only(_check(state), "gq_nid_001", "expected_id")
 
 
+# --- empty or malformed gold data (final review I1) ---------------------------------------------
+
+
+def test_live_service_with_no_corpus_records_is_a_problem():
+    state = _state()
+    state["corpora"]["bdris"] = []
+    state["gold"]["bdris"]["queries"][0]["expected_id"] = None  # the one gold query no longer points at a record
+    problem = _only(_check(state), "bdris", "no records")
+    assert "nid" not in problem  # names the service that is empty, not the other one
+
+
+def test_live_service_with_no_gold_queries_is_a_problem():
+    state = _state()
+    state["gold"]["bdris"]["queries"] = []
+    problem = _only(_check(state), "bdris", "no gold queries")
+    assert "nid" not in problem
+
+
+def test_hidden_service_may_have_no_records_and_no_gold_queries():
+    state = _state()
+    state["manifest"]["services"][1]["status"] = "hidden"
+    state["corpora"]["bdris"] = []
+    state["gold"]["bdris"]["queries"] = []
+    assert _check(state) == []
+
+
+def test_empty_corpus_and_empty_gold_are_both_reported_for_a_live_service():
+    state = _state()
+    state["corpora"]["bdris"] = []
+    state["gold"]["bdris"]["queries"] = []
+    problems = _check(state)
+    assert len(problems) == 2, problems
+    assert any("no records" in p for p in problems) and any("no gold queries" in p for p in problems)
+    assert all("bdris" in p for p in problems)
+
+
+@pytest.mark.parametrize("bad", ["<absent>", "", "   ", "\n\t", 5, None, ["voter list"], {"q": "x"}, True])
+def test_gold_query_without_a_non_empty_query_string(bad):
+    state = _state()
+    gold_query = state["gold"]["nid"]["queries"][0]
+    if bad == "<absent>":
+        del gold_query["query"]
+    else:
+        gold_query["query"] = bad
+    _only(_check(state), "gq_nid_001", "nid", "query")
+
+
+def test_every_malformed_gold_query_is_listed():
+    state = _state()
+    state["gold"]["nid"]["queries"][0]["query"] = ""
+    state["gold"]["nid"]["queries"][1]["query"] = None
+    state["gold"]["bdris"]["queries"][0]["query"] = 3
+    problems = _check(state)
+    assert len(problems) == 3, problems
+    assert "gq_nid_001" in problems[0] and "gq_nid_002" in problems[1] and "gq_001" in problems[2]
+    assert "bdris" in problems[2]
+
+
+def test_gold_query_text_is_checked_for_a_hidden_service_too():
+    state = _state()
+    state["manifest"]["services"][1]["status"] = "hidden"
+    state["gold"]["bdris"]["queries"][0]["query"] = ""
+    _only(_check(state), "gq_001", "bdris", "query")
+
+
+@pytest.mark.parametrize("top_k", [0, -1, 2.5, 4.0, "4", "", None, True, False, [4], {"k": 4}])
+def test_top_k_that_is_not_a_positive_integer_is_a_problem(top_k):
+    state = _state()
+    state["gold"]["nid"]["top_k"] = top_k
+    _only(_check(state), "nid", "top_k")
+
+
+@pytest.mark.parametrize("top_k", [1, 4, 10])
+def test_a_positive_integer_top_k_is_fine(top_k):
+    state = _state()
+    state["gold"]["nid"]["top_k"] = top_k
+    assert _check(state) == []
+
+
+def test_top_k_may_be_absent_from_a_gold_file():
+    state = _state()
+    del state["gold"]["nid"]["top_k"]
+    assert _check(state) == []
+
+
+def test_top_k_is_checked_for_a_hidden_service_too():
+    state = _state()
+    state["manifest"]["services"][1]["status"] = "hidden"
+    state["gold"]["bdris"]["top_k"] = 0
+    _only(_check(state), "bdris", "top_k")
+
+
 def test_gold_query_id_used_in_two_services():
     state = _state()
     state["gold"]["bdris"]["queries"][0]["id"] = "gq_nid_001"

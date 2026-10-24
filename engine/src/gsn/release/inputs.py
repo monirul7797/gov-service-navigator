@@ -7,7 +7,10 @@ nothing reads the working tree.
 Loading is all-or-nothing but reports everything at once: every missing file, unparseable file and
 wrongly shaped value is collected and raised together as one ``InputError``, so the owner fixes the
 whole list in one pass. What the files *mean* (duplicate ids, missing registry entries, ...) is
-checked afterwards by ``gsn.release.integrity``.
+checked afterwards by ``gsn.release.integrity``. Only problems with the files themselves are collected
+(missing at the commit, not a file, unparseable, wrongly shaped); a git *runtime* failure (git cannot
+be run, an object is corrupt) says nothing about the files, so ``GitRuntimeError`` is not collected: it
+propagates, and the CLI reports it as a failed run rather than as bad inputs.
 
 Every JSON document is parsed strictly (``strict_loads``): ``NaN``, ``Infinity`` and numbers that
 overflow to infinity are refused, because ``json.dumps`` would write them back as non-JSON tokens and
@@ -23,7 +26,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from gsn.gitsource import ContentSource, GitSourceError
+from gsn.gitsource import ContentSource, GitRuntimeError, GitSourceError
 
 MANIFEST_PATH = "data/release_manifest.json"
 THRESHOLDS_PATH = "data/release_thresholds.json"
@@ -131,6 +134,8 @@ def _read(source: ContentSource, path: str, problems: list[str]) -> bytes | None
         return source.read(path)
     except FileNotFoundError:
         problems.append(f"{path}: not found at this commit")
+    except GitRuntimeError:
+        raise  # the environment failed, not the file: never an integrity problem
     except GitSourceError as exc:
         problems.append(f"{path}: cannot be read ({exc})")
     return None

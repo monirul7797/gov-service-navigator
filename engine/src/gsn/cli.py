@@ -4,13 +4,14 @@
 ``gsn release``, ``gsn eval``, ``gsn parity``, ``gsn audit`` and ``gsn models`` are run by hand (in the
 one-off ``release`` container) and print plain text for the owner (``gsn parity`` prints its report as
 JSON). Exit codes: 0 success (a build that is validated, an intact audit chain, a model that was
-downloaded, or any other command that worked), 1 runtime error (database down, a download that failed, a
-bug; for ``audit verify`` also a broken chain), 2 usage or configuration error or a refusal (a bad argument
-or ref, a missing ``GSN_DB_*`` variable, an embedder that cannot be made, a model that is not downloaded
-yet, ``models fetch`` while the hub is offline, secret files in the repository's history, a database
-refusal such as "release 7 is not validated"), 3 a build that finished but was rejected (or an eval whose
-gate would reject), 4 integrity problems (nothing written), 5 a parity report that is not ok (the report is
-still printed).
+downloaded, or any other command that worked), 1 runtime error (database down, a download that failed, git
+that cannot be run or that broke while reading, a bug), 2 usage or configuration error or a refusal (a bad
+argument or ref, a missing ``GSN_DB_*`` variable, an embedder that cannot be made, a model that is not
+downloaded yet, ``models fetch`` while the hub is offline, secret files in the repository's history, a
+database refusal such as "release 7 is not validated"), 3 a build that finished but was rejected (or an eval
+whose gate would reject), 4 integrity problems (nothing written), 5 a parity report that is not ok (the
+report is still printed), 6 a broken audit chain (``audit verify``; the one command that checks the log's
+integrity, so a script can tell a tampered log from a failed run).
 """
 from __future__ import annotations
 
@@ -38,7 +39,7 @@ from gsn.embed import (
     hub_is_offline,
     snapshot_bytes,
 )
-from gsn.gitsource import GitSourceError
+from gsn.gitsource import GitRuntimeError, GitSourceError
 from gsn.release import commands
 from gsn.release.build import INTEGRITY_FAILED, build_release, dhaka_today, format_build_summary
 from gsn.release.commands import CommandError
@@ -49,6 +50,7 @@ CONNECT_TIMEOUT_SECONDS = 10
 EXIT_REJECTED = 3
 EXIT_INTEGRITY = 4
 EXIT_PARITY = 5
+EXIT_AUDIT_BROKEN = 6
 
 # The one command that downloads the model (the release image keeps the hub offline otherwise).
 # --no-deps: fetching needs neither postgres nor the migrate job, which `run` would start otherwise.
@@ -127,8 +129,9 @@ def _build_parser() -> argparse.ArgumentParser:
     audit_parser = sub.add_parser("audit", help="inspect the audit log")
     asub = audit_parser.add_subparsers(dest="audit_command", required=True, metavar="COMMAND")
     verify_help = (
-        "check the audit log's hash chain; every row must be chained (exit 0 when intact, 1 when broken, "
-        "naming the first bad chain position; an unchained row counts as a break at the position it would take)"
+        "check the audit log's hash chain; every row must be chained (exit 0 when intact, 6 when broken, "
+        "naming the first bad chain position; an unchained row counts as a break at the position it would take; "
+        "1 means the check itself could not run)"
     )
     asub.add_parser("verify", help=verify_help, description=verify_help)
     return parser
@@ -220,7 +223,7 @@ def _run_audit_verify(connect: Callable[[], psycopg.Connection]) -> int:
     finally:
         conn.close()
     print(audit.format_status(status))
-    return 0 if status.ok else 1
+    return 0 if status.ok else EXIT_AUDIT_BROKEN
 
 
 def _run_models_fetch() -> int:
@@ -242,6 +245,10 @@ def _guarded(action: Callable[[], int]) -> int:
     """Run a hand-run command and turn every outcome into an exit code (see the module doc)."""
     try:
         return action()
+    except GitRuntimeError as exc:  # before GitSourceError, its base class (a refusal, exit 2)
+        # one line: git's own detail (stderr, up to 300 characters) can span several
+        print(f"error: git: {' '.join(str(exc).split())}", file=sys.stderr)
+        return 1
     except (UsageError, CommandError, store.StoreError, GitSourceError, MlPackagesMissingError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

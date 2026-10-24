@@ -207,6 +207,9 @@ jobs:
           test -n "$id" || { echo "no release id in the first line of the build output"; exit 1; }
           release publish "$id" --allow-fake
           release list
+          # The build, the publish and the itest step above all wrote audit rows: the chain must still
+          # verify (exit 6 if broken, 1 if the check could not run). The model is not needed here.
+          docker compose --profile tools run --rm -T release audit verify
 
       - name: Container state and logs (only when something failed)
         if: failure()
