@@ -147,9 +147,9 @@ def test_missing_database_settings_are_exit_2_and_never_print_the_password(world
 
 def test_an_embedder_that_cannot_be_made_is_exit_2(world, capsys, monkeypatch):
     def refuse(env):
-        raise NotImplementedError("real embedder arrives in Task C1")
+        raise ValueError("GSN_EMBEDDER must be 'fake' or 'bge-m3', got 'x'")
 
     monkeypatch.setattr(cli, "get_embedder", refuse)
     code, out, err = world.run(capsys, "parity", "--release", "7")
-    assert code == 2 and "real embedder arrives" in err and world.calls == []
+    assert code == 2 and "GSN_EMBEDDER must be" in err and world.calls == []
     assert [c.closed for c in world.connections] == [True]

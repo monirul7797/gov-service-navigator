@@ -51,7 +51,8 @@ EXIT_INTEGRITY = 4
 EXIT_PARITY = 5
 
 # The one command that downloads the model (the release image keeps the hub offline otherwise).
-FETCH_COMMAND = "docker compose --profile tools run --rm -e HF_HUB_OFFLINE=0 release models fetch"
+# --no-deps: fetching needs neither postgres nor the migrate job, which `run` would start otherwise.
+FETCH_COMMAND = "docker compose --profile tools run --rm --no-deps -e HF_HUB_OFFLINE=0 release models fetch"
 
 
 def _exit_on_sigterm(_signum: int, _frame: object) -> None:
@@ -143,7 +144,7 @@ def _db_kwargs() -> dict:
 def _make_embedder() -> Embedder:
     try:
         return get_embedder(os.environ)
-    except (NotImplementedError, ValueError) as exc:
+    except ValueError as exc:  # an unknown GSN_EMBEDDER; the real embedder is only made here, never loaded
         raise UsageError(f"cannot make the embedder: {exc}") from None
 
 
@@ -225,7 +226,8 @@ def _run_audit_verify(connect: Callable[[], psycopg.Connection]) -> int:
 def _run_models_fetch() -> int:
     if hub_is_offline():
         raise UsageError(
-            f"HF_HUB_OFFLINE is on, so the model cannot be downloaded. Run it with the hub switched on: {FETCH_COMMAND}"
+            "the hub is offline (HF_HUB_OFFLINE or TRANSFORMERS_OFFLINE is on), so the model cannot be downloaded. "
+            f"Run it with the hub switched on: {FETCH_COMMAND}"
         )
     snapshot = fetch_model()
     # <cache root>/models--<org>--<name>/snapshots/<revision>: print it relative to the cache root

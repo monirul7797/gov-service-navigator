@@ -473,19 +473,25 @@ Things to know:
 
 The real model, BAAI/bge-m3 (about 2.3 GB), is not part of the image. It lives in the `gsn-models`
 volume, mounted at `/models` (`HF_HOME`), and the `release` container is offline
-(`HF_HUB_OFFLINE=1`) so that a build can never fetch anything by surprise. Download the model once,
-with the one command that switches the hub on:
+(`HF_HUB_OFFLINE=1`) so that a build can never fetch anything by surprise: whatever that variable says,
+the embedder always loads the model from the files in the volume and never reaches the hub, and `build`
+checks that all ten files are there before it writes anything. Download the model once, with the one
+command that switches the hub on:
 
 ```powershell
-docker compose --profile tools run --rm -T -e HF_HUB_OFFLINE=0 release models fetch
+docker compose --profile tools run --rm -T --no-deps -e HF_HUB_OFFLINE=0 release models fetch
 ```
+
+(`--no-deps` stops Compose from starting the database and the migration job, which the `release` service
+depends on, for a download that needs neither.)
 
 It downloads exactly the ten files of BAAI/bge-m3 at the pinned revision (`5617a9f6...`, the one
 the ChromaDB baseline was made with; the repository's other formats are skipped) and prints the
 snapshot folder, relative to the cache, and the total size in bytes, for example
 `snapshot: models--BAAI--bge-m3/snapshots/5617a9f6...`. Running it again downloads nothing that is
-already there, and an interrupted download is completed by running it again. Without
-`HF_HUB_OFFLINE=0` the command refuses (exit 2) and prints the command to use.
+already there, and an interrupted download is completed by running it again. While the hub is switched
+off (`HF_HUB_OFFLINE` or `TRANSFORMERS_OFFLINE` set to 1, on, yes or true) the command refuses (exit 2)
+and prints the command to use.
 
 Things to know:
 
@@ -495,7 +501,8 @@ Things to know:
   database, so after a full reset run the command again.
 - If a `build`, `eval` or `parity` finds the model missing or incomplete, it stops with exit 2 and one
   line: `error: the embedding model is not in the model cache; download it once with: docker compose
-  --profile tools run --rm -e HF_HUB_OFFLINE=0 release models fetch`.
+  --profile tools run --rm --no-deps -e HF_HUB_OFFLINE=0 release models fetch`. For `build` this happens
+  before anything is written, even when every vector would have been reused.
 - To check that the model loads and what it produces (prints the model id and the first four numbers
   of each vector; the sentences are arbitrary):
 
@@ -536,9 +543,13 @@ pull in. They are the `ml` extra of `engine/pyproject.toml`, and `engine/constra
 the extra adds on top of the runtime image: every package of the ML tree that the engine's runtime
 dependencies do not already bring. (A few of them, such as `packaging` and `filelock`, are also in
 `engine/constraints.txt`, because the dev tree needs them; the versions are always the same.) The
-Dockerfile installs the file with `pip install --no-deps -r constraints-ml.txt` (pip resolves nothing at
-build time) and then runs `pip check`, which fails the build if anything is missing. The Windows `.venv`
-does not install `[ml]` (drive `C:` is small); unit tests there use the fake embedder.
+Dockerfile has a separate `ml` stage that mounts only this file and installs it with
+`pip install --no-deps -r constraints-ml.txt` (pip resolves nothing at build time). The `release` stage is
+built on it: it installs the engine the way the runtime stage does, under both lock files, adds git and
+`/models`, and runs `pip check`, which fails the build if anything is missing. Because the `ml` stage sees
+nothing but the lock file, editing engine code rebuilds only the small `release` layers, not the 1.7 GB
+ML layer (BuildKit prints `CACHED` for it); it is rebuilt only when `constraints-ml.txt` changes. The
+Windows `.venv` does not install `[ml]` (drive `C:` is small); unit tests there use the fake embedder.
 
 The seven pins in the extra (`torch`, `sentence-transformers`, `transformers`, `tokenizers`,
 `safetensors`, `numpy`, `huggingface-hub`) are the versions of the ChromaDB baseline's environment

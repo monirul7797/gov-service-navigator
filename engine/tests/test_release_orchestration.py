@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta, timezone
 import pytest
 
 from gsn import evals, store
-from gsn.embed import FakeEmbedder
+from gsn.embed import FakeEmbedder, ModelMissingError
 from gsn.gitsource import DictSource
 from gsn.hashing import content_hash, text_hash
 from gsn.release import build
@@ -319,6 +319,53 @@ def test_a_connection_that_is_not_in_autocommit_mode_is_refused_before_anything_
     with pytest.raises(ValueError, match="autocommit"):
         world.build()
     assert world.log == []
+
+
+# --- the model must be there before anything is written ------------------------------------------------
+
+
+def test_the_embedder_is_asked_if_it_is_available_before_the_draft_is_written(world):
+    world.embedder.ensure_available = lambda: world.log.append("ensure_available")
+    world.build()
+    assert world.log.index("ensure_available") < world.log.index("create_draft")
+    assert world.log.index("ensure_available") < world.log.index("encode:6")
+
+
+def test_a_missing_model_stops_the_build_with_nothing_written(world):
+    def missing():
+        world.log.append("ensure_available")
+        raise ModelMissingError("run: gsn models fetch")
+
+    world.embedder.ensure_available = missing
+    with pytest.raises(ModelMissingError):
+        world.build()
+    assert world.writes() == [] and world.drafts == [] and world.audits == [] and world.gate_results == []
+    assert world.embedder.batches == [] and "begin" not in world.log
+
+
+def test_a_missing_model_stops_a_rebuild_even_when_every_vector_would_be_reused(world):
+    world.build()
+    assert len(world.drafts) == 1
+    writes_before = world.writes()
+
+    def missing():
+        raise ModelMissingError("run: gsn models fetch")
+
+    world.embedder.ensure_available = missing
+    with pytest.raises(ModelMissingError):
+        world.build()
+    assert len(world.drafts) == 1 and world.writes() == writes_before  # no second release row, no audit row
+
+
+def test_an_embedder_without_ensure_available_still_builds(world):
+    class Plain:
+        model_id = "fake-sha256-v1"
+
+        def encode(self, texts):
+            return FakeEmbedder().encode(texts)
+
+    world.embedder = Plain()
+    assert world.build().status == "validated"
 
 
 # --- integrity ----------------------------------------------------------------------------------

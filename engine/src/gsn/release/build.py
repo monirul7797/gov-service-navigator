@@ -216,6 +216,12 @@ def build_release(
     if problems:
         return _integrity_failed(problems)
 
+    # The model must be there before anything is written: with every vector reused the build would otherwise
+    # go on to create a draft and only fail when the first gold query is embedded.
+    preflight = getattr(embedder, "ensure_available", None)
+    if preflight is not None:
+        preflight()
+
     plan = _plan_versions(conn, inputs, embedder)
     records = sum(len(inputs.corpora[entry.service_id]) for entry in inputs.manifest)
     reused = len(plan.member_version_ids)

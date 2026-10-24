@@ -14,7 +14,7 @@ import pytest
 
 import gsn.cli as cli
 from gsn import store
-from gsn.embed import FakeEmbedder
+from gsn.embed import FakeEmbedder, ModelMissingError
 from gsn.evals import GateResult
 from gsn.gitsource import GitSource, GitSourceError
 from gsn.release import commands
@@ -244,8 +244,9 @@ def test_missing_database_settings_are_exit_2_and_never_print_the_password(world
     assert world.builds == [] and world.connections == []
 
 
-@pytest.mark.parametrize("error", [NotImplementedError("real embedder arrives in Task C1"), ValueError("bad name")])
-def test_an_embedder_that_cannot_be_made_is_exit_2(world, capsys, monkeypatch, error):
+def test_an_embedder_that_cannot_be_made_is_exit_2(world, capsys, monkeypatch):
+    error = ValueError("GSN_EMBEDDER must be 'fake' or 'bge-m3', got 'bad name'")
+
     def refuse(env):
         raise error
 
@@ -253,6 +254,15 @@ def test_an_embedder_that_cannot_be_made_is_exit_2(world, capsys, monkeypatch, e
     code, out, err = world.run(capsys, "release", "build")
     assert code == 2 and str(error) in err
     assert world.builds == []
+
+
+def test_a_model_that_is_not_downloaded_is_exit_2_with_one_line_naming_the_fetch_command(world, capsys):
+    world.result = ModelMissingError("run: gsn models fetch")
+    code, out, err = world.run(capsys, "release", "build")
+    assert code == 2 and out == ""
+    assert err.strip().splitlines() == [
+        "error: the embedding model is not in the model cache; download it once with: docker compose --profile "
+        "tools run --rm --no-deps -e HF_HUB_OFFLINE=0 release models fetch"]
 
 
 def test_a_server_refusal_during_the_build_is_exit_2_with_the_servers_message(world, capsys):

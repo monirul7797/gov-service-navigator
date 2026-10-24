@@ -21,6 +21,7 @@ from gsn.embed import (
     SentenceTransformerEmbedder,
     fetch_model,
     get_embedder,
+    hub_is_offline,
     snapshot_bytes,
 )
 from gsn.retrieval import Hit, retrieve
@@ -263,7 +264,7 @@ def test_the_model_loads_on_the_first_encode_only_with_the_pinned_revision(ml):
     assert model.name == "BAAI/bge-m3"
     assert model.kwargs["revision"] == MODEL_REVISION
     assert model.kwargs["cache_folder"] is None  # HF_HOME decides (the release image sets it to /models)
-    assert model.kwargs["local_files_only"] is False  # HF_HUB_OFFLINE is not set
+    assert model.kwargs["local_files_only"] is True  # always: the load never reaches the hub
     assert len(first) == 2 and len(second) == 1
 
 
@@ -273,11 +274,43 @@ def test_a_given_cache_dir_is_used_for_the_check_and_for_loading(ml):
     assert ml.hub_calls and all(kwargs["cache_dir"] == "/cache/root" for _, kwargs in ml.hub_calls)
 
 
-@pytest.mark.parametrize(("value", "offline"), [("1", True), ("0", False), ("", False)])
-def test_local_files_only_follows_hf_hub_offline(ml, monkeypatch, value, offline):
-    monkeypatch.setenv("HF_HUB_OFFLINE", value)
+@pytest.mark.parametrize("value", ["1", "0", "", None])
+def test_the_model_is_always_loaded_from_the_local_cache(ml, monkeypatch, value):
+    """After the completeness check the load never reaches the hub, whatever HF_HUB_OFFLINE says."""
+    if value is not None:
+        monkeypatch.setenv("HF_HUB_OFFLINE", value)
     get_embedder({}).encode(["a"])
-    assert FakeSentenceTransformer.instances[0].kwargs["local_files_only"] is offline
+    assert FakeSentenceTransformer.instances[0].kwargs["local_files_only"] is True
+
+
+@pytest.mark.parametrize(
+    ("env", "offline"),
+    [
+        ({}, False),
+        ({"HF_HUB_OFFLINE": "0"}, False),
+        ({"HF_HUB_OFFLINE": ""}, False),
+        ({"HF_HUB_OFFLINE": "1"}, True),
+        ({"HF_HUB_OFFLINE": "on"}, True),
+        ({"HF_HUB_OFFLINE": "Yes"}, True),
+        ({"HF_HUB_OFFLINE": "TRUE"}, True),
+        ({"TRANSFORMERS_OFFLINE": "1"}, True),
+        ({"TRANSFORMERS_OFFLINE": "true"}, True),
+        ({"TRANSFORMERS_OFFLINE": "0"}, False),
+        ({"HF_HUB_OFFLINE": "0", "TRANSFORMERS_OFFLINE": "1"}, True),
+        ({"HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "0"}, True),
+        ({"HF_HUB_OFFLINE": "0", "TRANSFORMERS_OFFLINE": "0"}, False),
+    ],
+)
+def test_the_hub_is_offline_when_either_variable_is_on(env, offline):
+    assert hub_is_offline(env) is offline
+
+
+def test_hub_is_offline_reads_this_processs_environment_by_default(monkeypatch):
+    monkeypatch.delenv("HF_HUB_OFFLINE", raising=False)
+    monkeypatch.delenv("TRANSFORMERS_OFFLINE", raising=False)
+    assert hub_is_offline() is False
+    monkeypatch.setenv("TRANSFORMERS_OFFLINE", "1")
+    assert hub_is_offline() is True
 
 
 def test_encode_normalises_in_batches_of_16_and_returns_plain_float_lists(ml):
@@ -323,6 +356,42 @@ def test_a_half_downloaded_snapshot_is_model_missing(ml):
     with pytest.raises(ModelMissingError, match=r"run: gsn models fetch"):
         get_embedder({}).encode(["a"])
     assert FakeSentenceTransformer.instances == []
+
+
+def test_ensure_available_checks_the_cache_without_loading_the_model(ml):
+    embedder = get_embedder({})
+    embedder.ensure_available()
+    assert FakeSentenceTransformer.instances == []  # nothing was loaded
+    (args, kwargs), = ml.hub_calls
+    assert args == ("BAAI/bge-m3",) and kwargs["revision"] == MODEL_REVISION and kwargs["local_files_only"] is True
+    embedder.encode(["a"])  # the later load still works
+    assert len(FakeSentenceTransformer.instances) == 1
+
+
+def test_ensure_available_never_imports_sentence_transformers(monkeypatch, ml):
+    monkeypatch.setitem(sys.modules, "sentence_transformers", None)  # an import would fail, as without torch
+    get_embedder({}).ensure_available()
+
+
+def test_ensure_available_raises_model_missing_for_a_missing_or_half_downloaded_snapshot(ml):
+    ml.hub_result = FileNotFoundError("Cannot find an appropriate cached snapshot folder")
+    with pytest.raises(ModelMissingError, match=r"run: gsn models fetch"):
+        get_embedder({}).ensure_available()
+    ml.hub_result = str(ml.snapshot)
+    (ml.snapshot / "pytorch_model.bin").unlink()
+    with pytest.raises(ModelMissingError, match=r"run: gsn models fetch"):
+        get_embedder({}).ensure_available()
+    assert FakeSentenceTransformer.instances == []
+
+
+def test_ensure_available_without_the_hub_package_says_where_the_real_embedder_runs(monkeypatch):
+    monkeypatch.setitem(sys.modules, "huggingface_hub", None)
+    with pytest.raises(MlPackagesMissingError, match="release"):
+        get_embedder({}).ensure_available()
+
+
+def test_the_fake_embedder_is_always_available():
+    assert FakeEmbedder().ensure_available() is None
 
 
 def test_a_failed_load_is_tried_again_by_the_next_encode(ml):

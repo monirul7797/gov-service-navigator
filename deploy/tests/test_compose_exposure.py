@@ -321,17 +321,48 @@ def test_engine_stages_run_as_a_dedicated_non_root_user(stage):
     assert user is not None and user.group(1) not in {"root", "0"}
 
 
-def test_engine_release_stage_is_the_runtime_plus_git_and_runs_as_the_dedicated_user():
+def _engine_stage(name):
+    """The instructions of one engine Dockerfile stage, without comment lines (the comment that introduces a
+    stage sits at the end of the stage before it)."""
     text = (ROOT / "engine" / "Dockerfile").read_text(encoding="utf-8")
-    block = re.search(r"^FROM runtime AS release\b(.*?)(?=^FROM |\Z)", text, re.M | re.S).group(1)
+    block = re.search(rf"^FROM \S+ AS {name}\b(.*?)(?=^FROM |\Z)", text, re.M | re.S).group(1)
+    return "\n".join(line for line in block.splitlines() if not line.lstrip().startswith("#"))
+
+
+def test_engine_ml_stage_installs_only_the_ml_lock_file_so_source_edits_never_rebuild_it():
+    text = (ROOT / "engine" / "Dockerfile").read_text(encoding="utf-8")
+    assert re.search(r"^FROM base AS ml\b", text, re.M)
+    block = _engine_stage("ml")
+    # Only constraints-ml.txt is mounted: the layer's cache key is that file, not the engine sources.
+    assert "--mount=type=bind,source=constraints-ml.txt," in block
+    assert "target=/build" not in block and "/build" not in block.replace("constraints-ml.txt", "")
+    assert "--no-deps" in block and "https://download.pytorch.org/whl/cpu" in block
+    assert "-r /constraints-ml.txt" in block or "-r /build/constraints-ml.txt" in block
+    assert "COPY" not in block and "USER" not in block and "EXPOSE" not in block
+
+
+def test_engine_release_stage_is_built_on_the_ml_stage_plus_git_and_runs_as_the_dedicated_user():
+    text = (ROOT / "engine" / "Dockerfile").read_text(encoding="utf-8")
+    assert re.search(r"^FROM ml AS release\b", text, re.M)
+    assert text.index("AS ml") < text.index("AS release")
+    block = _engine_stage("release")
     users = re.findall(r"^USER (\S+)", block, re.M)
     assert users[0] == "root" and users[-1] == "gsn"  # root only for the install, the entrypoint runs as gsn
     assert "--no-install-recommends git" in block and "/var/lib/apt/lists" in block
     assert "chown gsn:gsn /models" in block
     for setting in ("HF_HOME=/models", "HF_HUB_OFFLINE=1", "GIT_CONFIG_NOSYSTEM=1", "GSN_REPO_GIT=/repo.git"):
         assert setting in block, setting
+    # the engine package goes in the way the runtime stage does it, with both lock files as constraints
+    assert "-c /build/constraints.txt" in block and "-c /build/constraints-ml.txt" in block
+    assert "pip check" in block
     assert 'ENTRYPOINT ["gsn"]' in block and 'CMD ["--help"]' in block
     assert "EXPOSE" not in block
+
+
+def test_the_runtime_and_test_stages_know_nothing_about_the_ml_packages():
+    for stage in ("runtime", "test"):
+        block = _engine_stage(stage)
+        assert "ml" not in re.findall(r"\[(\w+)\]", block) and "constraints-ml" not in block and "torch" not in block
 
 
 def test_engine_runtime_stage_contains_no_tests():

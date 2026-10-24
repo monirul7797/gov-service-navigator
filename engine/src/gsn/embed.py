@@ -55,6 +55,7 @@ BGE_M3_REVISION = MODEL_REVISION
 BGE_M3_MODEL_ID = MODEL_ID
 
 _OFFLINE_VALUES = {"1", "ON", "YES", "TRUE"}  # what huggingface_hub reads as HF_HUB_OFFLINE being on
+_OFFLINE_VARIABLES = ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE")
 
 
 class Embedder(Protocol):
@@ -64,6 +65,11 @@ class Embedder(Protocol):
     stored vector is reused only for the same model). ``encode`` returns one vector of ``DIMENSIONS``
     floats per text, in order, each of unit length. It is also a ``gsn.retrieval`` encoder: anything
     that satisfies this protocol can be passed wherever retrieval wants one.
+
+    An embedder may also have ``ensure_available()``, a cheap check that it can work at all (the real one
+    raises ``ModelMissingError`` when the model files are not downloaded). ``gsn.release.build`` calls it, if
+    there is one, before it writes anything. It is not part of the protocol so that small test embedders need
+    not define it.
     """
 
     model_id: str
@@ -80,8 +86,12 @@ class MlPackagesMissingError(Exception):
 
 
 def hub_is_offline(env: Mapping[str, str] | None = None) -> bool:
-    """Whether ``HF_HUB_OFFLINE`` is on (default: this process's environment)."""
-    return (os.environ if env is None else env).get("HF_HUB_OFFLINE", "").strip().upper() in _OFFLINE_VALUES
+    """Whether ``HF_HUB_OFFLINE`` or ``TRANSFORMERS_OFFLINE`` is on (default: this process's environment).
+
+    Both use the values the Hugging Face libraries read as true: 1, ON, YES, TRUE (any case).
+    """
+    env = os.environ if env is None else env
+    return any(env.get(name, "").strip().upper() in _OFFLINE_VALUES for name in _OFFLINE_VARIABLES)
 
 
 def _ml_packages_missing(what: str) -> MlPackagesMissingError:
@@ -108,6 +118,9 @@ class FakeEmbedder:
 
     model_id = FAKE_MODEL_ID
 
+    def ensure_available(self) -> None:
+        """Nothing to download: the fake embedder is always ready (see ``SentenceTransformerEmbedder``)."""
+
     def encode(self, texts: Sequence[str]) -> list[list[float]]:
         _check_texts(texts)
         return [self._vector(text) for text in texts]
@@ -125,8 +138,9 @@ class SentenceTransformerEmbedder:
 
     ``cache_dir`` is the Hugging Face hub cache; ``None`` leaves it to ``HF_HOME``/``HF_HUB_CACHE`` (the
     release image sets ``HF_HOME=/models``, a volume). Vectors are normalised to unit length and returned as
-    plain lists of Python floats. Whether the hub may use the network while loading follows
-    ``HF_HUB_OFFLINE`` (the image sets it to 1); the files must already be in the cache either way.
+    plain lists of Python floats. The model is always loaded from the local cache
+    (``local_files_only=True``, whatever ``HF_HUB_OFFLINE`` says): once the files are verified to be there,
+    ``encode`` can never reach the hub.
     """
 
     model_id = MODEL_ID
@@ -134,6 +148,18 @@ class SentenceTransformerEmbedder:
     def __init__(self, cache_dir: str | None = None) -> None:
         self._cache_dir = cache_dir
         self._model = None
+
+    def ensure_available(self) -> None:
+        """Raise ``ModelMissingError`` unless every pinned file is in the cache.
+
+        A cheap preflight: it checks the files on disk and loads no model (``sentence_transformers`` and
+        ``torch`` are not imported), so ``gsn release build`` can refuse to start before it writes anything.
+        """
+        try:
+            from huggingface_hub import snapshot_download
+        except ImportError as exc:
+            raise _ml_packages_missing("the real embedder") from exc
+        self._require_snapshot(snapshot_download)
 
     def encode(self, texts: Sequence[str]) -> list[list[float]]:
         _check_texts(texts)
@@ -151,13 +177,12 @@ class SentenceTransformerEmbedder:
 
     def _load(self):
         try:
-            from huggingface_hub import snapshot_download
             from sentence_transformers import SentenceTransformer
         except ImportError as exc:
             raise _ml_packages_missing("the real embedder") from exc
-        self._require_snapshot(snapshot_download)
+        self.ensure_available()
         self._model = SentenceTransformer(
-            MODEL_REPO, revision=MODEL_REVISION, cache_folder=self._cache_dir, local_files_only=hub_is_offline()
+            MODEL_REPO, revision=MODEL_REVISION, cache_folder=self._cache_dir, local_files_only=True
         )
         return self._model
 

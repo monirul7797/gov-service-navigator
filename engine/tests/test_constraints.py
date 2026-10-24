@@ -146,12 +146,26 @@ def test_the_ml_pins_are_the_versions_that_made_the_chromadb_baseline():
     assert pins["torch"] == environment["torch"] + "+cpu"
 
 
-def test_the_release_image_installs_the_ml_pins_without_resolving_anything():
+def test_the_ml_stage_installs_the_ml_pins_without_resolving_anything():
     dockerfile = (ENGINE / "Dockerfile").read_text(encoding="utf-8")
-    block = re.search(r"^FROM runtime AS release\b(.*?)(?=^FROM |\Z)", dockerfile, re.M | re.S).group(1)
-    assert "--no-deps" in block and "/build/constraints-ml.txt" in block
+    block = re.search(r"^FROM base AS ml\b(.*?)(?=^FROM |\Z)", dockerfile, re.M | re.S).group(1)
+    assert "--no-deps" in block and "constraints-ml.txt" in block
     assert "https://download.pytorch.org/whl/cpu" in block
-    assert "pip check" in block
+    release = re.search(r"^FROM ml AS release\b(.*?)(?=^FROM |\Z)", dockerfile, re.M | re.S).group(1)
+    assert "pip check" in release and "-c /build/constraints-ml.txt" in release
+
+
+def test_the_ml_extra_is_exactly_the_seven_baseline_pins():
+    """Nothing is added to or dropped from the extra without this test (and the baseline) being looked at."""
+    assert sorted(_ml_extra()) == sorted([
+        "huggingface-hub==1.23.0",
+        "numpy==2.5.1",
+        "safetensors==0.8.0",
+        "sentence-transformers==5.6.0",
+        "tokenizers==0.22.2",
+        "torch==2.13.0+cpu",
+        "transformers==5.13.1",
+    ])
 
 
 def test_the_ml_file_does_not_repeat_the_engines_runtime_dependencies():

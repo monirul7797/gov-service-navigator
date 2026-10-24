@@ -11,7 +11,7 @@ from gsn.embed import MlPackagesMissingError, ModelMissingError
 
 REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
 SNAPSHOT = f"/models/hub/models--BAAI--bge-m3/snapshots/{REVISION}"
-FETCH_COMMAND = "docker compose --profile tools run --rm -e HF_HUB_OFFLINE=0 release models fetch"
+FETCH_COMMAND = "docker compose --profile tools run --rm --no-deps -e HF_HUB_OFFLINE=0 release models fetch"
 SECRET = "top-secret-db-password"
 
 
@@ -22,7 +22,8 @@ class FakeConn:
 
 class World:
     def __init__(self, monkeypatch):
-        for name in ("GSN_DB_HOST", "GSN_DB_PORT", "GSN_DB_NAME", "GSN_DB_USER", "GSN_DB_PASSWORD", "HF_HUB_OFFLINE"):
+        for name in ("GSN_DB_HOST", "GSN_DB_PORT", "GSN_DB_NAME", "GSN_DB_USER", "GSN_DB_PASSWORD", "HF_HUB_OFFLINE",
+                     "TRANSFORMERS_OFFLINE"):
             monkeypatch.delenv(name, raising=False)
         self.fetches = []
         self.connections = []
@@ -65,6 +66,19 @@ def test_every_value_the_hub_reads_as_offline_is_refused(world, capsys, monkeypa
     monkeypatch.setenv("HF_HUB_OFFLINE", value)
     assert world.run(capsys, "models", "fetch")[0] == 2
     assert world.fetches == []
+
+
+def test_transformers_offline_also_refuses_the_download(world, capsys, monkeypatch):
+    monkeypatch.setenv("HF_HUB_OFFLINE", "0")
+    monkeypatch.setenv("TRANSFORMERS_OFFLINE", "1")
+    code, out, err = world.run(capsys, "models", "fetch")
+    assert code == 2 and "TRANSFORMERS_OFFLINE" in err and FETCH_COMMAND in err
+    assert world.fetches == []
+
+
+def test_the_fetch_command_does_not_start_the_database():
+    # `--no-deps`: the release service depends on migrate (and so on postgres); fetching needs neither.
+    assert cli.FETCH_COMMAND == FETCH_COMMAND and "--no-deps" in FETCH_COMMAND
 
 
 @pytest.mark.parametrize("value", ["0", "", None])
