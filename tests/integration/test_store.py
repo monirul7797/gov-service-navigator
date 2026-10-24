@@ -713,3 +713,21 @@ def test_read_helpers_describe_a_release(connect):
     assert names[hidden] == (f"সেবা {hidden}", f"Service {hidden}")
     active = store.active_release_id(worker)
     assert active is None or isinstance(active, int)
+
+
+def test_member_text_hashes_maps_each_member_to_the_text_hash_of_its_version(connect):
+    worker = connect("worker")
+    tag = new_tag()
+    sid = f"svc_{tag}"
+    r0, r1 = f"rec_{tag}_0", f"rec_{tag}_1"
+    first = store.create_draft(worker, make_draft(tag, [entry(sid)], [
+        new_version(sid, r0, "zero text"), new_version(sid, r1, "বাংলা text")], note="first"))
+    assert store.member_text_hashes(worker, first) == {r0: text_hash("zero text"), r1: text_hash("বাংলা text")}
+
+    # A later release reuses r0 and holds a new version of r1: each member reports ITS version's hash.
+    reused = {r0: member_versions(worker, first)[r0]}
+    second = store.create_draft(
+        worker, make_draft(tag, [entry(sid)], [new_version(sid, r1, "edited text")], reused, note="second"))
+    assert store.member_text_hashes(worker, second) == {r0: text_hash("zero text"), r1: text_hash("edited text")}
+    assert store.member_text_hashes(worker, first) == {r0: text_hash("zero text"), r1: text_hash("বাংলা text")}
+    assert store.member_text_hashes(worker, UNKNOWN_ID) == {}

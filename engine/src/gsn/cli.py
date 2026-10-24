@@ -1,13 +1,14 @@
-"""Command line entry point: ``gsn worker``, ``gsn engine``, ``gsn release ...``, ``gsn eval`` and
-``gsn audit verify``.
+"""Command line entry point: ``gsn worker``, ``gsn engine``, ``gsn release ...``, ``gsn eval``,
+``gsn parity`` and ``gsn audit verify``.
 
-``gsn release``, ``gsn eval`` and ``gsn audit`` are run by hand (in the one-off ``release`` container) and
-print plain text for the owner. Exit codes: 0 success (a build that is validated, an intact audit chain,
-or any other command that worked), 1 runtime error (database down, a bug; for ``audit verify`` also a
-broken chain), 2 usage or configuration error or a refusal (a bad argument or ref, a missing ``GSN_DB_*``
-variable, an embedder that cannot be made, secret files in the repository's history, a database refusal
-such as "release 7 is not validated"), 3 a build that finished but was rejected (or an eval whose gate
-would reject), 4 integrity problems (nothing written).
+``gsn release``, ``gsn eval``, ``gsn parity`` and ``gsn audit`` are run by hand (in the one-off ``release``
+container) and print plain text for the owner (``gsn parity`` prints its report as JSON). Exit codes: 0
+success (a build that is validated, an intact audit chain, or any other command that worked), 1 runtime
+error (database down, a bug; for ``audit verify`` also a broken chain), 2 usage or configuration error or a
+refusal (a bad argument or ref, a missing ``GSN_DB_*`` variable, an embedder that cannot be made, secret
+files in the repository's history, a database refusal such as "release 7 is not validated"), 3 a build that
+finished but was rejected (or an eval whose gate would reject), 4 integrity problems (nothing written), 5 a
+parity report that is not ok (the report is still printed).
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ from collections.abc import Callable, Sequence
 
 import psycopg
 
-from gsn import audit, logs, store
+from gsn import audit, logs, parity, store
 from gsn.db import connect_kwargs
 from gsn.embed import Embedder, get_embedder
 from gsn.gitsource import GitSourceError
@@ -35,6 +36,7 @@ CONNECT_TIMEOUT_SECONDS = 10
 
 EXIT_REJECTED = 3
 EXIT_INTEGRITY = 4
+EXIT_PARITY = 5
 
 
 def _exit_on_sigterm(_signum: int, _frame: object) -> None:
@@ -94,6 +96,11 @@ def _build_parser() -> argparse.ArgumentParser:
     evaluate = sub.add_parser("eval", help="run the gold queries against a release")
     evaluate.add_argument("--release", dest="release_id", type=int, required=True, metavar="ID")
     evaluate.add_argument("--json", action="store_true", help="print the full result as JSON")
+
+    parity_parser = sub.add_parser(
+        "parity", help="compare a release with the committed ChromaDB baseline and print the report as JSON"
+    )
+    parity_parser.add_argument("--release", dest="release_id", type=int, required=True, metavar="ID")
 
     audit_parser = sub.add_parser("audit", help="inspect the audit log")
     asub = audit_parser.add_subparsers(dest="audit_command", required=True, metavar="COMMAND")
@@ -155,6 +162,17 @@ def _run_eval(args: argparse.Namespace, connect: Callable[[], psycopg.Connection
     return 0 if result["passed"] else EXIT_REJECTED
 
 
+def _run_parity(args: argparse.Namespace, connect: Callable[[], psycopg.Connection]) -> int:
+    conn = connect()
+    try:
+        # source=None: the baseline files are read from the release's own commit of the mounted repository
+        report = parity.run_parity(conn, args.release_id, None, _make_embedder())
+    finally:
+        conn.close()
+    print(parity.format_report(report))
+    return 0 if report["ok"] else EXIT_PARITY
+
+
 def _run_simple(args: argparse.Namespace, connect: Callable[[], psycopg.Connection]) -> int:
     conn = connect()
     try:
@@ -206,11 +224,13 @@ def _run_guarded(run: Callable[[Callable[[], psycopg.Connection]], int]) -> int:
 
 
 def _run_release_command(args: argparse.Namespace) -> int:
-    """Run ``gsn release ...`` or ``gsn eval``."""
+    """Run ``gsn release ...``, ``gsn eval`` or ``gsn parity``."""
 
     def run(connect: Callable[[], psycopg.Connection]) -> int:
         if args.command == "eval":
             return _run_eval(args, connect)
+        if args.command == "parity":
+            return _run_parity(args, connect)
         if args.release_command == "build":
             return _run_build(args, connect)
         return _run_simple(args, connect)
@@ -221,7 +241,7 @@ def _run_release_command(args: argparse.Namespace) -> int:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
-    if args.command in ("release", "eval"):
+    if args.command in ("release", "eval", "parity"):
         return _run_release_command(args)
 
     if args.command == "audit":  # only ``verify`` exists
