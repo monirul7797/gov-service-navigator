@@ -1,0 +1,192 @@
+# Real-model evals (milestone M1). ci.yml builds a release with a FAKE embedder (no 2.3 GB model in
+# ordinary CI) and so cannot judge retrieval quality. This workflow builds a release of the checked-out
+# commit with the real model, BAAI/bge-m3 at the revision pinned in engine/src/gsn/embed.py, and
+# requires the release gate to pass: the 74 gold queries may fail only where data/release_thresholds.json
+# lists them under known_failures. The same steps by hand are in docs/DEVELOPMENT.md ("Real-model evals").
+#
+# It runs when something that can change what the gate measures changes (the paths below), and on demand.
+# Same supply-chain rules as ci.yml: every action is pinned to a full commit SHA with its release in a
+# trailing comment (deploy/tests/test_repo_hygiene.py checks it), the token can only read the
+# repository, and no job uses a secret.
+name: Evals (real model)
+
+on:
+  workflow_dispatch:
+  # push and pull_request take the same list (deploy/tests/test_repo_hygiene.py checks it; it is written
+  # out twice because the YAML anchors that would share it are not used in this repository). The list
+  # is everything that changes what the gate measures: the gsn package (store.py holds the search SQL;
+  # the engine and worker apps are left out, the gate does not use them), the release image and its
+  # locked packages, the migrations and compose.yaml, the data and gold queries, and the committed
+  # ChromaDB baseline. GitHub reads the patterns in order: a "!" pattern removes what the patterns
+  # before it matched, so the two exclusions must stay after "engine/src/gsn/**".
+  push:
+    branches: [master]
+    paths:
+      - "engine/src/gsn/**"
+      - "!engine/src/gsn/engine/**"
+      - "!engine/src/gsn/worker/**"
+      - "engine/Dockerfile"
+      - "engine/constraints.txt"
+      - "engine/constraints-ml.txt"
+      - "engine/pyproject.toml"
+      - "db/migrations/**"
+      - "compose.yaml"
+      - "data/**"
+      - "*_gold_queries.json"
+      - "concept_registry.json"
+      - "docs/reports/m1-parity/**"
+      - ".github/workflows/evals.yml"
+  pull_request:
+    paths:
+      - "engine/src/gsn/**"
+      - "!engine/src/gsn/engine/**"
+      - "!engine/src/gsn/worker/**"
+      - "engine/Dockerfile"
+      - "engine/constraints.txt"
+      - "engine/constraints-ml.txt"
+      - "engine/pyproject.toml"
+      - "db/migrations/**"
+      - "compose.yaml"
+      - "data/**"
+      - "*_gold_queries.json"
+      - "concept_registry.json"
+      - "docs/reports/m1-parity/**"
+      - ".github/workflows/evals.yml"
+
+permissions:
+  contents: read
+
+# A newer push to the same branch (or pull request) cancels the run that is still going, except on master.
+concurrency:
+  group: evals-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  evals:
+    name: Release gate with the real model (bge-m3)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      # Names the pinned model revision (MODEL_REVISION in engine/src/gsn/embed.py). When that revision
+      # changes, change this key too: a stale cache would be restored and the build would stop with
+      # "the embedding model is not in the model cache".
+      MODEL_CACHE_KEY: bge-m3-5617a9f61b028005a4858fdac845db406aefb181
+    steps:
+      # fetch-depth 0: the build refuses to start if any commit in the history ever held a setenv*.bat or
+      # .env file, so the whole history must be there. No credentials are left in .git, which the
+      # release container mounts (read-only).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The deploy scripts are standard-library Python; this makes sure `python` is 3.12.10.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12.10"
+
+      # The model lives in a folder of the runner (mounted over the release service's /models volume
+      # below) so that it can be cached: about 2.3 GB, downloaded only when this cache has no copy. It
+      # is restored and saved by separate steps so that it is saved straight after the download, even
+      # if the gate fails later.
+      - name: Restore the model cache
+        id: model-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/gsn-models
+          key: ${{ env.MODEL_CACHE_KEY }}
+
+      # The container user is uid/gid 10001. Files that the cache step restored belong to the runner
+      # user, so the whole folder is handed over, not only the folder itself.
+      - name: Prepare the model folder (owner 10001:10001)
+        run: |
+          sudo install -d -o 10001 -g 10001 "$HOME/gsn-models"
+          sudo chown -R 10001:10001 "$HOME/gsn-models"
+
+      # Random throw-away secrets for this run only. Never print .env.
+      - name: Create .env
+        run: python deploy/make_env.py
+
+      # --profile tools also builds the one-off release image (gsn-release:dev, with the ML packages).
+      - name: Build the images
+        run: docker compose --profile tools build
+
+      - name: Start the database and apply the migrations
+        run: |
+          docker compose up -d --wait --wait-timeout 180 postgres
+          docker compose run --rm migrate
+
+      # Every `release` run below mounts the runner's folder over the service's gsn-models volume: a
+      # `-v` on `run` replaces the service's mount of the same target (compose.yaml is not changed).
+      # --no-deps: the database is up and migrated already, so nothing else is started, and compose's
+      # own status lines stay away from the output that is parsed. -T: no pseudo-terminal in CI.
+      - name: Download the model (only when the cache had no copy)
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          docker compose --profile tools run --rm -T --no-deps -v "$HOME/gsn-models:/models" -e HF_HUB_OFFLINE=0 release models fetch
+          # Never cache a folder without the weights (a cache entry cannot be replaced once saved).
+          test -n "$(find "$HOME/gsn-models" -name pytorch_model.bin -print -quit)" || { echo "no pytorch_model.bin in ~/gsn-models after the download: not caching it"; exit 1; }
+          du -sh "$HOME/gsn-models"
+
+      - name: Save the model cache
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/gsn-models
+          key: ${{ env.MODEL_CACHE_KEY }}
+
+      # Exit 0 only when the release is `validated`: every gold query passes or is a known failure.
+      # No --override. The release id is read from the first line of the output (it depends on what the
+      # database holds, so it is not assumed to be 1) and is written out even when the gate fails, so
+      # the next step can still produce the details.
+      - name: Build the release with the real model (the gate must pass)
+        id: build
+        run: |
+          set -euo pipefail
+          release() { docker compose --profile tools run --rm -T --no-deps -v "$HOME/gsn-models:/models" release "$@"; }
+          status=0
+          release release build --commit HEAD | tee build.log || status=$?
+          id=$(sed -n 's/^release_id=\([0-9]*\) .*/\1/p' build.log)
+          echo "release_id=$id" >> "$GITHUB_OUTPUT"
+          { echo '### Release build'; echo '```'; cat build.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      # The result of every gold query against that release, kept as an artifact (see the upload step).
+      - name: Gold-query results (JSON)
+        if: ${{ !cancelled() && steps.build.outputs.release_id != '' }}
+        env:
+          RELEASE_ID: ${{ steps.build.outputs.release_id }}
+        run: |
+          set -euo pipefail
+          release() { docker compose --profile tools run --rm -T --no-deps -v "$HOME/gsn-models:/models" release "$@"; }
+          release eval --release "$RELEASE_ID" --json > eval.json
+          python -m json.tool eval.json > /dev/null
+
+      - name: Verify the audit chain
+        run: |
+          set -euo pipefail
+          release() { docker compose --profile tools run --rm -T --no-deps -v "$HOME/gsn-models:/models" release "$@"; }
+          release audit verify
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: release-eval
+          path: |
+            eval.json
+            build.log
+          if-no-files-found: ignore
+          retention-days: 30
+
+      # df first: a full runner disk (images, the model, the cache archive) looks like many other failures.
+      - name: Container state, disk and logs (only when something failed)
+        if: failure()
+        run: |
+          df -h /
+          docker compose ps -a
+          docker compose logs --no-color
+
+      - name: Tear down (containers and volumes)
+        if: always()
+        run: docker compose down -v

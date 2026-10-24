@@ -6,7 +6,9 @@
 #   * the toolchains - Python 3.12, Node 24, Rust 1.99.1 - and Postgres majors. These are pinned
 #     on purpose (python/node image tags, engines.node, requires-python, web/rust-toolchain.toml)
 #     and are upgraded by hand, in one pull request that changes every place together;
-#   * @types/node major versions: they must follow the Node major we actually run (24).
+#   * @types/node major versions: they must follow the Node major we actually run (24);
+#   * the ML libraries of the engine's `ml` extra (torch, sentence-transformers, transformers, tokenizers,
+#     safetensors, numpy, huggingface-hub): pinned to the ChromaDB baseline's versions until the M2 switch.
 # That is what the `ignore:` blocks below say. Patch releases of the same toolchain (for example
 # Python 3.12.11) are still proposed.
 #
@@ -32,6 +34,17 @@ updates:
     directory: /engine
     schedule:
       interval: weekly
+    ignore:
+      # Pinned to the ChromaDB baseline's versions until the M2 engine switch: the embeddings in a
+      # release are compared with the baseline's, so these libraries change only together with a new
+      # baseline and a parity re-run (docs/DEVELOPMENT.md, "ML constraints"). They are the `ml` extra.
+      - dependency-name: "torch"
+      - dependency-name: "sentence-transformers"
+      - dependency-name: "transformers"
+      - dependency-name: "tokenizers"
+      - dependency-name: "safetensors"
+      - dependency-name: "numpy"
+      - dependency-name: "huggingface-hub"
     groups:
       minor-and-patch:
         patterns:

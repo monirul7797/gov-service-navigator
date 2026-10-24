@@ -1,0 +1,43 @@
+# Exact versions of everything the engine's `ml` extra needs that the runtime image does not already
+# install: sentence-transformers, CPU-only torch and their dependencies. (A few of them, such as
+# packaging, are also in constraints.txt because the dev tree needs them; the versions are the same.)
+# The release image installs this file with --no-deps (Dockerfile target `release`), so it must list
+# the whole difference. Do not edit by hand; regenerate it inside a Linux container as described in
+# docs/DEVELOPMENT.md (section ML constraints). The pins of torch, sentence-transformers, transformers,
+# tokenizers and numpy are the versions the ChromaDB baseline was made with
+# (docs/reports/m1-parity/chroma_baseline.json); torch carries the +cpu label of the PyTorch CPU index.
+certifi==2026.10.19
+cloudpickle==3.1.2
+filelock==4.2.4
+fsspec==2026.9.0
+hf-xet==1.7.0
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==1.23.0
+Jinja2==3.1.6
+joblib==1.6.0
+markdown-it-py==4.2.0
+MarkupSafe==3.0.4
+mdurl==0.1.2
+mpmath==1.3.0
+narwhals==2.27.1
+networkx==3.7
+numpy==2.5.1
+packaging==26.3
+Pygments==2.21.0
+PyYAML==6.0.3
+regex==2026.9.29
+rich==15.0.0
+safetensors==0.8.0
+scikit-learn==1.9.1
+scipy==1.18.1
+sentence-transformers==5.6.0
+setuptools==84.2.1
+shellingham==1.5.4
+sympy==1.14.0
+threadpoolctl==3.7.0
+tokenizers==0.22.2
+torch==2.13.0+cpu
+tqdm==4.70.1
+transformers==5.13.1
+typer==0.27.3

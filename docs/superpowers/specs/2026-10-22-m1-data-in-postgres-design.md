@@ -48,7 +48,7 @@ New migrations (`db/migrations/0002_…` onwards; applied migrations are never e
 |---|---|---|
 | `services` | `service_id` (PK: `nid`, `bdris`, `epassport`, `ereturn`), `name_bn`, `name_en` | insert only |
 | `records` | `record_id` (PK, today's corpus IDs — unique across all corpora), `service_id` FK, `created_at` | insert only |
-| `record_versions` | `version_id` (identity PK), `record_id` FK, `content_hash`, `text_hash`, `hash_version`, `record` (JSONB: the original record, every field; string values exactly as in the file), `embed_text` (the record's `text`, exactly what is embedded), `category`, `subcategory`, `heading`, `lang`, `source_url`, `url_kind`, `official`, `source_verified`, `verified_at` (date, nullable), `embedding` (`vector(1024)`), `embedding_model`, `source_commit`, `created_at`, `created_by`, `change_note` | **append-only** (UPDATE/DELETE/TRUNCATE rejected) |
+| `record_versions` | `version_id` (identity PK), `record_id` FK, `content_hash`, `fields_hash`, `text_hash`, `hash_version`, `record` (JSONB: the original record, every field; string values exactly as in the file), `embed_text` (the record's `text`, exactly what is embedded), `category`, `subcategory`, `heading`, `lang`, `source_url`, `url_kind`, `official`, `source_verified`, `verified_at` (date, nullable), `embedding` (`vector(1024)`), `embedding_model`, `source_commit`, `created_at`, `created_by`, `change_note` | **append-only** (UPDATE/DELETE/TRUNCATE rejected) |
 | `releases` | `release_id` (identity PK, small integers the owner types), `status` (`draft` → `validated` \| `rejected`), `source_commit`, `manifest` (JSONB), `registry` (JSONB), `registry_sha256` (of the file's raw bytes), `thresholds` (JSONB), `gate_report` (JSONB), `embedding_model`, `note`, `override_reason`, `created_at`, `created_by` | only `status` (+ `gate_report`, `override_reason`) may change, once, out of `draft` |
 | `release_members` | `release_id`, `version_id`, `record_id`; PK (`release_id`, `version_id`), UNIQUE (`release_id`, `record_id`) — one version per record per release | insert/delete only while the release is `draft` |
 | `release_services` | (`release_id`, `service_id`) PK, `status` (`live` \| `hidden`) | frozen with the release |
@@ -57,10 +57,15 @@ New migrations (`db/migrations/0002_…` onwards; applied migrations are never e
 
 - **Version identity** — `content_hash` = SHA-256 of the record's canonical JSON, computed in
   Python as `json.dumps(record, sort_keys=True, ensure_ascii=False, separators=(",", ":"))`
-  encoded UTF-8, with `hash_version = 1`. It is never recomputed from `jsonb::text`. A build
-  reuses an existing version when (`record_id`, `content_hash`, `embedding_model`) exists (UNIQUE
-  index). A changed field such as a newer `fetched_at` is a real change (a newer verification) and
-  gets a new version.
+  encoded UTF-8, with `hash_version = 1`. It is never recomputed from `jsonb::text`.
+  `fields_hash` = SHA-256 of the canonical JSON of the derived columns (`category`, `subcategory`,
+  `heading`, `lang`, `source_url`, `url_kind`, `official`, `source_verified`, `verified_at` as an
+  ISO date or null), so a version also captures what the manifest mapping and the derivation code
+  made of the record. A build reuses an existing version when (`record_id`, `content_hash`,
+  `fields_hash`, `embedding_model`) exists (UNIQUE index). A changed field such as a newer
+  `fetched_at`, a changed `verified_at_field` mapping or a changed `url_kind` rule is a real change
+  and gets a new version (amended 2026-10-23 after the A6 review: reuse by content alone would
+  have kept stale derived columns forever).
 - **Embedding reuse** — `text_hash` = SHA-256 of `embed_text`. A new version whose (`text_hash`,
   `embedding_model`) already exists copies that vector instead of re-embedding, so a re-crawl that
   only changes provenance fields costs no embedding time.
@@ -251,7 +256,17 @@ by the baseline) and the model revision the PC uses
     dropping, renaming or retyping a registered column is not);
   - every registered trigger exists and is enabled in a mode that fires in normal sessions
     (`tgenabled` `O` or `A`; `D` disabled and `R` replica-only are violations);
-  - no registered function was dropped or replaced (`CREATE OR REPLACE`).
+  - no registered function was dropped or replaced (`CREATE OR REPLACE`). The function fingerprint
+    uses role *names* (`proowner::regrole`), field separators and the ACL, so it survives a restore
+    and also catches a widened EXECUTE grant;
+  - (added 2026-10-23 after the B2 review) no table rewrite of a protected table (a `table_rewrite`
+    event trigger: `ALTER COLUMN … TYPE … USING` to the same type would otherwise rewrite rows
+    without firing row triggers); protected tables stay `LOGGED`; no unregistered non-internal
+    trigger on a protected table (a later-firing trigger could change a row after the guard
+    approved it); no inheritance parent or child for a protected table (rows in a child skip the
+    guards but appear in plain reads).
+- Protected functions in `public` pin `search_path = pg_catalog, pg_temp` (every relation is
+  already qualified), so no overload created in `public` can capture a call inside them.
 - Name-based registration survives `pg_dump`/`pg_restore` (object IDs change on restore); the M4
   restore test includes a watchdog check.
 - Changing a guard later needs the superuser, by design (documented break-glass procedure). The
@@ -271,8 +286,12 @@ by the baseline) and the model revision the PC uses
   the trigger runs).
 - Canonical row: `chain_seq`, `id`, `at` rendered in UTC with fixed precision, `actor`, `action`,
   `target`, `details` — with `hash_version = 1` so the format can evolve.
-- Verification walks the chain by `chain_seq`, not by `id`. Rows written before the chain existed
-  (local test rows only) have NULL hashes; verification starts at `chain_seq = 1`.
+- Verification walks the chain by `chain_seq`, not by `id`, starting at `chain_seq = 1`. Every
+  `audit_log` row must be chained: a row with a NULL `chain_seq` is reported as a break (amended
+  2026-10-23 after the B1 review — every real database is created fresh, so an unchained row can
+  only be a forged append). The verification core takes the rows and the head as parameters, so its
+  tamper detection can be tested on scratch copies while the watchdog (§8.1) protects the real
+  table.
 - `audit_verify()` (`SECURITY DEFINER`) returns OK or the first broken `chain_seq`, so the worker can
   verify without reading audit contents. `gsn audit verify` wraps it.
 - Exporting the latest hash off the server (so even a superuser rewrite is detectable) is M4.
@@ -287,12 +306,17 @@ and `CONNECT` on the `postgres` database from `PUBLIC`; revoke `CREATE` on `gsn`
 
 ### 9.1 Images and dependencies
 
-- **Separate release image** (`gsn-release:dev`, Dockerfile target `release`, built `FROM` the
-  runtime stage): adds the `gsn[ml]` extra (`sentence-transformers`, CPU-only `torch` from the
-  PyTorch CPU index, at the PC's versions) and `git`. The engine/worker runtime and test images
-  stay as they are until M2. Expected size ≈ runtime + 1 GB.
+- **Separate release image** (`gsn-release:dev`, Dockerfile target `release`): adds the `gsn[ml]`
+  extra (`sentence-transformers`, CPU-only `torch` from the PyTorch CPU index, at the PC's
+  versions) and `git`. The ML packages are installed in their own `ml` stage built `FROM base`
+  from `constraints-ml.txt` alone, and `release` builds on that stage and installs the engine on
+  top, so editing engine code never rebuilds the ~1.7 GB ML layer (amended 2026-10-25 after the C1
+  review). The engine/worker runtime and test images stay as they are until M2. Expected size ≈
+  runtime + 1.7 GB unpacked.
 - The ML dependency tree is locked in a separate `engine/constraints-ml.txt`, generated **inside a
-  Linux container** by a documented command (it cannot come from the Windows venv). CI audits it
+  Linux container** by a documented command (it cannot come from the Windows venv). It lists what
+  the `ml` extra needs beyond the runtime image (packages that `constraints.txt` pins only for the
+  dev tree are therefore listed too, at the same versions). CI audits it
   and `engine/tests/test_constraints.py` covers the `ml` extra. Dependabot ignores `torch` and
   `sentence-transformers` until the M2 engine switch (an upgrade later means re-running parity).
 - The image creates `/models` owned by the `gsn` user before switching to it, so a fresh

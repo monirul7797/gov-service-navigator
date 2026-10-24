@@ -1,0 +1,40 @@
+{
+  "services": [
+    {
+      "service_id": "nid",
+      "name_bn": "জাতীয় পরিচয়পত্র (NID)",
+      "name_en": "National ID (NID)",
+      "status": "live",
+      "corpus": "data/chunks/nid.jsonl",
+      "gold": "nid_gold_queries.json",
+      "verified_at_field": "fetched_at"
+    },
+    {
+      "service_id": "epassport",
+      "name_bn": "ই-পাসপোর্ট",
+      "name_en": "e-Passport",
+      "status": "live",
+      "corpus": "data/chunks/epassport.jsonl",
+      "gold": "epassport_gold_queries.json",
+      "verified_at_field": "last_crawled"
+    },
+    {
+      "service_id": "ereturn",
+      "name_bn": "ই-রিটার্ন (আয়কর)",
+      "name_en": "e-Return (income tax)",
+      "status": "live",
+      "corpus": "data/chunks/ereturn.jsonl",
+      "gold": "ereturn_gold_queries.json",
+      "verified_at_field": null
+    },
+    {
+      "service_id": "bdris",
+      "name_bn": "জন্ম ও মৃত্যু নিবন্ধন",
+      "name_en": "Birth and death registration",
+      "status": "live",
+      "corpus": "data/chunks/bdris.jsonl",
+      "gold": "bdris_gold_queries.json",
+      "verified_at_field": null
+    }
+  ]
+}

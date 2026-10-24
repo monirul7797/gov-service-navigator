@@ -1,0 +1,155 @@
+[
+  {
+    "id": "rc_01",
+    "queries": [
+      "পিতা-মাতার জন্ম নিবন্ধন নম্বর থাকলে তাদের নাম কিভাবে সংশোধন করব?",
+      "আমার আইডি কার্ড হারিয়ে গেছে এবং তথ্যও ভুল আছে, একসাথে ঠিক করা যাবে কি?"
+    ],
+    "services": [
+      "nid",
+      "bdris"
+    ]
+  },
+  {
+    "id": "rc_02",
+    "queries": [
+      "what documents do I need for a new passport",
+      "What documents are required to obtain an e-TIN?",
+      "নতুন পাসপোর্ট আবেদনের জন্য কি কি কাগজপত্র লাগে"
+    ],
+    "services": [
+      "epassport",
+      "ereturn"
+    ]
+  },
+  {
+    "id": "rc_03",
+    "queries": [
+      "জন্ম নিবন্ধনের ফি কত টাকা?",
+      "কত টাকা আয় হলে আয়কর দিতে হয়? করমুক্ত সীমা কত?"
+    ],
+    "services": [
+      "ereturn",
+      "bdris"
+    ]
+  },
+  {
+    "id": "rc_04",
+    "queries": [
+      "Can I use bKash to pay the NID correction fee?",
+      "How much does a 48 page e-passport with 5 years validity cost inside Bangladesh, regular delivery?"
+    ],
+    "services": [
+      "nid",
+      "epassport"
+    ]
+  },
+  {
+    "id": "rc_05",
+    "queries": [
+      "What documents do I need for Form-2 enrollment as a new voter?",
+      "what documents do I need for a new passport",
+      "What documents are required to obtain an e-TIN?"
+    ],
+    "services": [
+      "nid",
+      "epassport",
+      "ereturn"
+    ]
+  },
+  {
+    "id": "rc_06",
+    "queries": [
+      "আমার আইডি কার্ড হারিয়ে গেছে এবং তথ্যও ভুল আছে, একসাথে ঠিক করা যাবে কি?",
+      "আমার আগের পাসপোর্ট নম্বর মনে নেই এবং হারিয়ে গেছে, পুরনো নম্বর কিভাবে পাব?",
+      "How do I apply for birth registration if I live abroad through the embassy?"
+    ],
+    "services": [
+      "nid",
+      "epassport",
+      "bdris"
+    ]
+  },
+  {
+    "id": "rc_07",
+    "queries": [
+      "৬৪ পাতা ১০ বছর মেয়াদী পাসপোর্টের সুপার এক্সপ্রেস ফি কত?",
+      "আয়কর রিটার্ন কবের মধ্যে জমা দিতে হবে?",
+      "জন্ম নিবন্ধনের ফি কত টাকা?"
+    ],
+    "services": [
+      "epassport",
+      "ereturn",
+      "bdris"
+    ]
+  },
+  {
+    "id": "rc_08",
+    "queries": [
+      "Can I use bKash to pay the NID correction fee?",
+      "I paid my tax in e-Return but it still shows unpaid, what do I do?",
+      "How do I add a mobile number to my birth certificate that doesn't have one?"
+    ],
+    "services": [
+      "nid",
+      "ereturn",
+      "bdris"
+    ]
+  },
+  {
+    "id": "rc_09",
+    "queries": [
+      "what documents do I need for a new passport",
+      "নতুন পাসপোর্ট আবেদনের জন্য কি কি কাগজপত্র লাগে",
+      "What documents are required to obtain an e-TIN?"
+    ],
+    "services": [
+      "nid",
+      "epassport",
+      "ereturn",
+      "bdris"
+    ]
+  },
+  {
+    "id": "rc_10",
+    "queries": [
+      "Can I use bKash to pay the NID correction fee?",
+      "জন্ম নিবন্ধনের ফি কত টাকা?",
+      "৬৪ পাতা ১০ বছর মেয়াদী পাসপোর্টের সুপার এক্সপ্রেস ফি কত?"
+    ],
+    "services": [
+      "nid",
+      "epassport",
+      "ereturn",
+      "bdris"
+    ]
+  },
+  {
+    "id": "rc_11",
+    "queries": [
+      "How do I claim my online account if I already have a physical NID card?",
+      "I want to file my return online, how do I start?",
+      "লগইন করতে গিয়ে বার বার পাসওয়ার্ড ভুল হচ্ছে, কতক্ষণ ব্লক থাকবে?"
+    ],
+    "services": [
+      "nid",
+      "epassport",
+      "ereturn",
+      "bdris"
+    ]
+  },
+  {
+    "id": "rc_12",
+    "queries": [
+      "আমার পছন্দের রঙের গাড়ি কিনতে চাই, কোনটা ভালো হবে?",
+      "আজকে বিকেলে কোথায় ভালো বিরিয়ানি পাওয়া যাবে?",
+      "আজকে ঢাকা স্টক এক্সচেঞ্জে কোন শেয়ারের দাম বাড়ল?"
+    ],
+    "services": [
+      "nid",
+      "epassport",
+      "ereturn",
+      "bdris"
+    ]
+  }
+]
