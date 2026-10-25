@@ -202,7 +202,15 @@ git push origin codex/tracker-g0-p02b
   - **CI fixes on the way.** Two new RustSec advisories, for tokio and ctutils, were fixed.
   - **Disk.** Docker's disk on G: is 24 GB. C:'s page file grows to about 9 GB during model work
     (16 GB RAM).
-  - **Still to do:** the whole-branch final review, then the owner's decision to merge.
+  - **M1 DONE, 2026-10-25.**
+    - The final whole-branch review found no Critical issues. Its one Important fix (the gate refuses
+      a live service with no records or no gold queries, or with malformed gold) is in, together with
+      the audit and git exit codes and the docs drift.
+    - CI on PR #9 was green at `a027c33`, including the real-model release gate on GitHub (18m45s).
+    - The owner approved the merge, and PR #9 was merged to `master`.
+  - **Next:** M2 (the engine service, `/v1/turn`). Its follow-ups are in the M1 ledger: the watchdog
+    also covers the engine views, constraints and table ACLs; hash CHECK constraints; a separate
+    release role before the tracker goes live.
 - **Off-topic reply guardrail (2026-10-21):** owner decided model-written off-topic replies stay
   (no fixed template), with a prompt rule (name the responsible office, never describe another
   service's procedures/fees/documents) and a `declined` scorer check: suite 40/40, declined 9/9,
