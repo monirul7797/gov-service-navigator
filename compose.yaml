@@ -11,7 +11,8 @@
 #     (default 127.0.0.1:8081, i.e. this machine only; on a server reach it over Tailscale);
 #   * nothing else has `ports:`.
 # Each service receives only its own database password. Images pulled from a registry are pinned
-# to an exact version; gsn-web:dev and gsn-engine:dev are built from this repository.
+# to an exact version; gsn-web:dev, gsn-engine:dev and gsn-release:dev are built from this repository.
+# Build the release tool too with `docker compose --profile tools build` (a plain build skips profiles).
 
 name: gsn
 
@@ -109,6 +110,34 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  # One-off tool, never started by `docker compose up` (profile "tools"). `gsn release build|publish|rollback|
+  # list|show` and `gsn eval` run here as the worker database role: the entrypoint is `gsn`, so
+  #   docker compose --profile tools run --rm release release build --commit HEAD
+  # means service `release`, subcommand `release build`. It reads release content only from a commit of the
+  # repository's git directory (mounted read-only, no working tree) and keeps model files in the
+  # gsn-models volume. It has no ports and receives only the worker's database password.
+  release:
+    build:
+      context: ./engine
+      target: release
+    image: gsn-release:dev
+    profiles: ["tools"]
+    restart: "no"
+    logging: *default-logging
+    environment:
+      GSN_DB_HOST: postgres
+      GSN_DB_PORT: "5432"
+      GSN_DB_NAME: gsn
+      GSN_DB_USER: gsn_worker
+      GSN_DB_PASSWORD: ${GSN_DB_WORKER_PASSWORD:?run python deploy/make_env.py first}
+      GSN_ACTOR: ${GSN_ACTOR:-owner}
+    volumes:
+      - gsn-models:/models
+      - ${GSN_REPO_GIT:-./.git}:/repo.git:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   web:
     build:
       context: .
@@ -169,3 +198,4 @@ volumes:
   pgdata:
   caddy_data:
   caddy_config:
+  gsn-models:

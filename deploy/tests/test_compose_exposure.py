@@ -1,8 +1,8 @@
 """Static checks on ``compose.yaml`` and the Dockerfiles (no Docker needed).
 
 They guard the review-focus items for the container stack: nothing but Caddy and the admin
-listener is published, the long-running service set is fixed (plus the one-shot ``migrate`` job),
-every image pulled from a registry and every Dockerfile ``FROM`` is pinned to an exact version,
+listener is published, the long-running service set is fixed (plus the one-shot ``migrate`` and
+``release`` jobs), every image pulled from a registry and every Dockerfile ``FROM`` is pinned to an exact version,
 secrets are never written into the compose file, and each service only receives its own database
 password. ``compose.test.yaml`` (the ``itest`` job) gets its own checks at the end.
 """
@@ -19,7 +19,7 @@ DOCKERFILES = [ROOT / "web" / "Dockerfile", ROOT / "engine" / "Dockerfile"]
 
 ALLOWED_PORTS = {"caddy": ["80:80"], "web": ["${GSN_ADMIN_PUBLISH:-127.0.0.1:8081}:8081"]}
 LONG_RUNNING_SERVICES = {"caddy", "web", "engine", "worker", "postgres"}
-ONE_SHOT_SERVICES = {"migrate"}  # run to completion and exit (restart "no")
+ONE_SHOT_SERVICES = {"migrate", "release"}  # run to completion and exit (restart "no")
 EXPECTED_SERVICES = LONG_RUNNING_SERVICES | ONE_SHOT_SERVICES
 
 # Which database password variable each service may receive (spec section 6.1). The engine has no
@@ -36,6 +36,7 @@ ALLOWED_DB_PASSWORDS = {
     "web": {"GSN_DB_WEB_PASSWORD"},
     "engine": set(),
     "worker": {"GSN_DB_WORKER_PASSWORD"},
+    "release": {"GSN_DB_WORKER_PASSWORD"},
     "postgres": DB_PASSWORD_VARS,
 }
 
@@ -125,7 +126,7 @@ def test_web_admin_listener_is_reachable_through_the_published_port():
 # --- service set -----------------------------------------------------------------------------
 
 
-def test_long_running_services_are_exactly_five_plus_the_one_shot_migrate_job():
+def test_long_running_services_are_exactly_five_plus_the_one_shot_jobs():
     services = _services()
     assert set(services) == EXPECTED_SERVICES
     long_running = {name for name, svc in services.items() if svc.get("restart") != "no"}
@@ -186,6 +187,34 @@ def test_worker_reuses_the_engine_image():
     assert "build" not in services["worker"]
 
 
+def test_release_is_a_one_shot_tool_that_is_never_started_by_a_plain_up():
+    release = _services()["release"]
+    assert release["restart"] == "no"
+    assert release.get("profiles") == ["tools"]  # `docker compose up` skips it; `--profile tools run` starts it
+    assert not release.get("ports")
+    assert release["image"] == "gsn-release:dev"
+    assert release["build"] == {"context": "./engine", "target": "release"}
+    assert release["depends_on"] == {"migrate": {"condition": "service_completed_successfully"}}
+    assert "command" not in release  # the image's entrypoint is `gsn`, so the arguments are the owner's
+
+
+def test_release_mounts_only_the_models_volume_and_the_repository_read_only():
+    release = _services()["release"]
+    # The repository is mounted as the git directory only (no working tree, so no setenv*.bat or .env
+    # file is visible, only what history holds, which the CLI scans before it reads anything).
+    assert release["volumes"] == ["gsn-models:/models", "${GSN_REPO_GIT:-./.git}:/repo.git:ro"]
+    assert "gsn-models" in _compose()["volumes"]
+
+
+def test_release_uses_the_worker_role_and_receives_only_its_password():
+    env = _env(_services()["release"])
+    assert env["GSN_DB_USER"] == "gsn_worker"
+    assert env["GSN_DB_PASSWORD"] == "${GSN_DB_WORKER_PASSWORD:?run python deploy/make_env.py first}"
+    assert env["GSN_ACTOR"] == "${GSN_ACTOR:-owner}"
+    # The fake embedder is chosen on the command line (-e GSN_EMBEDDER=fake), never by default.
+    assert "GSN_EMBEDDER" not in env
+
+
 # --- pinned images ---------------------------------------------------------------------------
 
 
@@ -194,7 +223,7 @@ def test_every_image_is_pinned():
     # everything pulled from a registry needs an exact version tag or a digest.
     services = _services()
     built = {svc["image"] for svc in services.values() if "build" in svc}
-    assert built == {"gsn-web:dev", "gsn-engine:dev"}
+    assert built == {"gsn-web:dev", "gsn-engine:dev", "gsn-release:dev"}
     pulled = {name: svc["image"] for name, svc in services.items() if svc["image"] not in built}
     assert set(pulled) == {"postgres", "caddy"}
     for name, reference in pulled.items():
@@ -269,6 +298,7 @@ def test_services_use_their_own_database_roles():
     assert _env(services["migrate"])["GSN_DB_USER"] == "gsn_migrate"
     assert _env(services["web"])["GSN_DB_USER"] == "gsn_web"
     assert _env(services["worker"])["GSN_DB_USER"] == "gsn_worker"
+    assert _env(services["release"])["GSN_DB_USER"] == "gsn_worker"
     assert "GSN_DB_USER" not in _env(services["engine"])
 
 
@@ -291,6 +321,50 @@ def test_engine_stages_run_as_a_dedicated_non_root_user(stage):
     assert user is not None and user.group(1) not in {"root", "0"}
 
 
+def _engine_stage(name):
+    """The instructions of one engine Dockerfile stage, without comment lines (the comment that introduces a
+    stage sits at the end of the stage before it)."""
+    text = (ROOT / "engine" / "Dockerfile").read_text(encoding="utf-8")
+    block = re.search(rf"^FROM \S+ AS {name}\b(.*?)(?=^FROM |\Z)", text, re.M | re.S).group(1)
+    return "\n".join(line for line in block.splitlines() if not line.lstrip().startswith("#"))
+
+
+def test_engine_ml_stage_installs_only_the_ml_lock_file_so_source_edits_never_rebuild_it():
+    text = (ROOT / "engine" / "Dockerfile").read_text(encoding="utf-8")
+    assert re.search(r"^FROM base AS ml\b", text, re.M)
+    block = _engine_stage("ml")
+    # Only constraints-ml.txt is mounted: the layer's cache key is that file, not the engine sources.
+    assert "--mount=type=bind,source=constraints-ml.txt," in block
+    assert "target=/build" not in block and "/build" not in block.replace("constraints-ml.txt", "")
+    assert "--no-deps" in block and "https://download.pytorch.org/whl/cpu" in block
+    assert "-r /constraints-ml.txt" in block or "-r /build/constraints-ml.txt" in block
+    assert "COPY" not in block and "USER" not in block and "EXPOSE" not in block
+
+
+def test_engine_release_stage_is_built_on_the_ml_stage_plus_git_and_runs_as_the_dedicated_user():
+    text = (ROOT / "engine" / "Dockerfile").read_text(encoding="utf-8")
+    assert re.search(r"^FROM ml AS release\b", text, re.M)
+    assert text.index("AS ml") < text.index("AS release")
+    block = _engine_stage("release")
+    users = re.findall(r"^USER (\S+)", block, re.M)
+    assert users[0] == "root" and users[-1] == "gsn"  # root only for the install, the entrypoint runs as gsn
+    assert "--no-install-recommends git" in block and "/var/lib/apt/lists" in block
+    assert "chown gsn:gsn /models" in block
+    for setting in ("HF_HOME=/models", "HF_HUB_OFFLINE=1", "GIT_CONFIG_NOSYSTEM=1", "GSN_REPO_GIT=/repo.git"):
+        assert setting in block, setting
+    # the engine package goes in the way the runtime stage does it, with both lock files as constraints
+    assert "-c /build/constraints.txt" in block and "-c /build/constraints-ml.txt" in block
+    assert "pip check" in block
+    assert 'ENTRYPOINT ["gsn"]' in block and 'CMD ["--help"]' in block
+    assert "EXPOSE" not in block
+
+
+def test_the_runtime_and_test_stages_know_nothing_about_the_ml_packages():
+    for stage in ("runtime", "test"):
+        block = _engine_stage(stage)
+        assert "ml" not in re.findall(r"\[(\w+)\]", block) and "constraints-ml" not in block and "torch" not in block
+
+
 def test_engine_runtime_stage_contains_no_tests():
     text = (ROOT / "engine" / "Dockerfile").read_text(encoding="utf-8")
     runtime = re.search(r"^FROM \S+ AS runtime\b(.*?)(?=^FROM |\Z)", text, re.M | re.S).group(1)
@@ -309,10 +383,46 @@ def test_engine_build_context_ignores_caches_and_build_output():
     assert {".pytest_cache", "*.egg-info", "__pycache__", "tests"} <= lines
 
 
-def test_roles_script_stops_on_errors():
-    text = (ROOT / "db" / "init" / "10-roles.sh").read_text(encoding="utf-8")
+INIT_SCRIPTS = sorted((ROOT / "db" / "init").glob("*.sh"))
+
+
+def test_the_init_scripts_are_the_expected_ones():
+    # PostgreSQL runs them in file name order, once, on an empty volume: roles first, then the guard.
+    assert [path.name for path in INIT_SCRIPTS] == ["10-roles.sh", "20-guard.sh"]
+
+
+@pytest.mark.parametrize("script", INIT_SCRIPTS, ids=lambda path: path.name)
+def test_init_scripts_stop_on_errors(script):
+    text = script.read_text(encoding="utf-8")
     assert text.startswith("#!/bin/bash\n") or text.startswith("#!/usr/bin/env bash\n")
     assert "set -euo pipefail" in text
+    # every psql call stops at the first SQL error (otherwise a half-applied script still "succeeds")
+    calls = re.findall(r"^psql\b[^\n]*", text, re.M)
+    assert calls and all("ON_ERROR_STOP=1" in call for call in calls), calls
+
+
+def test_the_guard_init_is_all_or_nothing():
+    # PostgreSQL skips the init scripts on a data directory that already exists, so a script that fails
+    # half way must not leave a half-built guard behind: every psql call of 20-guard.sh is one transaction
+    # (`-1` only takes effect together with -f / -c, hence `-f -` for the statements on stdin).
+    text = (ROOT / "db" / "init" / "20-guard.sh").read_text(encoding="utf-8")
+    calls = re.findall(r"^psql\b[^\n]*", text, re.M)
+    assert len(calls) == 2
+    for call in calls:
+        assert re.search(r"\s-1\s", call) and re.search(r"\s-f\s+-(\s|$)", call), call
+
+
+def test_the_guard_preflight_demands_the_whole_watchdog():
+    # Migration 0004 stops, with a clear message, on a database whose watchdog is missing or incomplete:
+    # the schema and ALL THREE event triggers must exist and be enabled ('O').
+    text = (ROOT / "db" / "migrations" / "0004_guard_registration.sql").read_text(encoding="utf-8")
+    preflight = text.split("DO $$", 1)[1].split("$$;", 1)[0]
+    assert "database predates the M1 guard (db/init/20-guard.sh); recreate it: docker compose down -v" in preflight
+    for name in ("gsn_guard_check", "gsn_guard_check_drop", "gsn_guard_check_rewrite"):
+        assert f"'{name}'" in preflight, name
+    assert "evtenabled" in preflight and "'O'" in preflight
+    # the registrations come after the preflight
+    assert "SELECT gsn_guard.protect_table(" in text.split("$$;", 1)[1]
 
 
 # --- proof that the guards fail on a compose file that breaks the rules (temporary copies) -----
@@ -358,6 +468,30 @@ def _publish_admin_on_all_interfaces(services):
     services["web"]["ports"] = ["8081:8081"]
 
 
+def _publish_release(services):
+    services["release"]["ports"] = ["8082:8082"]
+
+
+def _release_restarts(services):
+    services["release"]["restart"] = "unless-stopped"
+
+
+def _release_always_starts(services):
+    del services["release"]["profiles"]
+
+
+def _release_gets_every_password(services):
+    services["release"]["environment"]["GSN_DB_MIGRATE_PASSWORD"] = "${GSN_DB_MIGRATE_PASSWORD}"
+
+
+def _release_mounts_the_working_tree(services):
+    services["release"]["volumes"] = ["gsn-models:/models", "./:/repo.git:ro"]
+
+
+def _release_mounts_the_repository_writable(services):
+    services["release"]["volumes"] = ["gsn-models:/models", "${GSN_REPO_GIT:-./.git}:/repo.git"]
+
+
 @pytest.mark.parametrize(
     "guard, mutate",
     [
@@ -365,10 +499,16 @@ def _publish_admin_on_all_interfaces(services):
         (test_superuser_password_reaches_only_the_postgres_service, _leak_superuser_password),
         (test_dependencies_wait_for_healthy_services, _web_waits_for_healthy_engine),
         (test_dependencies_wait_for_healthy_services, _web_skips_migrate),
-        (test_long_running_services_are_exactly_five_plus_the_one_shot_migrate_job, _migrate_restarts),
+        (test_long_running_services_are_exactly_five_plus_the_one_shot_jobs, _migrate_restarts),
         (test_only_caddy_and_admin_listener_are_published, _publish_migrate),
         (test_only_caddy_and_admin_listener_are_published, _publish_postgres),
         (test_only_caddy_and_admin_listener_are_published, _publish_admin_on_all_interfaces),
+        (test_only_caddy_and_admin_listener_are_published, _publish_release),
+        (test_long_running_services_are_exactly_five_plus_the_one_shot_jobs, _release_restarts),
+        (test_release_is_a_one_shot_tool_that_is_never_started_by_a_plain_up, _release_always_starts),
+        (test_each_service_receives_only_its_own_database_password, _release_gets_every_password),
+        (test_release_mounts_only_the_models_volume_and_the_repository_read_only, _release_mounts_the_working_tree),
+        (test_release_mounts_only_the_models_volume_and_the_repository_read_only, _release_mounts_the_repository_writable),
     ],
     ids=[
         "env_file",
@@ -379,6 +519,12 @@ def _publish_admin_on_all_interfaces(services):
         "migrate_port",
         "postgres_port",
         "admin_on_all_interfaces",
+        "release_port",
+        "release_restarts",
+        "release_without_profile",
+        "release_gets_every_password",
+        "release_mounts_working_tree",
+        "release_mounts_repository_writable",
     ],
 )
 def test_guard_fails_on_a_violating_compose_file(tmp_path, monkeypatch, guard, mutate):
@@ -424,3 +570,89 @@ def test_itest_secrets_come_from_the_environment_file():
     for key, value in passwords.items():
         assert re.fullmatch(r"\$\{" + key + r":\?[^}]*\}", value), key
     assert "POSTGRES_PASSWORD" not in yaml.safe_dump(_compose_test())
+
+
+# --- every secret compose requires has a placeholder in .env.example, and the other way round ------
+#
+# `python deploy/make_env.py` builds .env from .env.example by replacing each `change-me*` value with a
+# random secret. A variable that compose requires (`${VAR:?message}`) but .env.example lacks would make
+# `docker compose` stop with "run python deploy/make_env.py first" even after running it; a placeholder
+# that nothing requires would be generated and then never read, hiding a rename. Variables with a default
+# (`${VAR:-x}`) are optional settings and are neither.
+
+ENV_EXAMPLE = ROOT / ".env.example"
+REQUIRED_VARIABLE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*):?\?")
+
+
+def required_variables(node):
+    """Names of every ``${VAR:?...}`` / ``${VAR?...}`` found in the string values of a parsed compose file."""
+    if isinstance(node, str):
+        return set(REQUIRED_VARIABLE.findall(node))
+    if isinstance(node, dict):
+        return set().union(*(required_variables(value) for value in node.values()), set())
+    if isinstance(node, list):
+        return set().union(*(required_variables(item) for item in node), set())
+    return set()
+
+
+def placeholder_variables(env_example_text):
+    """Names in ``.env.example`` whose value make_env.py would replace by a secret (``change-me*``)."""
+    import make_env  # deploy/make_env.py, importable through deploy/tests/conftest.py
+
+    names = set()
+    for line in env_example_text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        name, _, value = stripped.partition("=")
+        if make_env._is_placeholder(value):
+            names.add(name.strip())
+    return names
+
+
+def env_example_problems(required, placeholders):
+    return [f"{name}: required by compose, but .env.example has no change-me placeholder for it"
+            for name in sorted(required - placeholders)] + [
+        f"{name}: has a change-me placeholder in .env.example, but no compose file requires it"
+        for name in sorted(placeholders - required)]
+
+
+def test_env_example_and_the_compose_files_agree_on_the_required_secrets():
+    required = required_variables(_compose()) | required_variables(_compose_test())
+    placeholders = placeholder_variables(ENV_EXAMPLE.read_text(encoding="utf-8-sig"))
+    assert required, "no ${VAR:?...} found: the scan is broken"
+    assert env_example_problems(required, placeholders) == []
+
+
+def test_the_scan_finds_the_passwords_and_ignores_optional_settings():
+    compose = {"services": {"a": {"environment": {
+        "P": "${POSTGRES_PASSWORD:?run python deploy/make_env.py first}",
+        "Q": "${GSN_VERSION:-dev}",
+        "R": "${PLAIN}",
+        "S": "${NO_COLON?message}",
+    }, "ports": ["${GSN_ADMIN_PUBLISH:-127.0.0.1:8081}:8081"], "command": ["x", "${IN_A_LIST:?m}"]}}}
+    assert required_variables(compose) == {"POSTGRES_PASSWORD", "NO_COLON", "IN_A_LIST"}
+
+
+@pytest.mark.parametrize(
+    "required, env_text, expected",
+    [
+        # a new secret that compose requires but .env.example does not list
+        ({"A_PASSWORD", "NEW_PASSWORD"}, "A_PASSWORD=change-me-a\n",
+         ["NEW_PASSWORD: required by compose, but .env.example has no change-me placeholder for it"]),
+        # a placeholder nobody requires any more (a renamed variable)
+        ({"A_PASSWORD"}, "A_PASSWORD=change-me-a\nOLD_PASSWORD=change-me-old\n",
+         ["OLD_PASSWORD: has a change-me placeholder in .env.example, but no compose file requires it"]),
+        # the entry exists but holds a real-looking value, so make_env.py would not replace it
+        ({"A_PASSWORD"}, "A_PASSWORD=hunter2\n",
+         ["A_PASSWORD: required by compose, but .env.example has no change-me placeholder for it"]),
+        # a commented-out placeholder is not an entry
+        ({"A_PASSWORD"}, "# A_PASSWORD=change-me-a\n",
+         ["A_PASSWORD: required by compose, but .env.example has no change-me placeholder for it"]),
+        # quoted placeholders count (make_env.py replaces them), plain settings are neither required nor placeholders
+        ({"A_PASSWORD"}, 'A_PASSWORD="change-me-a"\nGSN_VERSION=dev\n', []),
+    ],
+    ids=["missing-from-example", "unused-placeholder", "not-a-placeholder", "commented-out", "quoted-ok"],
+)
+def test_the_env_example_check_notices_a_mismatch(required, env_text, expected):
+    assert env_example_problems(required, placeholder_variables(env_text)) == expected

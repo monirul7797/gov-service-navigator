@@ -48,18 +48,21 @@ Parent: `docs/superpowers/specs/2026-10-20-system-architecture-design.md` §6, �
   `SERVICE_MIN_SIM = 0.40`, `MAX_CONTEXT = 6`, `SCOPED_TOP_K = 8`, `GROUNDING_FLOOR = 0.42`.
   Eval out-of-scope ceilings: NID/e-Passport/e-Return `0.55`, BDRIS `0.62`. Parity tolerance
   `0.001`; stored-vector cosine floor `0.9999`.
-- Every `SECURITY DEFINER` function: `SET search_path = pg_catalog, <its schema>`, every object
-  name schema-qualified, `REVOKE EXECUTE … FROM PUBLIC`, `GRANT EXECUTE` only to the roles named
-  in the task.
+- Every `SECURITY DEFINER` function: `SET search_path = pg_catalog, <its schema>, pg_temp` — except functions living in `public`, which pin `pg_catalog, pg_temp` because `gsn_migrate` owns `public` and an overload there could capture a call (amended 2026-10-23 after the B2 review) —
+  (`pg_temp` explicitly **last**: when it is not listed, PostgreSQL searches it *first* for
+  relation and type names — amended 2026-10-23 after the A3 review), every object name **and every
+  type name** schema-qualified (e.g. `pg_catalog.text` in DECLAREs and casts), `REVOKE EXECUTE …
+  FROM PUBLIC`, `GRANT EXECUTE` only to the roles named in the task.
 - Release content is read only from a commit via `gsn.gitsource.GitSource`, never the working
   tree. The `release` container mounts only `${GSN_REPO_GIT:-./.git}:/repo.git:ro` and
   `gsn-models:/models`; it has no `ports:` and receives only `GSN_DB_WORKER_PASSWORD`.
 - Database settings as separate `GSN_DB_*` variables (never a URL); vectors are passed to
   PostgreSQL as text (`'[x,y,…]'::vector`) — no `pgvector` Python package, no numpy in the core
   image.
-- `gsn` CLI exit codes: `0` success (build validated); `1` runtime error; `2` usage/configuration
-  error (including embedder/model mismatch); `3` build finished but `rejected`; `4` integrity
-  problems (nothing written); `5` parity failed.
+- `gsn` CLI exit codes: `0` success (build validated); `1` runtime error (including a git failure
+  while reading); `2` usage/configuration error (including embedder/model mismatch); `3` build
+  finished but `rejected`; `4` integrity problems (nothing written); `5` parity failed; `6` audit
+  chain broken (`gsn audit verify`).
 - Audit actions written by M1: `release.build`, `release.validate`, `release.reject`,
   `release.override`, `release.publish`, `release.rollback`; actor from `GSN_ACTOR` (default
   `owner`); target `release:<id>`.
@@ -217,7 +220,7 @@ git commit -m "feat(m1): release manifest, inputs loader, record fields and inte
 
 **Interfaces:**
 - Consumes: roles from `db/init/10-roles.sh`; `audit_log` (0001).
-- Produces tables exactly as spec §3 (column names are the spec's). Constraints: `services.service_id` matches `^[a-z][a-z0-9_]*$`; `record_versions`: `UNIQUE (record_id, content_hash, embedding_model)`, `UNIQUE (version_id, record_id)`, index on `(text_hash, embedding_model)`, `source_commit ~ '^[0-9a-f]{40}$'`, `url_kind IN ('info','portal')`, `embedding vector(1024) NOT NULL`; `release_members`: PK `(release_id, version_id)`, `UNIQUE (release_id, record_id)`, FK `(version_id, record_id) → record_versions (version_id, record_id)`; `active_release.singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton)`; `publications.action IN ('publish','rollback')`.
+- Produces tables exactly as spec §3 (column names are the spec's). Constraints: `services.service_id` matches `^[a-z][a-z0-9_]*$`; `record_versions`: `UNIQUE (record_id, content_hash, fields_hash, embedding_model)` (as built: spec §3 amended 2026-10-23), `UNIQUE (version_id, record_id)`, index on `(text_hash, embedding_model)`, `source_commit ~ '^[0-9a-f]{40}$'`, `url_kind IN ('info','portal')`, `embedding vector(1024) NOT NULL`; `release_members`: PK `(release_id, version_id)`, `UNIQUE (release_id, record_id)`, FK `(version_id, record_id) → record_versions (version_id, record_id)`; `active_release.singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton)`; `publications.action IN ('publish','rollback')`.
 - Trigger names (Task B2 registers them): on every guarded table `<table>_guard_row` (row-level) and `<table>_guard_truncate` (statement-level).
 - Produces trigger functions (owned by `gsn_migrate`, plain `plpgsql`): `gsn_reject_change()` raising `'<table> is append-only'` (used `BEFORE UPDATE OR DELETE` row + `BEFORE TRUNCATE` statement on `services`, `records`, `record_versions`, `publications`); `releases_guard()` (UPDATE allowed only `draft → validated|rejected` with every column other than `status`, `gate_report`, `override_reason` unchanged; DELETE/TRUNCATE rejected; message `'release <id> is frozen'`); `release_children_guard()` on `release_members` and `release_services` (INSERT/DELETE only while the parent release is `draft`; UPDATE/TRUNCATE rejected); `active_release_guard()` (target must be `validated`; DELETE/TRUNCATE rejected).
 - Produces `publish_release(p_release_id bigint, p_actor text) RETURNS void` and `rollback_release(p_actor text) RETURNS bigint` — `SECURITY DEFINER`, owner `gsn_migrate`, `SET search_path = pg_catalog, public`, lock the `active_release` row (or the table when empty) first; behaviour exactly spec §6 (publish refuses non-validated: `'release <id> is not validated'`; already active: `'release <id> is already active'`; rollback with no earlier publication: `'nothing to roll back'`); each writes the `active_release` switch, one `publications` row and one `audit_log` row (`release.publish` / `release.rollback`, target `release:<id>`, details `{"previous": <id or null>}`). EXECUTE granted to `gsn_worker` only.
@@ -267,7 +270,7 @@ git commit -m "feat(m1): release tables, state rules, publish/rollback functions
   - `@dataclass(frozen=True) NewVersion(record_id, service_id, record: dict, embed_text, content_hash, text_hash, fields: VersionFields, embedding: list[float])`
   - `@dataclass(frozen=True) Draft(source_commit, manifest_json, registry, registry_sha256, thresholds_json, embedding_model, note, created_by, services: list[ServiceEntry], member_version_ids: dict[str, int], new_versions: list[NewVersion])`
   - `stored_record_services(conn) -> dict[str, str]`; `stored_service_names(conn) -> dict[str, tuple[str, str]]`
-  - `existing_versions(conn, keys: Iterable[tuple[str, str]], model: str) -> dict[str, int]` (record_id → version_id for matching `(record_id, content_hash)`)
+  - `existing_versions(conn, keys: Iterable[tuple[str, str, str]], model: str) -> dict[str, int]` (record_id → version_id for matching `(record_id, content_hash, fields_hash)`; as built after the A6 review)
   - `existing_vectors(conn, text_hashes: Iterable[str], model: str) -> dict[str, list[float]]`
   - `create_draft(conn, draft: Draft) -> int` — **one transaction**: insert missing services and records (`ON CONFLICT DO NOTHING`), insert new versions, the release (`draft`), `release_services`, members; returns `release_id`.
   - `set_gate_result(conn, release_id: int, status: str, gate_report: dict, override_reason: str | None) -> None`
@@ -358,7 +361,7 @@ git commit -m "feat(m1): retrieval port and gold-query eval harness"
 
 **Interfaces:**
 - Consumes: everything from A1–A5.
-- Produces (`build.py`): `@dataclass BuildResult(release_id: int | None, status: str, problems: list[str], gate: GateResult | None, embedded: int, reused_versions: int)`; `build_release(conn, source: ContentSource, embedder: Embedder, *, actor: str, note: str | None, override: str | None, today: date) -> BuildResult` — spec §6 steps 2–6 in order: load inputs → integrity (problems → status `"integrity_failed"`, nothing written) → compute versions (reuse by `(record_id, content_hash, model)`, vectors by `(text_hash, model)`, embed the rest **before** `create_draft`) → `create_draft` → `run_gold` per live service via `store.search` on the draft → `gate` → `set_gate_result` (`validated` / `rejected`, or `validated` with override) → audit rows (`release.build`, then `release.validate` / `release.reject` / `release.override`). `created_by` and actor = `actor`.
+- Produces (`build.py`): `@dataclass BuildResult(release_id: int | None, status: str, problems: list[str], gate: GateResult | None, embedded: int, reused_versions: int)`; `build_release(conn, source: ContentSource, embedder: Embedder, *, actor: str, note: str | None, override: str | None, today: date) -> BuildResult` — spec §6 steps 2–6 in order: load inputs → integrity (problems → status `"integrity_failed"`, nothing written) → compute versions (reuse by `(record_id, content_hash, fields_hash, model)` (as built after the A6 review), vectors by `(text_hash, model)`, embed the rest **before** `create_draft`) → `create_draft` → `run_gold` per live service via `store.search` on the draft → `gate` → `set_gate_result` (`validated` / `rejected`, or `validated` with override) → audit rows (`release.build`, then `release.validate` / `release.reject` / `release.override`). `created_by` and actor = `actor`.
 - Produces (`commands.py`): `publish(conn, release_id, actor, allow_fake: bool)` (refuses `fake-*` models unless `allow_fake`); `rollback(conn, actor) -> int`; `list_releases(conn) -> list[dict]`; `show(conn, release_id) -> dict` (release row without the large JSON blobs, plus `diff_vs_active: {"added": [...], "removed": [...], "changed": [...]}` by `record_id`/`content_hash`); `eval_release(conn, release_id, embedder) -> dict` (refuses when `embedder.model_id != release.embedding_model`).
 - Produces CLI (`gsn.cli`): `gsn release build [--commit REF] [--note TEXT] [--override REASON]`, `gsn release publish ID [--allow-fake]`, `gsn release rollback`, `gsn release list`, `gsn release show ID`, `gsn eval --release ID [--json]`. Repository from `GSN_REPO_GIT` (default `/repo.git`); embedder from `get_embedder(os.environ)`; actor from `GSN_ACTOR` (default `owner`). Human-readable summary on stdout (JSON with `--json` for eval, always JSON for `show`); the first line of `build` output is exactly `release_id=<n> status=<status>` (scripts parse it); exit codes per Global Constraints. Build refuses to start when `secret_paths_in_history()` is non-empty (exit 2, lists the paths).
 - Produces `engine/Dockerfile` target `release` (`FROM runtime AS release`): `USER root`, `apt-get install --no-install-recommends git` (clean apt lists), `mkdir /models && chown gsn:gsn /models`, `ENV HF_HOME=/models HF_HUB_OFFLINE=1 GIT_CONFIG_NOSYSTEM=1 GSN_REPO_GIT=/repo.git`, `USER gsn`, `ENTRYPOINT ["gsn"]`, `CMD ["--help"]`.
@@ -673,3 +676,39 @@ git commit -m "ci(m1): real-model eval workflow"
 3. Routing tests pass on C; release 1's `registry_sha256` matches the committed file.
 4. Stack integration tests (schema, store, build, audit chain, guard, grants) and CI (including the real-model workflow) are green.
 5. The parity report and status updates are committed after the run.
+
+## As built (2026-10-25)
+
+The plan ran in four reviewed stages, with these changes. The full log is in the local ledger
+`.superpowers/sdd/2026-10-22-m1-data-in-postgres/progress.md`.
+
+- **Order.** A5, D1 and D2 ran early, while Docker or disk space was unavailable. A5 created
+  `gsn/retrieval.py` including `Hit`.
+- **Secret scan.** It uses plumbing (`rev-list --all --reflog` + `diff-tree -m --root`). It also
+  strips inherited `GIT_*` variables, sets `GIT_NO_REPLACE_OBJECTS`, and matches names
+  case-insensitively.
+- **Inputs.** `verified_at_field` is restricted. Duplicate JSON keys and non-finite numbers are
+  rejected. Gold ids must be unique release-wide, and `known_failures` ids must be gold ids.
+- **Version identity.** It adds `fields_hash` (the derived columns), and the reuse key is
+  `(record_id, content_hash, fields_hash, model)`. `release show` diffs by version id. Vectors are
+  reused by `text_hash`.
+- **SECURITY DEFINER.** `search_path` puts `pg_temp` last; functions in `public` pin
+  `pg_catalog, pg_temp`. Every type is qualified. Worker INSERTs are column-level.
+- **Audit chain.** Every row must be chained. Verification runs on a core
+  (`audit_verify_rows`, owner-only), so tamper tests use scratch copies.
+- **Watchdog.** It also blocks table rewrites, `UNLOGGED`, unregistered triggers, inheritance, and
+  ACL changes on registered functions. The fingerprint is restore-proof (role names). The init is
+  one transaction, and the preflight checks all three event triggers.
+- **Release image.** The `ml` stage is built `FROM base` (lock file only); `release` is built
+  `FROM ml`. The model always loads locally, and a preflight runs before any write.
+  `constraints-ml.txt` lists what the extra needs beyond the runtime image.
+- **CI.** The real-model workflow runs on pull requests (manual dispatch only works once it is on
+  `master`). Its path filter covers every file the gate depends on.
+- **Exit codes.** `gsn eval` exits 3 when the gate would reject, so an overridden release evals
+  to 3. After the final review: `gsn audit verify` exits 6 for a broken chain (1 stays "the check
+  could not run"), and a git runtime failure (`GitRuntimeError`: no binary, timeout, corrupt object)
+  is exit 1, never an integrity problem (4); an unknown ref or unreadable repository stays a refusal
+  (2).
+- **Release gate.** After the final review the integrity rules also refuse a live service with no
+  records or no gold queries, a gold query without a non-empty `query` string, and a gold file whose
+  `top_k` is not a positive integer, all before anything is written.

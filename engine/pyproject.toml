@@ -21,6 +21,22 @@ dev = [
     "pyyaml==6.0.3",
     "pip-audit==2.10.1",
 ]
+# Never installed on the host or in the runtime image. The release image's `ml` stage (Dockerfile) installs
+# the locked set from constraints-ml.txt (with --no-deps), not this extra: the extra pins the seven
+# baseline versions below, and constraints-ml.txt is generated from it. The pins are the versions the
+# ChromaDB baseline was made with (docs/reports/m1-parity/chroma_baseline.json), so that vectors from the
+# image can be compared with the baseline's. `torch` comes from the PyTorch CPU index (`+cpu`: no CUDA
+# libraries). The whole ML tree is locked in constraints-ml.txt, generated in a Linux container
+# (docs/DEVELOPMENT.md "ML constraints").
+ml = [
+    "sentence-transformers==5.6.0",
+    "torch==2.13.0+cpu",
+    "transformers==5.13.1",
+    "tokenizers==0.22.2",
+    "safetensors==0.8.0",
+    "numpy==2.5.1",
+    "huggingface-hub==1.23.0",
+]
 
 [project.scripts]
 gsn = "gsn.cli:main"
@@ -33,3 +49,8 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Import test modules by file path instead of by bare module name, so two folders may hold a test file
+# of the same name (engine/tests/test_store.py and tests/integration/test_store.py already do). This file
+# is the one pytest finds for `python -m pytest engine/tests deploy/tests tools/tests`, so the option
+# applies to all three folders; deploy/tests/test_repo_hygiene.py guards it.
+addopts = ["--import-mode=importlib"]

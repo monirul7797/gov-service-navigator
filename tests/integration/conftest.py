@@ -7,9 +7,15 @@ separate environment variables, never a URL, so a password with ``@ / : # % ?`` 
     GSN_DB_MIGRATE_PASSWORD, GSN_DB_WEB_PASSWORD, GSN_DB_ENGINE_PASSWORD, GSN_DB_WORKER_PASSWORD.
 """
 import os
+import sys
+from pathlib import Path
 
 import psycopg
 import pytest
+
+# Helper modules next to the tests (release_helpers.py) are imported by name. pytest's default
+# import mode adds each test directory to sys.path; --import-mode=importlib does not, so do it here.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 ROLES = ("migrate", "web", "engine", "worker")
 

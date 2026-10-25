@@ -177,7 +177,40 @@ git push origin codex/tracker-g0-p02b
   or in part), 1 rejected after checking (the e-Passport flag), 1 checked and hardened; triage in
   `docs/superpowers/reports/2026-10-22-m1-design-review-deepseek.md`. Plan:
   `docs/superpowers/plans/2026-10-22-m1-data-in-postgres.md` (stages A schema + release core,
-  B tamper protection, C real model, D baseline + parity + release 1). Not started.
+  B tamper protection, C real model, D baseline + parity + release 1).
+- **M1 implemented, 2026-10-25, on branch `feat/m1-data-in-postgres` (draft PR #9, not merged):**
+  - **What was built.**
+    - Versioned releases in PostgreSQL + pgvector: append-only record versions with content and
+      derived-field fingerprints; publish and rollback are database functions.
+    - `gsn release build|publish|rollback|list|show`, `eval`, `parity`, `audit verify` and
+      `models fetch`, running in a one-off `release` container.
+    - Content is read only from a commit, with a full-history secret scan.
+    - Integrity checks and the gold-query gate with known failures.
+    - Tamper protection: a hash-chained `audit_log`, plus a superuser-owned watchdog that blocks
+      dropping, disabling, rewriting, inheriting from, re-triggering or replacing any guard.
+    - The real bge-m3 model, pinned to `5617a9f`, in its own image stage.
+    - A real-model eval CI workflow.
+  - **Parity proof passed:** `docs/reports/2026-10-25-m1-parity.md`. Release 1, built from
+    `e53ff48`, matches today's ChromaDB:
+    - 293/293 vectors at cosine 1.000000000;
+    - 74/74 gold verdicts (NID 11/4/2/1, e-Passport 19/0/2/0, e-Return 15/0/1/1, BDRIS 15/2/0/1);
+    - 160/160 retrieve runs, with 0 tie swaps.
+    It is published locally.
+  - **Process.** Every task was reviewed. Reviews found and fixed a pg_temp privilege escalation, a
+    same-type `ALTER … USING` rewrite and an inheritance bypass of the guards, stale derived
+    columns on reused versions, and secret files hidden in merge or amended commits.
+  - **CI fixes on the way.** Two new RustSec advisories, for tokio and ctutils, were fixed.
+  - **Disk.** Docker's disk on G: is 24 GB. C:'s page file grows to about 9 GB during model work
+    (16 GB RAM).
+  - **M1 DONE, 2026-10-25.**
+    - The final whole-branch review found no Critical issues. Its one Important fix (the gate refuses
+      a live service with no records or no gold queries, or with malformed gold) is in, together with
+      the audit and git exit codes and the docs drift.
+    - CI on PR #9 was green at `a027c33`, including the real-model release gate on GitHub (18m45s).
+    - The owner approved the merge, and PR #9 was merged to `master`.
+  - **Next:** M2 (the engine service, `/v1/turn`). Its follow-ups are in the M1 ledger: the watchdog
+    also covers the engine views, constraints and table ACLs; hash CHECK constraints; a separate
+    release role before the tracker goes live.
 - **Off-topic reply guardrail (2026-10-21):** owner decided model-written off-topic replies stay
   (no fixed template), with a prompt rule (name the responsible office, never describe another
   service's procedures/fees/documents) and a `declined` scorer check: suite 40/40, declined 9/9,

@@ -69,3 +69,107 @@ def test_the_installed_dependency_tree_is_fully_pinned_to_the_installed_versions
     assert not missing, f"not in constraints.txt: {missing}"
     stale = sorted(name for name in seen if pins[name] != installed[name].version)
     assert not stale, f"constraints.txt differs from the installed version for: {stale}"
+
+
+# --- the ML tree (engine/constraints-ml.txt, the `ml` extra, installed only in the release image) ---------
+
+BASELINE = ENGINE.parent / "docs" / "reports" / "m1-parity" / "chroma_baseline.json"
+
+
+def _read_pins(path, label):
+    """The ``name -> version`` pins of one constraints file, as written (the order is checked separately)."""
+    pins, order = {}, []
+    for number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = PIN.match(line)
+        assert match, f"{label} line {number} is not an exact 'name==version' pin: {raw!r}"
+        name = canonicalize_name(match.group(1))
+        assert name not in pins, f"{name} is pinned twice in {label}"
+        pins[name] = match.group(2)
+        order.append(line)
+    return pins, order
+
+
+def _ml_constraints():
+    return _read_pins(ENGINE / "constraints-ml.txt", "constraints-ml.txt")
+
+
+def _ml_extra():
+    project = tomllib.loads((ENGINE / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    return project["optional-dependencies"]["ml"]
+
+
+def test_ml_constraints_are_exact_pins_written_in_ascii_and_sorted_without_regard_to_case():
+    raw = (ENGINE / "constraints-ml.txt").read_bytes()
+    raw.decode("ascii")  # a UTF-16 file (PowerShell's `>`) or a BOM would fail here
+    pins, order = _ml_constraints()
+    assert pins
+    assert "gsn" not in pins
+    assert order == sorted(order, key=str.lower)
+    assert (ENGINE / "constraints-ml.txt").read_text(encoding="ascii").startswith("#"), "keep the comment header"
+
+
+def test_the_ml_extra_pins_match_constraints_ml():
+    pins, _ = _ml_constraints()
+    extra = _ml_extra()
+    assert {canonicalize_name(Requirement(text).name) for text in extra} >= {"torch", "sentence-transformers"}
+    for text in extra:
+        req = Requirement(text)
+        specifier = str(req.specifier)
+        assert specifier.startswith("=="), f"{text} is not pinned with =="
+        assert pins[canonicalize_name(req.name)] == specifier[2:], text
+
+
+def test_no_package_is_pinned_in_both_constraints_files_with_different_versions():
+    """The ML file lists what the extra needs beyond the *runtime* image, which can include packages the
+    dev tree also needs (``packaging``, ``filelock``, ...); those must carry the same version in both."""
+    core, _ = _read_pins(ENGINE / "constraints.txt", "constraints.txt")
+    ml, _ = _ml_constraints()
+    differing = sorted(f"{name}: {core[name]} vs {ml[name]}" for name in core.keys() & ml.keys() if core[name] != ml[name])
+    assert not differing, differing
+
+
+def test_the_ml_pins_are_the_versions_that_made_the_chromadb_baseline():
+    """Vectors from the release image are compared with the baseline's, so the libraries must be the same.
+
+    The baseline records its environment; torch carries the ``+cpu`` label here (the PyTorch CPU index).
+    A deliberate change belongs to the M2 engine switch and re-runs parity.
+    """
+    import json
+
+    environment = json.loads(BASELINE.read_text(encoding="utf-8"))["environment"]
+    pins, _ = _ml_constraints()
+    for name in ("torch", "sentence-transformers", "transformers", "tokenizers", "numpy"):
+        assert pins[name].split("+")[0] == environment[name], name
+    assert pins["torch"] == environment["torch"] + "+cpu"
+
+
+def test_the_ml_stage_installs_the_ml_pins_without_resolving_anything():
+    dockerfile = (ENGINE / "Dockerfile").read_text(encoding="utf-8")
+    block = re.search(r"^FROM base AS ml\b(.*?)(?=^FROM |\Z)", dockerfile, re.M | re.S).group(1)
+    assert "--no-deps" in block and "constraints-ml.txt" in block
+    assert "https://download.pytorch.org/whl/cpu" in block
+    release = re.search(r"^FROM ml AS release\b(.*?)(?=^FROM |\Z)", dockerfile, re.M | re.S).group(1)
+    assert "pip check" in release and "-c /build/constraints-ml.txt" in release
+
+
+def test_the_ml_extra_is_exactly_the_seven_baseline_pins():
+    """Nothing is added to or dropped from the extra without this test (and the baseline) being looked at."""
+    assert sorted(_ml_extra()) == sorted([
+        "huggingface-hub==1.23.0",
+        "numpy==2.5.1",
+        "safetensors==0.8.0",
+        "sentence-transformers==5.6.0",
+        "tokenizers==0.22.2",
+        "torch==2.13.0+cpu",
+        "transformers==5.13.1",
+    ])
+
+
+def test_the_ml_file_does_not_repeat_the_engines_runtime_dependencies():
+    project = tomllib.loads((ENGINE / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    runtime = {canonicalize_name(Requirement(text).name) for text in project["dependencies"]}
+    pins, _ = _ml_constraints()
+    assert not sorted(runtime & pins.keys())
