@@ -7,7 +7,7 @@
 # Every dependency version comes from constraints.txt (and, for the release image, constraints-ml.txt),
 # so rebuilds are reproducible.
 
-FROM python:3.12.14-slim-bookworm AS base
+FROM python:3.12.15-slim-bookworm AS base
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
