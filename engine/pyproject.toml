@@ -8,8 +8,8 @@ version = "0.1.0"
 description = "Government Service Navigator: engine app, worker and CLI"
 requires-python = "==3.12.*"
 dependencies = [
-    "fastapi==0.156.7",
-    "starlette==1.9.0",
+    "fastapi==0.162.0",
+    "starlette==1.10.0",
     "uvicorn==0.54.0",
     "psycopg[binary]==3.3.6",
 ]
