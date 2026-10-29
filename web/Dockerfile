@@ -7,7 +7,7 @@
 #   /app/static/admin       admin panel   (GSN_ADMIN_STATIC_DIR)
 
 # --- public frontend -------------------------------------------------------------------------
-FROM node:24.21.0-bookworm-slim AS frontend-public
+FROM node:24.22.0-bookworm-slim AS frontend-public
 WORKDIR /build/frontend/public
 COPY frontend/public/package.json frontend/public/package-lock.json frontend/public/.npmrc ./
 RUN --mount=type=cache,target=/root/.npm npm ci
@@ -15,7 +15,7 @@ COPY frontend/public/ ./
 RUN npm run build
 
 # --- admin frontend --------------------------------------------------------------------------
-FROM node:24.21.0-bookworm-slim AS frontend-admin
+FROM node:24.22.0-bookworm-slim AS frontend-admin
 WORKDIR /build/frontend/admin
 COPY frontend/admin/package.json frontend/admin/package-lock.json frontend/admin/.npmrc ./
 RUN --mount=type=cache,target=/root/.npm npm ci
