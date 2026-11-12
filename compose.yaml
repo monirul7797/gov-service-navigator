@@ -179,7 +179,7 @@ services:
         condition: service_started
 
   caddy:
-    image: caddy:2.11.7
+    image: caddy:2.11.8
     restart: unless-stopped
     logging: *default-logging
     ports:
