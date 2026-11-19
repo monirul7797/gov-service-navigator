@@ -8,16 +8,16 @@ version = "0.1.0"
 description = "Government Service Navigator: engine app, worker and CLI"
 requires-python = "==3.12.*"
 dependencies = [
-    "fastapi==0.156.7",
-    "starlette==1.9.0",
+    "fastapi==0.163.1",
+    "starlette==1.10.0",
     "uvicorn==0.54.0",
-    "psycopg[binary]==3.3.6",
+    "psycopg[binary]==3.3.9",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest==9.1.1",
-    "httpx2==2.16.0",
+    "pytest==9.2.0",
+    "httpx2==2.16.2",
     "pyyaml==6.0.3",
     "pip-audit==2.10.1",
 ]
